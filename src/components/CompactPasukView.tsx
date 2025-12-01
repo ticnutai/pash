@@ -194,7 +194,10 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
 
             {/* Expanded Content */}
             {isExpanded && !forceMinimized && (
-              <div className="border-t border-border animate-accordion-down">
+              <div 
+                className="border-t border-border animate-accordion-down"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <PasukDisplay 
                   pasuk={pasuk} 
                   seferId={seferId}
