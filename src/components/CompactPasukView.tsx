@@ -102,8 +102,16 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
 
                 {/* Pasuk Text or Info */}
                 <div className="flex-1 overflow-hidden" style={{ textAlign: displayStyles.textAlign }}>
-                  <div className="text-sm sm:text-base text-muted-foreground mb-2 font-medium transition-colors duration-200">
-                    {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0 text-sm sm:text-base text-muted-foreground mb-2 font-medium transition-colors duration-200">
+                    <span className="flex items-center gap-1">
+                      {pasuk.parsha_name}
+                      <span className="hidden sm:inline">•</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      פרק {toHebrewNumber(pasuk.perek)}
+                      <span>•</span>
+                      פסוק {toHebrewNumber(pasuk.pasuk_num)}
+                    </span>
                   </div>
                   
                   {/* Always show text in compact view */}
