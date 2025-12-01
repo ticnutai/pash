@@ -76,7 +76,10 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
               minHeight: isExpanded ? 'auto' : '100px',
               contain: 'layout style',
             }}
-            onClick={() => togglePasuk(pasuk.id)}
+            onClick={() => {
+              console.log('CompactPasukView: card clicked', { pasukId: pasuk.id });
+              togglePasuk(pasuk.id);
+            }}
           >
             {/* Compact Pasuk Display - Clickable */}
             <div
@@ -194,12 +197,15 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
 
             {/* Expanded Content */}
             {isExpanded && !forceMinimized && (
-              <div 
+              <div
                 className="border-t border-border animate-accordion-down"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  console.log('CompactPasukView: click inside PasukDisplay wrapper', { pasukId: pasuk.id });
+                  e.stopPropagation();
+                }}
               >
-                <PasukDisplay 
-                  pasuk={pasuk} 
+                <PasukDisplay
+                  pasuk={pasuk}
                   seferId={seferId}
                   forceMinimized={false}
                 />
