@@ -84,7 +84,7 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
             {/* Compact Pasuk Display - Clickable */}
             <div
               className={cn(
-                "w-full p-4 sm:p-6 transition-all duration-200 group touch-manipulation",
+                "w-full p-4 sm:p-6 transition-all duration-200 touch-manipulation group",
                 !isExpanded && "hover:bg-accent/30"
               )}
             >
