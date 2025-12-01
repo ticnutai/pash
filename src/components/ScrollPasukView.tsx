@@ -66,16 +66,20 @@ export const ScrollPasukView = ({ pesukim, seferId, forceMinimized = false }: Sc
                   <div className="text-lg md:text-2xl font-['Frank_Ruhl_Libre'] leading-loose break-words transition-all duration-200">
                     {pasuk.text}
                   </div>
-                  <div className="text-xs md:text-sm text-muted-foreground mt-2 flex items-center gap-2 transition-colors duration-200">
-                    <span>{pasuk.parsha_name}</span>
-                    <span>•</span>
-                    <span>פרק {toHebrewNumber(pasuk.perek)}</span>
-                    {!isExpanded && pasuk.content && pasuk.content.length > 0 && (
-                      <>
-                        <span>•</span>
-                        <span className="text-primary font-medium transition-colors duration-200">לחץ לפתיחה</span>
-                      </>
-                    )}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs md:text-sm text-muted-foreground mt-2 transition-colors duration-200">
+                    <span className="flex items-center gap-1">
+                      {pasuk.parsha_name}
+                      <span className="hidden sm:inline">•</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      פרק {toHebrewNumber(pasuk.perek)}
+                      {!isExpanded && pasuk.content && pasuk.content.length > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-primary font-medium transition-colors duration-200">לחץ לפתיחה</span>
+                        </>
+                      )}
+                    </span>
                   </div>
                 </div>
               </button>
