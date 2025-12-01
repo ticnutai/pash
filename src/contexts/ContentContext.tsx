@@ -37,6 +37,9 @@ interface ContentContextType {
   addTitle: (pasukId: string, title: string, isShared?: boolean) => Promise<number>;
   addQuestion: (titleId: number, question: string, isShared?: boolean) => Promise<number>;
   addAnswer: (questionId: number, mefaresh: string, text: string, isShared?: boolean) => Promise<number>;
+  updateTitle: (id: number, title: string) => Promise<void>;
+  updateQuestion: (id: number, text: string) => Promise<void>;
+  updateAnswer: (id: number, text: string, mefaresh: string) => Promise<void>;
   deleteTitle: (id: number) => Promise<void>;
   deleteQuestion: (id: number) => Promise<void>;
   deleteAnswer: (id: number) => Promise<void>;
@@ -243,6 +246,60 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateTitle = async (id: number, title: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_titles')
+        .update({ title })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTitles((prev) => prev.map((t) => t.id === id ? { ...t, title } : t));
+      toast.success("הכותרת עודכנה בהצלחה");
+    } catch (error) {
+      console.error("Error updating title:", error);
+      toast.error("שגיאה בעדכון כותרת");
+      throw error;
+    }
+  };
+
+  const updateQuestion = async (id: number, text: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_questions')
+        .update({ text })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, text } : q));
+      toast.success("השאלה עודכנה בהצלחה");
+    } catch (error) {
+      console.error("Error updating question:", error);
+      toast.error("שגיאה בעדכון שאלה");
+      throw error;
+    }
+  };
+
+  const updateAnswer = async (id: number, text: string, mefaresh: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_answers')
+        .update({ text, mefaresh })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setAnswers((prev) => prev.map((a) => a.id === id ? { ...a, text, mefaresh } : a));
+      toast.success("התשובה עודכנה בהצלחה");
+    } catch (error) {
+      console.error("Error updating answer:", error);
+      toast.error("שגיאה בעדכון תשובה");
+      throw error;
+    }
+  };
+
   const deleteTitle = async (id: number) => {
     try {
       const { error } = await supabase
@@ -360,6 +417,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         addTitle,
         addQuestion,
         addAnswer,
+        updateTitle,
+        updateQuestion,
+        updateAnswer,
         deleteTitle,
         deleteQuestion,
         deleteAnswer,
