@@ -575,13 +575,24 @@ const QuestionSection = ({
   const isUserQuestion = userQuestions?.some(q => q.id === question.id);
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-2 w-full overflow-hidden" style={{ maxWidth: "100%" }}>
+    <Collapsible
+      open={isOpen}
+      onOpenChange={(open) => {
+        console.log('QuestionSection: onOpenChange', { questionId: question.id, open });
+        setIsOpen(open);
+      }}
+      className="space-y-2 w-full overflow-hidden"
+      style={{ maxWidth: "100%" }}
+    >
       <CollapsibleTrigger asChild>
         <div className="relative group/question">
           <Button
             variant="ghost"
             className="w-full justify-between h-auto text-right bg-muted/50 overflow-hidden hover:bg-muted/70 transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('QuestionSection: question button clicked', { questionId: question.id });
+            }}
             style={{
               padding: displayStyles.isMobile ? "0.75rem" : "1rem",
               maxWidth: "100%",
