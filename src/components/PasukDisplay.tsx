@@ -59,7 +59,8 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false }: PasukDi
     (sum, content) => sum + content.questions.reduce((qSum, q) => qSum + q.perushim.length, 0),
     0
   );
-  const pasukId = `${pasuk.perek}-${pasuk.pasuk_num}`;
+  const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
+  console.log('🔍 PasukDisplay - pasukId:', pasukId, 'seferId:', seferId, 'perek:', pasuk.perek, 'pasuk:', pasuk.pasuk_num);
   const bookmarked = isBookmarked(pasukId);
 
   const openAddTitle = () => {
@@ -83,6 +84,8 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false }: PasukDi
     
     // הוסף כותרות משתמשים לפסוק
     const pasukUserTitles = userTitles.filter(t => t.pasukId === pasukId);
+    console.log('🔍 PasukDisplay - Available titles:', userTitles.map(t => ({ id: t.id, pasukId: t.pasukId, title: t.title })));
+    console.log('🔍 PasukDisplay - Filtered titles for pasukId', pasukId, ':', pasukUserTitles.length);
     
     pasukUserTitles.forEach(title => {
       const titleQuestions = userQuestions
