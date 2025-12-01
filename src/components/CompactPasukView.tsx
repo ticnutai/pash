@@ -117,25 +117,27 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
                     </span>
                   </div>
                   
-                  {/* Always show text in compact view */}
-                  <p 
-                    className="text-lg sm:text-xl leading-relaxed font-['Frank_Ruhl_Libre'] line-clamp-3 font-medium transition-all duration-200"
-                    style={{ 
-                      fontFamily: settings.pasukFont,
-                      fontSize: `calc(${settings.pasukSize}px * ${displayStyles.fontScale})`,
-                      color: settings.pasukColor,
-                      fontWeight: settings.pasukBold ? "bold" : "normal",
-                      lineHeight: displayStyles.lineHeight,
-                      letterSpacing: displayStyles.letterSpacing,
-                      wordWrap: "break-word",
-                      overflowWrap: "break-word",
-                      direction: "rtl",
-                      textAlign: 'justify',
-                      textAlignLast: 'right',
-                    }}
-                  >
-                    {formatTorahText(pasuk.text)}
-                  </p>
+                  {/* Show text only when not expanded */}
+                  {!isExpanded && (
+                    <p 
+                      className="text-lg sm:text-xl leading-relaxed font-['Frank_Ruhl_Libre'] line-clamp-3 font-medium transition-all duration-200"
+                      style={{ 
+                        fontFamily: settings.pasukFont,
+                        fontSize: `calc(${settings.pasukSize}px * ${displayStyles.fontScale})`,
+                        color: settings.pasukColor,
+                        fontWeight: settings.pasukBold ? "bold" : "normal",
+                        lineHeight: displayStyles.lineHeight,
+                        letterSpacing: displayStyles.letterSpacing,
+                        wordWrap: "break-word",
+                        overflowWrap: "break-word",
+                        direction: "rtl",
+                        textAlign: 'justify',
+                        textAlignLast: 'right',
+                      }}
+                    >
+                      {formatTorahText(pasuk.text)}
+                    </p>
+                  )}
                   
                   {/* Action Buttons */}
                   <div className={cn(
