@@ -22,7 +22,7 @@ interface CompactPasukViewProps {
   forceMinimized?: boolean;
 }
 
-const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
+export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
   const [expandedPasukId, setExpandedPasukId] = useState<number | null>(null);
   const [editorPasukId, setEditorPasukId] = useState<string | null>(null);
   const displayStyles = useTextDisplayStyles();
@@ -233,4 +233,4 @@ const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: CompactP
   );
 };
 
-export default memo(CompactPasukView);
+// Component is exported above with memo wrapping if needed

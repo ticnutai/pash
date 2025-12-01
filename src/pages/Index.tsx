@@ -27,7 +27,7 @@ import { usePinchZoom } from "@/hooks/usePinchZoom";
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
 const ScrollPasukView = lazy(() => import("@/components/ScrollPasukView").then(m => ({ default: m.ScrollPasukView })));
-const CompactPasukView = lazy(() => import("@/components/CompactPasukView"));
+const CompactPasukView = lazy(() => import("@/components/CompactPasukView").then(m => ({ default: m.CompactPasukView })));
 const PaginatedPasukList = lazy(() => import("@/components/PaginatedPasukList").then(m => ({ default: m.PaginatedPasukList })));
 
 // Navigation components (loaded after initial render)
