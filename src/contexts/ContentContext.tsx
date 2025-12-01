@@ -129,6 +129,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
   const addTitle = async (pasukId: string, title: string, isShared: boolean = false): Promise<number> => {
     try {
+      console.log('🔍 ContentContext - Adding title with pasukId:', pasukId, 'title:', title);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
@@ -144,6 +145,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) throw error;
+      console.log('🔍 ContentContext - Title added successfully:', data);
 
       const newTitle: UserTitle = {
         id: data.id,
@@ -165,6 +167,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuestion = async (titleId: number, question: string, isShared: boolean = false): Promise<number> => {
     try {
+      console.log('🔍 ContentContext - Adding question with titleId:', titleId, 'question:', question);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
@@ -180,6 +183,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) throw error;
+      console.log('🔍 ContentContext - Question added successfully:', data);
 
       const newQuestion: UserQuestion = {
         id: data.id,
@@ -201,6 +205,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
   const addAnswer = async (questionId: number, mefaresh: string, text: string, isShared: boolean = false): Promise<number> => {
     try {
+      console.log('🔍 ContentContext - Adding answer with questionId:', questionId, 'mefaresh:', mefaresh);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
@@ -217,6 +222,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) throw error;
+      console.log('🔍 ContentContext - Answer added successfully:', data);
 
       const newAnswer: UserAnswer = {
         id: data.id,

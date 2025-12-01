@@ -49,6 +49,7 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
   const handleAddContent = (e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
     const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
+    console.log('🔍 CompactPasukView - Opening editor with pasukId:', pasukId);
     setEditorPasukId(pasukId);
   };
 

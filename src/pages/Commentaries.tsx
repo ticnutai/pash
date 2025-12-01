@@ -38,7 +38,8 @@ export const Commentaries = () => {
   const numSeferId = Number(seferId);
   const numPerek = Number(perek);
   const numPasuk = Number(pasuk);
-  const pasukId = `${numPerek}-${numPasuk}`;
+  const pasukId = `${numSeferId}-${numPerek}-${numPasuk}`;
+  console.log('🔍 Commentaries - pasukId:', pasukId);
 
   useEffect(() => {
     const loadData = async () => {
