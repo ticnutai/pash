@@ -84,119 +84,112 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
             {/* Compact Pasuk Display - Clickable */}
             <div
               className={cn(
-                "w-full text-right p-4 sm:p-6 transition-all duration-200 group overflow-hidden touch-manipulation",
-                !isExpanded && "hover:bg-accent/30",
-                isExpanded ? "min-h-[60px]" : "min-h-[80px]"
+                "w-full p-4 sm:p-6 transition-all duration-200 group touch-manipulation",
+                !isExpanded && "hover:bg-accent/30"
               )}
             >
-              <div className="flex items-start gap-3 sm:gap-4 w-full pointer-events-none">
-                {/* Pasuk Number */}
-                <div className={cn(
-                  "flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center transition-all duration-200",
-                  isExpanded ? "w-12 h-12 sm:w-14 sm:h-14" : "w-14 h-14 sm:w-16 sm:h-16 group-hover:bg-primary/20"
-                )}>
-                  <span className={cn(
-                    "font-bold text-primary font-['Frank_Ruhl_Libre'] transition-colors duration-200",
-                    isExpanded ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"
+              {/* Header - Single Row Layout */}
+              <div className="flex items-center justify-between gap-4 mb-3 pointer-events-none" dir="rtl">
+                {/* Right Side - Pasuk Number + Metadata (horizontal) */}
+                <div className="flex items-center gap-3">
+                  {/* Pasuk Number in Circle */}
+                  <div className={cn(
+                    "w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 transition-all duration-200",
+                    "group-hover:bg-primary/20"
                   )}>
-                    {toHebrewNumber(pasuk.pasuk_num)}
-                  </span>
-                </div>
-
-                {/* Pasuk Text or Info */}
-                <div className="flex-1 overflow-hidden" style={{ textAlign: displayStyles.textAlign }}>
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0 text-sm sm:text-base text-muted-foreground font-medium transition-colors duration-200">
-                      <span className="flex items-center gap-1">
-                        {pasuk.parsha_name}
-                        <span className="hidden sm:inline">•</span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        פרק {toHebrewNumber(pasuk.perek)}
-                        <span>•</span>
-                        פסוק {toHebrewNumber(pasuk.pasuk_num)}
-                      </span>
-                    </div>
-
-                    {/* Always Visible Action Buttons - Green icons area */}
-                    <div className="flex items-center gap-1.5 pointer-events-auto">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 hover:bg-accent/50 transition-colors"
-                        onClick={(e) => handleCommentaries(e, pasuk)}
-                        title="פרשנים נוספים"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                      </Button>
-                      
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <NotesDialog
-                          pasukId={`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`}
-                          pasukText={pasuk.text}
-                        />
-                      </div>
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 hover:bg-accent/50 transition-colors"
-                        onClick={(e) => handleBookmark(e, pasuk)}
-                        title="סימניה"
-                      >
-                        {isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? (
-                          <BookmarkCheck className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Bookmark className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
+                    <span className="font-bold text-primary text-xl font-['Frank_Ruhl_Libre']">
+                      {toHebrewNumber(pasuk.pasuk_num)}
+                    </span>
                   </div>
                   
-                  {/* Show text only when not expanded */}
-                  {!isExpanded && (
-                    <p 
-                      className="text-lg sm:text-xl leading-relaxed font-['Frank_Ruhl_Libre'] line-clamp-3 font-medium transition-all duration-200"
-                      style={{ 
-                        fontFamily: settings.pasukFont,
-                        fontSize: `calc(${settings.pasukSize}px * ${displayStyles.fontScale})`,
-                        color: settings.pasukColor,
-                        fontWeight: settings.pasukBold ? "bold" : "normal",
-                        lineHeight: displayStyles.lineHeight,
-                        letterSpacing: displayStyles.letterSpacing,
-                        wordWrap: "break-word",
-                        overflowWrap: "break-word",
-                        direction: "rtl",
-                        textAlign: 'justify',
-                        textAlignLast: 'right',
-                      }}
-                    >
-                      {formatTorahText(pasuk.text)}
-                    </p>
-                  )}
+                  {/* Metadata - Horizontal Display */}
+                  <div className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                    {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
+                  </div>
                 </div>
 
-                {/* Hover-Only Icons - Red box area */}
-                <div className="flex-shrink-0 flex items-start gap-1.5 pt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 hover:bg-accent/50 transition-colors"
-                    onClick={(e) => handleAddContent(e, pasuk)}
-                    title="הוסף תוכן"
-                  >
-                    <StickyNote className="h-4 w-4" />
-                  </Button>
-                  
-                  <div>
-                    {isExpanded ? (
-                      <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
-                    )}
+                {/* Left Side - Action Buttons */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Always Visible Icons (green box) */}
+                  <div className="flex items-center gap-1.5 pointer-events-auto">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => handleCommentaries(e, pasuk)}
+                      className="h-9 w-9 hover:bg-accent/50 transition-colors"
+                      title="פרשנים נוספים"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                    </Button>
+
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <NotesDialog
+                        pasukId={`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`}
+                        pasukText={pasuk.text}
+                      />
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => handleBookmark(e, pasuk)}
+                      className="h-9 w-9 hover:bg-accent/50 transition-colors"
+                      title={isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? "הסר סימניה" : "הוסף סימניה"}
+                    >
+                      {isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? (
+                        <BookmarkCheck className="h-4 w-4 fill-primary text-primary" />
+                      ) : (
+                        <Bookmark className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Hover-Only Icons (red box) */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => handleAddContent(e, pasuk)}
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
+                      title="הוסף תוכן"
+                    >
+                      <StickyNote className="h-4 w-4" />
+                    </Button>
+                    
+                    <div className="cursor-pointer">
+                      {isExpanded ? (
+                        <ChevronUp className="h-5 w-5 text-primary" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+              
+              {/* Pasuk Text - Only when not expanded */}
+              {!isExpanded && (
+                <div className="mt-3" style={{ textAlign: displayStyles.textAlign }}>
+                  <p 
+                    className="text-lg sm:text-xl leading-relaxed font-['Frank_Ruhl_Libre'] line-clamp-3 font-medium transition-all duration-200"
+                    style={{ 
+                      fontFamily: settings.pasukFont,
+                      fontSize: `calc(${settings.pasukSize}px * ${displayStyles.fontScale})`,
+                      color: settings.pasukColor,
+                      fontWeight: settings.pasukBold ? "bold" : "normal",
+                      lineHeight: displayStyles.lineHeight,
+                      letterSpacing: displayStyles.letterSpacing,
+                      wordWrap: "break-word",
+                      overflowWrap: "break-word",
+                      direction: "rtl",
+                      textAlign: 'justify',
+                      textAlignLast: 'right',
+                    }}
+                  >
+                    {formatTorahText(pasuk.text)}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Expanded Content */}
