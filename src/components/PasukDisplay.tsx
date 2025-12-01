@@ -591,7 +591,9 @@ const QuestionSection = ({
             className="w-full justify-between h-auto text-right bg-muted/50 overflow-hidden hover:bg-muted/70 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              console.log('QuestionSection: question button clicked', { questionId: question.id });
+              e.preventDefault();
+              setIsOpen(!isOpen);
+              console.log('QuestionSection: toggling question', { questionId: question.id, newState: !isOpen });
             }}
             style={{
               padding: displayStyles.isMobile ? "0.75rem" : "1rem",
