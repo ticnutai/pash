@@ -566,7 +566,7 @@ const displayedPesukim = useMemo(() => {
                         <ChevronRight className="h-4 w-4" />
                       </Button>
 
-                      <span className="text-sm font-semibold text-primary truncate max-w-[8rem] text-center">
+                      <span className="text-lg font-semibold text-primary truncate max-w-[8rem] text-center">
                         {currentParshaName}
                       </span>
 
