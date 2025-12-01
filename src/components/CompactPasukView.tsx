@@ -103,21 +103,22 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
                   </span>
                 </div>
 
-                {/* Pasuk Text or Info - Hidden when expanded */}
-                {!isExpanded && (
-                  <div className="flex-1 overflow-hidden" style={{ textAlign: displayStyles.textAlign }}>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0 text-sm sm:text-base text-muted-foreground mb-2 font-medium transition-colors duration-200">
-                      <span className="flex items-center gap-1">
-                        {pasuk.parsha_name}
-                        <span className="hidden sm:inline">•</span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        פרק {toHebrewNumber(pasuk.perek)}
-                        <span>•</span>
-                        פסוק {toHebrewNumber(pasuk.pasuk_num)}
-                      </span>
-                    </div>
-                    
+                {/* Pasuk Text or Info */}
+                <div className="flex-1 overflow-hidden" style={{ textAlign: displayStyles.textAlign }}>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0 text-sm sm:text-base text-muted-foreground mb-2 font-medium transition-colors duration-200">
+                    <span className="flex items-center gap-1">
+                      {pasuk.parsha_name}
+                      <span className="hidden sm:inline">•</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      פרק {toHebrewNumber(pasuk.perek)}
+                      <span>•</span>
+                      פסוק {toHebrewNumber(pasuk.pasuk_num)}
+                    </span>
+                  </div>
+                  
+                  {/* Show text only when not expanded */}
+                  {!isExpanded && (
                     <p 
                       className="text-lg sm:text-xl leading-relaxed font-['Frank_Ruhl_Libre'] line-clamp-3 font-medium transition-all duration-200"
                       style={{ 
@@ -136,62 +137,59 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
                     >
                       {formatTorahText(pasuk.text)}
                     </p>
+                  )}
+                  
+                  {/* Action Buttons - Always visible */}
+                  <div className="flex items-center gap-1 pointer-events-auto mt-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => handleBookmark(e, pasuk)}
+                      title="סימניה"
+                    >
+                      {isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? (
+                        <BookmarkCheck className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Bookmark className="h-4 w-4" />
+                      )}
+                    </Button>
                     
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-1 pointer-events-auto mt-3">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => handleBookmark(e, pasuk)}
-                        title="סימניה"
-                      >
-                        {isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? (
-                          <BookmarkCheck className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Bookmark className="h-4 w-4" />
-                        )}
-                      </Button>
-                      
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <NotesDialog
-                          pasukId={`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`}
-                          pasukText={pasuk.text}
-                        />
-                      </div>
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => handleAddContent(e, pasuk)}
-                        title="הוסף תוכן"
-                      >
-                        <StickyNote className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => handleCommentaries(e, pasuk)}
-                        title="פרשנים נוספים"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                      </Button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <NotesDialog
+                        pasukId={`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`}
+                        pasukText={pasuk.text}
+                      />
                     </div>
+                    
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleAddContent(e, pasuk)}
+                      title="הוסף תוכן"
+                    >
+                      <StickyNote className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => handleCommentaries(e, pasuk)}
+                      title="פרשנים נוספים"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                    </Button>
                   </div>
-                )}
+                </div>
 
-                {/* Spacer when expanded */}
-                {isExpanded && <div className="flex-1" />}
-
-                {/* Expand/Collapse Icon */}
-                <div className="flex-shrink-0 pt-2 transition-colors duration-200">
+                {/* Expand/Collapse Icon - Show on hover */}
+                <div className="flex-shrink-0 pt-2 transition-all duration-200 opacity-0 group-hover:opacity-100">
                   {isExpanded ? (
-                    <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary transition-colors duration-200" />
+                    <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+                    <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                   )}
                 </div>
               </div>
@@ -210,6 +208,7 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
                   pasuk={pasuk}
                   seferId={seferId}
                   forceMinimized={false}
+                  hideHeaderActions={true}
                 />
               </div>
             )}

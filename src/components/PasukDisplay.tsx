@@ -57,9 +57,10 @@ interface PasukDisplayProps {
   pasuk: FlatPasuk;
   seferId: number;
   forceMinimized?: boolean;
+  hideHeaderActions?: boolean; // Hide actions when displayed in CompactPasukView
 }
 
-export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false }: PasukDisplayProps) => {
+export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false, hideHeaderActions = false }: PasukDisplayProps) => {
   const { settings } = useFontAndColorSettings();
   const { displaySettings } = useDisplayMode();
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
@@ -336,25 +337,29 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false }: PasukDi
             >
               <div className="flex-1 w-full min-w-0 overflow-hidden">
                 <div className={`flex items-center gap-2 mb-2 ${displayStyles.isMobile ? "flex-wrap" : "justify-between"}`}>
-                  <div className="flex gap-1 flex-wrap">
-                   <NotesDialog pasukId={pasukId} pasukText={formattedPasukText} />
-                  <Button
-                    variant="ghost"
-                    size={displayStyles.isMobile ? "icon" : "sm"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`, '_blank');
-                    }}
-                    className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
-                    title="פרשנים נוספים מספריא (נפתח בטאב חדש)"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    {(displayMode as string) === "scroll" && !displayStyles.isMobile && <span>פרשנים נוספים</span>}
-                  </Button>
-                  </div>
-                  <Badge variant="outline" className={`font-bold flex-shrink-0 ${displayStyles.isMobile ? "text-xs" : ""}`}>
-                    פרק {toHebrewNumber(pasuk.perek)} פסוק {toHebrewNumber(pasuk.pasuk_num)}
-                  </Badge>
+                  {!hideHeaderActions && (
+                    <>
+                      <div className="flex gap-1 flex-wrap">
+                        <NotesDialog pasukId={pasukId} pasukText={formattedPasukText} />
+                        <Button
+                          variant="ghost"
+                          size={displayStyles.isMobile ? "icon" : "sm"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`, '_blank');
+                          }}
+                          className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
+                          title="פרשנים נוספים מספריא (נפתח בטאב חדש)"
+                        >
+                          <BookOpen className="h-4 w-4" />
+                          {(displayMode as string) === "scroll" && !displayStyles.isMobile && <span>פרשנים נוספים</span>}
+                        </Button>
+                      </div>
+                      <Badge variant="outline" className={`font-bold flex-shrink-0 ${displayStyles.isMobile ? "text-xs" : ""}`}>
+                        פרק {toHebrewNumber(pasuk.perek)} פסוק {toHebrewNumber(pasuk.pasuk_num)}
+                      </Badge>
+                    </>
+                  )}
                 </div>
                 <div className="w-full overflow-hidden" style={{ maxWidth: "100%" }}>
                   <PasukLineActions 
