@@ -53,61 +53,70 @@ export const PasukNavigator = ({ pesukim, currentIndex, onNavigate }: PasukNavig
   const currentPasuk = pesukim[currentIndex];
 
   return (
-    <Card className="p-2 py-3 bg-gradient-to-l from-primary/5 to-card shadow-lg sticky top-20 z-10 animate-scale-in">
-      <div className="flex items-center justify-between gap-3 transition-all duration-300">
+    <Card className="p-2 py-2 md:py-3 bg-gradient-to-l from-primary/5 to-card shadow-lg sticky top-20 z-10 animate-scale-in">
+      <div className="flex items-center justify-between gap-1 md:gap-3 transition-all duration-300">
         {/* Navigation buttons - Right side */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 md:gap-1">
           <Button
             variant="outline"
             size="icon"
             onClick={handleLast}
             disabled={currentIndex >= pesukim.length - 1}
-            className="h-9 w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-7 w-7 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <ChevronsLeft className="h-5 w-5 transition-transform duration-200" />
+            <ChevronsLeft className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-200" />
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={handleNext}
             disabled={currentIndex >= pesukim.length - 1}
-            className="h-9 w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-7 w-7 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <ChevronLeft className="h-5 w-5 transition-transform duration-200" />
+            <ChevronLeft className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-200" />
           </Button>
         </div>
 
-        {/* Center info */}
-        <div className="flex items-center gap-2 text-center animate-fade-in">
+        {/* Center info - Responsive layout */}
+        <div className="flex items-center gap-1 md:gap-2 text-center animate-fade-in flex-1 justify-center min-w-0">
           {currentPasuk && (
-            <span className="text-base font-bold text-primary whitespace-nowrap transition-all duration-300">
-              פרק {toHebrewNumber(currentPasuk.perek)} פסוק {toHebrewNumber(currentPasuk.pasuk_num)}
-            </span>
+            <>
+              {/* Mobile layout - compact */}
+              <span className="text-xs font-bold text-primary flex items-center gap-1 md:hidden">
+                <span>פ: {toHebrewNumber(currentPasuk.perek)}</span>
+                <span className="text-muted-foreground">•</span>
+                <span>פס: {toHebrewNumber(currentPasuk.pasuk_num)}</span>
+              </span>
+              {/* Desktop layout - full text */}
+              <span className="hidden md:inline text-base font-bold text-primary whitespace-nowrap transition-all duration-300">
+                פרק {toHebrewNumber(currentPasuk.perek)} פסוק {toHebrewNumber(currentPasuk.pasuk_num)}
+              </span>
+            </>
           )}
         </div>
 
         {/* Navigation buttons - Left side */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 md:gap-1">
           <Button
             variant="outline"
             size="icon"
             onClick={handlePrevious}
             disabled={currentIndex <= 0}
-            className="h-9 w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-7 w-7 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <ChevronRight className="h-5 w-5 transition-transform duration-200" />
+            <ChevronRight className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-200" />
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={handleFirst}
             disabled={currentIndex <= 0}
-            className="h-9 w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-7 w-7 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <ChevronsRight className="h-5 w-5 transition-transform duration-200" />
+            <ChevronsRight className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-200" />
           </Button>
           
-          {/* Quick jump input */}
+          {/* Quick jump input - hidden on mobile for space */}
           <input
             type="text"
             value={inputValue || toHebrewNumber(currentIndex + 1)}
@@ -116,7 +125,7 @@ export const PasukNavigator = ({ pesukim, currentIndex, onNavigate }: PasukNavig
             onBlur={() => setInputValue("")}
             placeholder="א׳"
             className={cn(
-              "h-9 w-16 px-2 rounded-md border bg-background text-center text-sm transition-all duration-200",
+              "hidden md:block h-9 w-16 px-2 rounded-md border bg-background text-center text-sm transition-all duration-200",
               "focus:outline-none focus:ring-2 focus:ring-primary focus:scale-105"
             )}
           />
