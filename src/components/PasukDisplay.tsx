@@ -1,11 +1,42 @@
 import { useEffect, useMemo, useState, memo } from "react";
-import { ChevronDown, ChevronUp, MessageCircle, MessageSquare, BookOpen, Sparkles, Bookmark, BookmarkCheck } from "lucide-react";
+import { 
+  ChevronDown, 
+  ChevronUp, 
+  MessageCircle, 
+  MessageSquare, 
+  BookOpen, 
+  Sparkles, 
+  Bookmark, 
+  BookmarkCheck,
+  Pencil,
+  Trash2 
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { FlatPasuk } from "@/types/torah";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { normalizeMefareshName } from "@/utils/names";
 import { fixText } from "@/utils/fixData";
@@ -34,7 +65,18 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false }: PasukDi
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
   const navigate = useNavigate();
   const displayStyles = useTextDisplayStyles();
-  const { titles: userTitles, questions: userQuestions, answers: userAnswers, loading } = useContent();
+  const { 
+    titles: userTitles, 
+    questions: userQuestions, 
+    answers: userAnswers,
+    updateTitle,
+    updateQuestion,
+    updateAnswer,
+    deleteTitle,
+    deleteQuestion,
+    deleteAnswer,
+    loading 
+  } = useContent();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   
   const [editorOpen, setEditorOpen] = useState(false);
@@ -45,6 +87,16 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false }: PasukDi
     questionId?: number;
     defaultTab?: "title" | "question" | "answer";
   } | undefined>(undefined);
+
+  // Edit states
+  const [editingTitle, setEditingTitle] = useState<{ id: number; title: string } | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<{ id: number; text: string } | null>(null);
+  const [editingAnswer, setEditingAnswer] = useState<{ id: number; text: string; mefaresh: string } | null>(null);
+  
+  // Delete confirmation states
+  const [deletingTitle, setDeletingTitle] = useState<number | null>(null);
+  const [deletingQuestion, setDeletingQuestion] = useState<number | null>(null);
+  const [deletingAnswer, setDeletingAnswer] = useState<number | null>(null);
 
   const effectiveMinimized = forceMinimized || isMinimized;
   
@@ -381,24 +433,52 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false }: PasukDi
           return (
             <div key={contentItem.id} className="space-y-3 w-full overflow-hidden" style={{ maxWidth: "100%" }}>
               {contentItem.title && (
-                <div className="w-full overflow-hidden group relative" style={{ maxWidth: "100%" }}>
+                <div className="w-full overflow-hidden group/title relative hover:bg-muted/30 rounded-md transition-colors" style={{ maxWidth: "100%" }}>
                   {/* כותרות מ-Supabase (של המשתמש או משותפות) יכולות לקבל שאלות */}
                   {isSupabaseTitle(contentItem.id) && (
-                    <AddContentButton 
-                      type="question"
-                      onClick={(e) => {
-                        e?.stopPropagation?.();
-                        setEditorContext({ 
-                          type: "question", 
-                          titleId: contentItem.id,
-                          defaultTab: "question" 
-                        });
-                        setEditorOpen(true);
-                      }}
-                      className="absolute top-0 left-0"
-                    />
+                    <div className="absolute top-0 left-0 flex gap-1">
+                      <AddContentButton 
+                        type="question"
+                        onClick={(e) => {
+                          e?.stopPropagation?.();
+                          setEditorContext({ 
+                            type: "question", 
+                            titleId: contentItem.id,
+                            defaultTab: "question" 
+                          });
+                          setEditorOpen(true);
+                        }}
+                      />
+                      {/* Edit and Delete buttons - show only on hover if it's the user's title */}
+                      {userTitles.find(t => t.id === contentItem.id) && (
+                        <>
+                           <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 opacity-0 group-hover/title:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingTitle({ id: contentItem.id as number, title: contentItem.title || "" });
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 opacity-0 group-hover/title:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingTitle(contentItem.id as number);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   )}
-                  <div className="w-full overflow-hidden pr-8" style={{ maxWidth: "100%" }}>
+                  <div className="w-full overflow-hidden pr-8 pl-20" style={{ maxWidth: "100%" }}>
                     <ClickableText
                       text={fixText(contentItem.title)}
                       pasukId={`${pasukId}-title-${String(contentItem.id)}`}
@@ -432,7 +512,13 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false }: PasukDi
                       });
                       setEditorOpen(true);
                     }}
+                    onEditQuestion={(id, text) => setEditingQuestion({ id, text })}
+                    onDeleteQuestion={(id) => setDeletingQuestion(id)}
+                    onEditAnswer={(id, text, mefaresh) => setEditingAnswer({ id, text, mefaresh })}
+                    onDeleteAnswer={(id) => setDeletingAnswer(id)}
                     displayMode={displayMode}
+                    userQuestions={userQuestions}
+                    userAnswers={userAnswers}
                   />
                 ))
               ) : (
@@ -463,57 +549,99 @@ const QuestionSection = ({
   question, 
   showAnswers = true,
   onAddAnswer,
-  displayMode
+  onEditQuestion,
+  onDeleteQuestion,
+  onEditAnswer,
+  onDeleteAnswer,
+  displayMode,
+  userQuestions,
+  userAnswers,
 }: { 
   question: any; 
   showAnswers?: boolean;
   onAddAnswer?: (questionId: number) => void;
+  onEditQuestion?: (id: number, text: string) => void;
+  onDeleteQuestion?: (id: number) => void;
+  onEditAnswer?: (id: number, text: string, mefaresh: string) => void;
+  onDeleteAnswer?: (id: number) => void;
   displayMode?: string;
+  userQuestions?: any[];
+  userAnswers?: any[];
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { settings } = useFontAndColorSettings();
   const displayStyles = useTextDisplayStyles();
+  
+  const isUserQuestion = userQuestions?.some(q => q.id === question.id);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-2 w-full overflow-hidden" style={{ maxWidth: "100%" }}>
       <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          className="w-full justify-between h-auto text-right bg-muted/50 overflow-hidden"
-          onClick={(e) => {
-            e.stopPropagation(); // מונע מהקליק להעביר לפסוק הראשי
-          }}
-          style={{
-            padding: displayStyles.isMobile ? "0.75rem" : "1rem",
-            maxWidth: "100%",
-          }}
-        >
-          <div className="flex items-center gap-1 md:gap-2 shrink-0">
-            <Badge variant="outline" className="gap-1 text-xs">
-              <MessageSquare className="h-3 w-3" />
-              {toHebrewNumber(question.perushim.length)}
-            </Badge>
-            {isOpen ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
-          </div>
-          <div className="flex-1 text-right min-w-0 overflow-hidden pr-2">
-            <ClickableText
-              text={fixText(question.text)}
-              pasukId={`${question.id}-question`}
-              fontFamily={settings.questionFont}
-              fontSize={`${settings.questionSize}px`}
-              color={settings.questionColor}
-              fontWeight={settings.questionBold ? 'bold' : 'normal'}
-              className="text-right w-full"
-              style={{
-                wordWrap: "break-word",
-                overflowWrap: "break-word",
-                whiteSpace: "normal",
-                maxWidth: "100%",
-                display: "block",
-              }}
-            />
-          </div>
-        </Button>
+        <div className="relative group/question">
+          <Button
+            variant="ghost"
+            className="w-full justify-between h-auto text-right bg-muted/50 overflow-hidden hover:bg-muted/70 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation(); // מונע מהקליק להעביר לפסוק הראשי
+            }}
+            style={{
+              padding: displayStyles.isMobile ? "0.75rem" : "1rem",
+              maxWidth: "100%",
+            }}
+          >
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <Badge variant="outline" className="gap-1 text-xs">
+                <MessageSquare className="h-3 w-3" />
+                {toHebrewNumber(question.perushim.length)}
+              </Badge>
+              {isOpen ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+            </div>
+            <div className="flex-1 text-right min-w-0 overflow-hidden pr-2">
+              <ClickableText
+                text={fixText(question.text)}
+                pasukId={`${question.id}-question`}
+                fontFamily={settings.questionFont}
+                fontSize={`${settings.questionSize}px`}
+                color={settings.questionColor}
+                fontWeight={settings.questionBold ? 'bold' : 'normal'}
+                className="text-right w-full"
+                style={{
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
+                  whiteSpace: "normal",
+                  maxWidth: "100%",
+                  display: "block",
+                }}
+              />
+            </div>
+          </Button>
+          {isUserQuestion && onEditQuestion && onDeleteQuestion && (
+            <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover/question:opacity-100 transition-opacity">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditQuestion(question.id, question.text);
+                }}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteQuestion(question.id);
+                }}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </div>
       </CollapsibleTrigger>
 
       {showAnswers && (
@@ -524,6 +652,9 @@ const QuestionSection = ({
               perush={perush} 
               parentOpen={isOpen}
               onAddAnswer={onAddAnswer ? () => onAddAnswer(parseInt(question.id)) : undefined}
+              onEditAnswer={onEditAnswer}
+              onDeleteAnswer={onDeleteAnswer}
+              userAnswers={userAnswers}
             />
           ))}
         </CollapsibleContent>
@@ -535,19 +666,27 @@ const QuestionSection = ({
 const AnswerSection = ({ 
   perush, 
   parentOpen,
-  onAddAnswer
+  onAddAnswer,
+  onEditAnswer,
+  onDeleteAnswer,
+  userAnswers,
 }: { 
   perush: any; 
   parentOpen?: boolean;
   onAddAnswer?: () => void;
+  onEditAnswer?: (id: number, text: string, mefaresh: string) => void;
+  onDeleteAnswer?: (id: number) => void;
+  userAnswers?: any[];
 }) => {
   const { settings } = useFontAndColorSettings();
   const displayStyles = useTextDisplayStyles();
   // Always open when parent question is open
   const isOpen = parentOpen || false;
+  
+  const isUserAnswer = userAnswers?.some(a => a.id === perush.id);
 
   return (
-    <div className="space-y-2 w-full overflow-hidden group relative" style={{ maxWidth: "100%" }}>
+    <div className="space-y-2 w-full overflow-hidden group/answer relative hover:bg-muted/20 rounded-md transition-colors p-2" style={{ maxWidth: "100%" }}>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
           {onAddAnswer && (
@@ -562,6 +701,32 @@ const AnswerSection = ({
           <Badge className="font-bold bg-yellow-400/80 text-gray-900 border-0 px-2 md:px-3 py-1 text-xs md:text-sm break-words">
             {normalizeMefareshName(perush.mefaresh)}
           </Badge>
+          {isUserAnswer && onEditAnswer && onDeleteAnswer && (
+            <div className="flex gap-1 opacity-0 group-hover/answer:opacity-100 transition-opacity">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditAnswer(perush.id, perush.text, perush.mefaresh);
+                }}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteAnswer(perush.id);
+                }}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
         </div>
         <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
       </div>
