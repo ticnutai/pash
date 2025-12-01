@@ -22,7 +22,7 @@ interface CompactPasukViewProps {
   forceMinimized?: boolean;
 }
 
-export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
+const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
   const [expandedPasukId, setExpandedPasukId] = useState<number | null>(null);
   const [editorPasukId, setEditorPasukId] = useState<string | null>(null);
   const displayStyles = useTextDisplayStyles();
