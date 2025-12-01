@@ -581,9 +581,6 @@ const QuestionSection = ({
           <Button
             variant="ghost"
             className="w-full justify-between h-auto text-right bg-muted/50 overflow-hidden hover:bg-muted/70 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation(); // מונע מהקליק להעביר לפסוק הראשי
-            }}
             style={{
               padding: displayStyles.isMobile ? "0.75rem" : "1rem",
               maxWidth: "100%",
