@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, BookText } from "lucide-react";
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { SeferSelector } from "@/components/SeferSelector";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
@@ -31,6 +31,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 const ScrollPasukView = lazy(() => import("@/components/ScrollPasukView").then(m => ({ default: m.ScrollPasukView })));
 const CompactPasukView = lazy(() => import("@/components/CompactPasukView").then(m => ({ default: m.CompactPasukView })));
 const PaginatedPasukList = lazy(() => import("@/components/PaginatedPasukList").then(m => ({ default: m.PaginatedPasukList })));
+const ContinuousTextView = lazy(() => import("@/components/ContinuousTextView").then(m => ({ default: m.ContinuousTextView })));
 
 // Navigation components (loaded after initial render)
 const QuickSelector = lazy(() => import("@/components/QuickSelector").then(m => ({ default: m.QuickSelector })));
@@ -60,6 +61,7 @@ const Index = () => {
   const [currentPasukIndex, setCurrentPasukIndex] = useState(0);
   const [singlePasukMode, setSinglePasukMode] = useState(false);
   const [globalMinimize, setGlobalMinimize] = useState(false);
+  const [shmotMode, setShmotMode] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const weeklyParshaLoadedRef = useRef(false);
   
@@ -525,6 +527,17 @@ const displayedPesukim = useMemo(() => {
         {/* View Mode Toggle and Global Minimize - Below Sefarim (Desktop only) */}
         <div className="hidden md:flex justify-start items-center gap-2">
           <ViewModeToggle seferId={selectedSefer} />
+          {displayMode === "verses-only" && filteredPesukim.length > 0 && (
+            <Button
+              variant={shmotMode ? "default" : "outline"}
+              size="sm"
+              className="gap-2"
+              onClick={() => setShmotMode(!shmotMode)}
+            >
+              <BookText className="h-4 w-4" />
+              שמו״ת
+            </Button>
+          )}
           {filteredPesukim.length > 0 && (
             <MinimizeButton
               variant="global"
@@ -686,6 +699,17 @@ const displayedPesukim = useMemo(() => {
                     </Button>
                   )}
                   <ViewModeToggle seferId={selectedSefer} />
+                  {displayMode === "verses-only" && filteredPesukim.length > 0 && (
+                    <Button
+                      variant={shmotMode ? "default" : "outline"}
+                      size="sm"
+                      className="gap-1 flex-shrink-0"
+                      onClick={() => setShmotMode(!shmotMode)}
+                    >
+                      <BookText className="h-4 w-4" />
+                      שמו״ת
+                    </Button>
+                  )}
                   {filteredPesukim.length > 0 && (
                     <MinimizeButton
                       variant="global"
@@ -718,7 +742,9 @@ const displayedPesukim = useMemo(() => {
                   <div className="pl-2 animate-fade-in"
                     key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
                   >
-                    {displayMode === "compact" ? (
+                    {displayMode === "verses-only" && shmotMode ? (
+                      <ContinuousTextView pesukim={displayedPesukim} />
+                    ) : displayMode === "compact" ? (
                       <CompactPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
                     ) : displayMode === "scroll" ? (
                       <ScrollPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
