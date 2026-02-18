@@ -85,18 +85,20 @@ export const SeferSelector = ({
 
   return (
     <div className="space-y-3 sm:space-y-4 bg-card rounded-lg shadow-md p-3 sm:p-4">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h2 className="font-bold text-base sm:text-lg">
-          {level === "sefer" && "בחר חומש"}
-          {level === "parsha" && "בחר פרשה"}
-          {level === "perek" && "בחר פרק"}
-          {level === "pasuk" && "בחר פסוק"}
-        </h2>
-        {showBack && (
-          <Button size="sm" variant="ghost" onClick={handleBack} className="h-8 px-3">
-            חזרה
-          </Button>
-        )}
+      <div className="flex items-center justify-between gap-2 mb-2" dir="rtl">
+        <div className="flex items-center gap-3">
+          {showBack && (
+            <Button size="sm" onClick={handleBack} className="h-10 px-5 text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white border-0">
+              חזרה
+            </Button>
+          )}
+          <h2 className="font-bold text-base sm:text-lg">
+            {level === "sefer" && "בחר חומש"}
+            {level === "parsha" && "בחר פרשה"}
+            {level === "perek" && "בחר פרק"}
+            {level === "pasuk" && "בחר פסוק"}
+          </h2>
+        </div>
       </div>
 
       {level === "sefer" && (
@@ -135,14 +137,14 @@ export const SeferSelector = ({
       )}
 
       {level === "perek" && sefer && selectedParsha !== null && (
-        <div key={`${selectedSefer}-${selectedParsha}`} className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 animate-fade-in" dir="rtl">
+        <div key={`${selectedSefer}-${selectedParsha}`} className="grid grid-cols-5 sm:grid-cols-8 gap-1.5 sm:gap-2 animate-fade-in" dir="rtl">
           {sefer.parshiot
             .find((p) => p.parsha_id === selectedParsha)?.perakim.map((perek) => (
               <Button
                 key={perek.perek_num}
                 variant={selectedPerek === perek.perek_num ? "default" : "outline"}
                 onClick={() => handlePerekClick(perek.perek_num)}
-                className="aspect-square font-bold text-base sm:text-lg transition-all duration-200"
+                className="aspect-square font-bold text-sm sm:text-base transition-all duration-200"
               >
                 {toHebrewNumber(perek.perek_num)}
               </Button>
