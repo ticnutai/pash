@@ -135,20 +135,19 @@ export const FloatingQuickSelector = ({
         className="w-[320px] max-h-[400px] p-0 overflow-hidden border-2"
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b p-3 flex items-center justify-between gap-2">
+        <div className="sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b p-3 flex items-center justify-between gap-2" dir="rtl">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {currentLevel !== "parsha" && (
               <Button
-                variant="ghost"
                 size="sm"
                 onClick={handleBack}
-                className="h-8 px-2 flex-shrink-0"
+                className="h-8 px-3 flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-bold"
               >
                 <ArrowRight className="h-4 w-4 ml-1" />
                 חזור
               </Button>
             )}
-            <h3 className="font-semibold text-sm break-words flex-1">{getCurrentTitle()}</h3>
+            <h3 className="font-semibold text-sm break-words flex-1 text-right">{getCurrentTitle()}</h3>
           </div>
           {currentLevel !== "parsha" && (
             <Button
@@ -164,14 +163,14 @@ export const FloatingQuickSelector = ({
 
         {/* Content */}
         <ScrollArea className="h-[320px]">
-          <div className="p-3 space-y-2">
+          <div className="p-3 space-y-2" dir="rtl">
             {currentLevel === "parsha" && (
               <>
                 {sefer.parshiot.map((parsha) => (
                   <Button
                     key={parsha.parsha_id}
                     variant={selectedParsha === parsha.parsha_id ? "default" : "outline"}
-                    className="w-full justify-start text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal"
+                    className="w-full justify-end text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal"
                     onClick={() => handleParshaSelect(parsha.parsha_id)}
                   >
                     <span className="font-semibold break-words">{parsha.parsha_name}</span>
@@ -186,7 +185,7 @@ export const FloatingQuickSelector = ({
                   <Button
                     key={perek.perek_num}
                     variant={selectedPerek === perek.perek_num ? "default" : "outline"}
-                    className="w-full justify-start text-right h-auto py-3 px-4 touch-manipulation"
+                    className="w-full justify-end text-right h-auto py-3 px-4 touch-manipulation"
                     onClick={() => handlePerekSelect(perek.perek_num)}
                   >
                     <span className="font-semibold">
