@@ -528,6 +528,7 @@ const displayedPesukim = useMemo(() => {
 
         {/* View Mode Toggle and Global Minimize - Below Sefarim (Desktop only) */}
         <div className="hidden md:flex justify-start items-center gap-2">
+          <MobileTypographySheet />
           <ViewModeToggle seferId={selectedSefer} />
           {displayMode === "verses-only" && filteredPesukim.length > 0 && (
             <Button
