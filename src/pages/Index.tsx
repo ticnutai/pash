@@ -33,6 +33,7 @@ const ScrollPasukView = lazy(() => import("@/components/ScrollPasukView").then(m
 const CompactPasukView = lazy(() => import("@/components/CompactPasukView").then(m => ({ default: m.CompactPasukView })));
 const PaginatedPasukList = lazy(() => import("@/components/PaginatedPasukList").then(m => ({ default: m.PaginatedPasukList })));
 const ContinuousTextView = lazy(() => import("@/components/ContinuousTextView").then(m => ({ default: m.ContinuousTextView })));
+const LuxuryTextView = lazy(() => import("@/components/LuxuryTextView").then(m => ({ default: m.LuxuryTextView })));
 
 // Navigation components (loaded after initial render)
 const QuickSelector = lazy(() => import("@/components/QuickSelector").then(m => ({ default: m.QuickSelector })));
@@ -722,7 +723,9 @@ const displayedPesukim = useMemo(() => {
                   <div className="pl-2 animate-fade-in"
                     key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
                   >
-                    {displayMode === "verses-only" && shmotMode ? (
+                    {displayMode === "luxury" ? (
+                      <LuxuryTextView pesukim={displayedPesukim} />
+                    ) : displayMode === "verses-only" && shmotMode ? (
                       <ContinuousTextView pesukim={displayedPesukim} />
                     ) : displayMode === "compact" ? (
                       <CompactPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />

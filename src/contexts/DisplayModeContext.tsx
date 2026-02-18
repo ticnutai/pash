@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useDevice } from "@/contexts/DeviceContext";
 
-export type DisplayMode = "full" | "verses-only" | "verses-questions" | "minimized" | "compact" | "scroll";
+export type DisplayMode = "full" | "verses-only" | "verses-questions" | "minimized" | "compact" | "scroll" | "luxury";
 
 export interface DisplaySettings {
   mode: DisplayMode;
