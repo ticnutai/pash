@@ -92,19 +92,15 @@ export interface WeeklyParsha {
  * @returns The weekly parsha information or null if not found
  */
 export function getCurrentWeeklyParsha(il: boolean = true): WeeklyParsha | null {
-  console.log('[parshaUtils] 🔍 getCurrentWeeklyParsha called with il =', il);
   try {
     const today = new Date();
     const hdate = new HDate(today);
-    console.log('[parshaUtils] 📅 Today:', today, 'Hebrew date:', hdate.toString());
     
     // Get the upcoming Shabbat
     // If today is Shabbat, get next week's Shabbat instead
     const dayOfWeek = hdate.getDay();
     const isSaturday = dayOfWeek === 6;
     const saturday = isSaturday ? hdate.next().onOrAfter(6) : hdate.onOrAfter(6);
-    
-    console.log('[parshaUtils] 📆 Day of week:', dayOfWeek, '- Is Saturday:', isSaturday, '- Target Shabbat:', saturday.toString());
     
     // Get events for that Shabbat
     const events = HebrewCalendar.calendar({
@@ -130,8 +126,6 @@ export function getCurrentWeeklyParsha(il: boolean = true): WeeklyParsha | null 
     // Hebcal sometimes prefixes with "Parashat ", normalize it to match our mapping keys
     const parshaName = parshaNameRaw.replace(/^Parashat\s+/, "");
     
-    console.log('Current parsha from Hebcal:', parshaNameRaw, '(normalized:', parshaName + ')', '(Hebrew:', hebrewName + ')');
-    
     // Check if it's a combined parsha first
     let parshaInfo = COMBINED_PARSHIYOT[parshaName];
     
@@ -145,8 +139,6 @@ export function getCurrentWeeklyParsha(il: boolean = true): WeeklyParsha | null 
       return null;
     }
     
-    console.log('Mapped parsha info:', parshaInfo);
-    
     const result = {
       sefer: parshaInfo.sefer,
       parshaId: parshaInfo.parshaId,
@@ -154,7 +146,6 @@ export function getCurrentWeeklyParsha(il: boolean = true): WeeklyParsha | null 
       englishName: parshaName,
       hebrewDate: hdate.toString(),
     };
-    console.log('[parshaUtils] ✅ Returning parsha:', result);
     return result;
   } catch (error) {
     console.error('Error getting current weekly parsha:', error);
@@ -185,14 +176,12 @@ export function shouldLoadWeeklyParsha(): boolean {
     
     // Check if the parsha has changed
     if (lastParshaId !== currentParsha.parshaId) {
-      console.log('Parsha changed from', lastParshaId, 'to', currentParsha.parshaId);
       return true;
     }
     
     // Also check if more than 7 days have passed (weekly reset as backup)
     const daysSinceLastVisit = (Date.now() - lastTimestamp) / (1000 * 60 * 60 * 24);
     if (daysSinceLastVisit >= 7) {
-      console.log('7 days passed since last visit');
       return true;
     }
     

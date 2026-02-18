@@ -113,7 +113,6 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false, hideHeade
     0
   );
   const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
-  console.log('🔍 PasukDisplay - pasukId:', pasukId, 'seferId:', seferId, 'perek:', pasuk.perek, 'pasuk:', pasuk.pasuk_num);
   const bookmarked = isBookmarked(pasukId);
 
   const openAddTitle = () => {
@@ -137,8 +136,6 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false, hideHeade
     
     // הוסף כותרות משתמשים לפסוק
     const pasukUserTitles = userTitles.filter(t => t.pasukId === pasukId);
-    console.log('🔍 PasukDisplay - Available titles:', userTitles.map(t => ({ id: t.id, pasukId: t.pasukId, title: t.title })));
-    console.log('🔍 PasukDisplay - Filtered titles for pasukId', pasukId, ':', pasukUserTitles.length);
     
     pasukUserTitles.forEach(title => {
       const titleQuestions = userQuestions
@@ -726,7 +723,6 @@ const QuestionSection = ({
     <Collapsible
       open={isOpen}
       onOpenChange={(open) => {
-        console.log('QuestionSection: onOpenChange', { questionId: question.id, open });
         setIsOpen(open);
       }}
       className="space-y-2 w-full overflow-hidden"
@@ -741,7 +737,6 @@ const QuestionSection = ({
               e.stopPropagation();
               e.preventDefault();
               setIsOpen(!isOpen);
-              console.log('QuestionSection: toggling question', { questionId: question.id, newState: !isOpen });
             }}
             style={{
               padding: displayStyles.isMobile ? "0.75rem" : "1rem",

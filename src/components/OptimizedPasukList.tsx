@@ -38,7 +38,6 @@ const OptimizedPasukList = ({
   useMemo(() => {
     if (pesukim.length > 100) {
       scheduleTask(() => {
-        console.log('Background processing: Pre-warming data structures');
       });
     }
   }, [pesukim, scheduleTask]);

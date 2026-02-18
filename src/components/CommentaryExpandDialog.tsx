@@ -142,6 +142,7 @@ export const CommentaryExpandDialog = ({
                     toast.success("הפירוש הועתק ללוח");
                   }}
                   title="העתק פירוש"
+                  aria-label="העתק פירוש"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -150,15 +151,16 @@ export const CommentaryExpandDialog = ({
                   size="sm"
                   onClick={() => {
                     const seferNames = ["בראשית", "שמות", "ויקרא", "במדבר", "דברים"];
-                    const shareText = `${mefaresh} - ${seferNames[sefer - 1]} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentaryText}`;
+                    const shareText = `*${mefaresh}*\n📖 ${seferNames[sefer - 1]} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentaryText}\n\n---\nמתוך אפליקציית חמישה חומשי תורה`;
                     if (navigator.share) {
-                      navigator.share({ title: `${mefaresh}`, text: shareText }).catch(() => {});
+                      navigator.share({ title: `${mefaresh} - פירוש`, text: shareText }).catch(() => {});
                     } else {
                       navigator.clipboard.writeText(shareText);
                       toast.success("הפירוש הועתק לשיתוף");
                     }
                   }}
                   title="שתף פירוש"
+                  aria-label="שתף פירוש"
                 >
                   <Share2 className="h-4 w-4" />
                 </Button>

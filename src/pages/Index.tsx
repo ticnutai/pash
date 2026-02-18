@@ -10,6 +10,7 @@ import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { DevicePreview } from "@/components/DevicePreview";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import { PasukSimpleNavigator } from "@/components/PasukSimpleNavigator";
+import { ReadingProgress } from "@/components/ReadingProgress";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useDisplayMode, DisplayMode } from "@/contexts/DisplayModeContext";
 import { useDevice } from "@/contexts/DeviceContext";
@@ -23,6 +24,7 @@ import { SeferSkeleton } from "@/components/SeferSkeleton";
 import { yieldToMain } from "@/utils/asyncHelpers";
 import { lazyLoadSefer, preloadNextSefer } from "@/utils/lazyLoadSefer";
 import { usePinchZoom } from "@/hooks/usePinchZoom";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
@@ -67,32 +69,53 @@ const Index = () => {
   
   // PRIORITY: Load weekly parsha FIRST - before sefer data loads
   useEffect(() => {
-    console.log('[Index] 🎯 Effect 1: Initial load check. initialLoadDone =', initialLoadDone);
     if (initialLoadDone) return;
     
     const hasUrlParams = searchParams.get('sefer') || searchParams.get('perek') || searchParams.get('pasuk');
-    console.log('[Index] 🔗 URL params:', { hasUrlParams, sefer: searchParams.get('sefer'), perek: searchParams.get('perek'), pasuk: searchParams.get('pasuk') });
     if (hasUrlParams) {
-      console.log('[Index] ⏭️  Has URL params, skipping weekly parsha load');
       setInitialLoadDone(true);
       return;
     }
 
     const isIsrael = getCalendarPreference();
-    console.log('[Index] 🌍 Calendar preference:', isIsrael ? 'Israel' : 'Diaspora');
     const weeklyParsha = getCurrentWeeklyParsha(isIsrael);
 
     if (weeklyParsha) {
-      console.log('[Index] 📖 Loading weekly parsha:', weeklyParsha);
-      console.log('[Index] 🔧 Setting state: sefer =', weeklyParsha.sefer, 'parshaId =', weeklyParsha.parshaId);
       setSelectedSefer(weeklyParsha.sefer);
       setSelectedParsha(weeklyParsha.parshaId);
       setSelectedPerek(null); // Will be set by next effect
       setSelectedPasuk(null);
       setSinglePasukMode(false);
       weeklyParshaLoadedRef.current = true;
-      console.log('[Index] ✅ weeklyParshaLoadedRef.current set to TRUE');
       setInitialLoadDone(true);
+
+      // Check if user was reading something different and offer to continue
+      const savedState = localStorage.getItem('lastReadingState');
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState);
+          if (state.selectedParsha && state.selectedParsha !== weeklyParsha.parshaId && state.selectedPerek) {
+            const seferNames: Record<number, string> = { 1: "בראשית", 2: "שמות", 3: "ויקרא", 4: "במדבר", 5: "דברים" };
+            const savedSeferName = seferNames[state.selectedSefer] || "";
+            setTimeout(() => {
+              toast("המשך מהמקום האחרון?", {
+                description: `${savedSeferName} - פרק ${toHebrewNumber(state.selectedPerek)}${state.selectedPasuk ? ` פסוק ${toHebrewNumber(state.selectedPasuk)}` : ""}`,
+                action: {
+                  label: "המשך",
+                  onClick: () => {
+                    if (state.selectedSefer) setSelectedSefer(state.selectedSefer);
+                    if (state.selectedParsha) setSelectedParsha(state.selectedParsha);
+                    if (state.selectedPerek) setSelectedPerek(state.selectedPerek);
+                    if (state.selectedPasuk) setSelectedPasuk(state.selectedPasuk);
+                    if (state.singlePasukMode !== undefined) setSinglePasukMode(state.singlePasukMode);
+                  },
+                },
+                duration: 8000,
+              });
+            }, 1500);
+          }
+        } catch { /* ignore */ }
+      }
       return;
     }
 
@@ -153,17 +176,14 @@ const Index = () => {
   
   // Load sefer on demand (lazy loading) with non-blocking parsing
   useEffect(() => {
-    console.log('[Index] 📚 Effect 2: Loading sefer. selectedSefer =', selectedSefer, 'weeklyParshaLoadedRef.current =', weeklyParshaLoadedRef.current);
     const loadSefer = async () => {
       // Check cache first
       if (seferCache.has(selectedSefer)) {
-        console.log('[Index] 💾 Sefer found in cache, using cached version');
         setSeferData(seferCache.get(selectedSefer)!);
         setLoading(false);
         return;
       }
 
-      console.log('[Index] 🔄 Sefer not in cache, starting load...');
       setLoading(true);
       setLoadingProgress(0);
       try {
@@ -189,22 +209,16 @@ const Index = () => {
             
             setLoadingProgress(80);
             
-            console.log('[Index] ⏱️  Processing sefer data');
-            console.log('[Index] 🔍 weeklyParshaLoadedRef.current =', weeklyParshaLoadedRef.current);
-            console.log('[Index] 📊 Current selections: parsha =', selectedParsha, 'perek =', selectedPerek, 'pasuk =', selectedPasuk);
-            
             // Cache the loaded sefer
             seferCache.set(selectedSefer, sefer);
             setSeferData(sefer);
             
             // Only reset selections if this isn't the weekly parsha initial load
             if (!weeklyParshaLoadedRef.current) {
-              console.log('[Index] 🔄 NOT weekly parsha load - RESETTING selections');
               setSelectedParsha(null);
               setSelectedPerek(null);
               setSelectedPasuk(null);
             } else {
-              console.log('[Index] ✅ Weekly parsha load - KEEPING selections. After first load, resetting flag.');
               // After first load with weekly parsha, reset the flag
               weeklyParshaLoadedRef.current = false;
             }
@@ -268,7 +282,6 @@ const Index = () => {
       const parshaPerakim = flattenedPesukim.filter(p => p.parsha_id === selectedParsha);
       if (parshaPerakim.length > 0) {
         const firstPerek = parshaPerakim[0].perek;
-        console.log('[Index] 🔢 Auto-selecting first perek:', firstPerek, 'for parsha:', selectedParsha);
         setSelectedPerek(firstPerek);
       }
     }
@@ -310,6 +323,12 @@ const Index = () => {
     const currentIndex = seferData.parshiot.findIndex(p => p.parsha_id === selectedParsha);
     return currentIndex < seferData.parshiot.length - 1;
   }, [seferData, selectedParsha]);
+
+  // Keyboard shortcuts for navigation
+  useKeyboardShortcuts({
+    onNextParsha: useCallback(() => canNavigateNext && navigateToParsha('next'), [canNavigateNext, navigateToParsha]),
+    onPrevParsha: useCallback(() => canNavigatePrev && navigateToParsha('prev'), [canNavigatePrev, navigateToParsha]),
+  });
 
   // All pesukim in the selected parsha (for pasuk navigation)
   const parshaAllPesukim = useMemo(() => {
@@ -639,6 +658,14 @@ const displayedPesukim = useMemo(() => {
                 </div>
               )}
 
+              {/* Reading progress bar */}
+              {parshaAllPesukim.length > 0 && selectedPasuk !== null && (
+                <ReadingProgress
+                  totalPesukim={parshaAllPesukim.length}
+                  currentPasukIndex={parshaAllPesukim.findIndex(p => p.pasuk_num === selectedPasuk && p.perek === selectedPerek)}
+                  parshaName={currentParshaName}
+                />
+              )}
               
               {/* Mobile controls - Always show ViewModeToggle */}
               {isMobile && (

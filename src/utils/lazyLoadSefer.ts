@@ -15,7 +15,6 @@ const SEFER_NAMES = ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'ד
 export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
   // Tier 1: Memory cache
   if (memoryCache.has(seferId)) {
-    console.log(`[LazyLoad] ⚡ Sefer ${seferId} from memory cache`);
     return memoryCache.get(seferId)!;
   }
 
@@ -23,7 +22,6 @@ export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
   try {
     const cached = await torahDB.getSefer(seferId);
     if (cached) {
-      console.log(`[LazyLoad] 💾 Sefer ${seferId} from IndexedDB`);
       memoryCache.set(seferId, cached);
       return cached as Sefer;
     }
@@ -32,7 +30,6 @@ export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
   }
 
   // Tier 3: Bundle import
-  console.log(`[LazyLoad] 📚 Loading sefer ${seferId} from bundle`);
   let module;
   switch (seferId) {
     case 1: module = await import("@/data/bereishit.json"); break;
@@ -49,7 +46,6 @@ export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
   memoryCache.set(seferId, data);
   torahDB.saveSefer(seferId, data).catch(() => {});
 
-  console.log(`[LazyLoad] ✅ Sefer ${seferId} loaded and cached`);
   return data;
 };
 
@@ -59,7 +55,6 @@ export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
 export const preloadNextSefer = (currentSeferId: number) => {
   const nextSeferId = currentSeferId < 5 ? currentSeferId + 1 : 1;
   setTimeout(() => {
-    console.log(`[LazyLoad] 🔄 Preloading next sefer ${nextSeferId}`);
     lazyLoadSefer(nextSeferId).catch(() => {});
   }, 2000);
 };

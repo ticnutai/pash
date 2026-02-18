@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => ({
         icons: [
           {
             src: '/icon-192x192.png',
-            sizes: '256x256',
+            sizes: '192x192',
             type: 'image/png'
           },
           {

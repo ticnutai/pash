@@ -1,7 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { FontAndColorSettingsProvider } from "@/contexts/FontAndColorSettingsContext";
@@ -12,6 +11,7 @@ import { BookmarksProvider } from "@/contexts/BookmarksContext";
 import { ContentProvider } from "@/contexts/ContentContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { PWAReloadPrompt } from "@/components/PWAReloadPrompt";
@@ -23,8 +23,6 @@ const Commentaries = lazy(() => import("./pages/Commentaries").then(m => ({ defa
 const UserProfile = lazy(() => import("./pages/UserProfile").then(m => ({ default: m.UserProfile })));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
-
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -32,7 +30,7 @@ const LoadingFallback = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <ErrorBoundary fallbackTitle="שגיאה כללית באפליקציה">
     <AuthProvider>
       <DeviceProvider>
         <ThemeProvider>
@@ -47,16 +45,18 @@ const App = () => (
                       <Sonner />
                       <PWAReloadPrompt />
                       <BrowserRouter>
-                        <Suspense fallback={<LoadingFallback />}>
-                          <Routes>
-                            <Route path="/" element={<Index />} />
-                            <Route path="/auth" element={<Auth />} />
-                            <Route path="/profile" element={<UserProfile />} />
-                            <Route path="/commentaries/:seferId/:perek/:pasuk" element={<Commentaries />} />
-                            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </Suspense>
+                        <ErrorBoundary fallbackTitle="שגיאה בטעינת הדף">
+                          <Suspense fallback={<LoadingFallback />}>
+                            <Routes>
+                              <Route path="/" element={<Index />} />
+                              <Route path="/auth" element={<Auth />} />
+                              <Route path="/profile" element={<UserProfile />} />
+                              <Route path="/commentaries/:seferId/:perek/:pasuk" element={<Commentaries />} />
+                              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                              <Route path="*" element={<NotFound />} />
+                            </Routes>
+                          </Suspense>
+                        </ErrorBoundary>
                       </BrowserRouter>
                       </TooltipProvider>
                     </ContentProvider>
@@ -68,7 +68,7 @@ const App = () => (
         </ThemeProvider>
       </DeviceProvider>
     </AuthProvider>
-  </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

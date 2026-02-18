@@ -49,7 +49,6 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
   const handleAddContent = (e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
     const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
-    console.log('🔍 CompactPasukView - Opening editor with pasukId:', pasukId);
     setEditorPasukId(pasukId);
   };
 
@@ -77,7 +76,6 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
               contain: 'layout style',
             }}
             onClick={() => {
-              console.log('CompactPasukView: card clicked', { pasukId: pasuk.id });
               togglePasuk(pasuk.id);
             }}
           >
@@ -197,7 +195,6 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
               <div
                 className="border-t border-border animate-accordion-down"
                 onClick={(e) => {
-                  console.log('CompactPasukView: click inside PasukDisplay wrapper', { pasukId: pasuk.id });
                   e.stopPropagation();
                 }}
               >

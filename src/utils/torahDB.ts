@@ -84,7 +84,6 @@ class TorahLocalDB {
         request.onsuccess = () => {
           this.db = request.result;
           this.isAvailable = true;
-          console.log('[TorahDB] Database initialized');
           resolve();
         };
       } catch (e) {

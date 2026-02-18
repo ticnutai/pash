@@ -41,40 +41,32 @@ export const SeferSelector = ({
   const [level, setLevel] = useState<SelectionLevel>("sefer");
 
   const handleSeferClick = useCallback((seferId: number) => {
-    console.log('Sefer clicked:', seferId);
     onSeferSelect(seferId);
     onParshaSelect(null);
     onPerekSelect(null);
     onPasukSelect(null);
     setLevel("parsha");
-    console.log('Level set to: parsha');
   }, [onSeferSelect, onParshaSelect, onPerekSelect, onPasukSelect]);
 
   const handleParshaClick = useCallback((parshaId: number) => {
-    console.log('Parsha clicked:', parshaId);
     onParshaSelect(parshaId);
     onPerekSelect(null);
     onPasukSelect(null);
     setLevel("perek");
-    console.log('Level set to: perek');
   }, [onParshaSelect, onPerekSelect, onPasukSelect]);
 
   const handlePerekClick = useCallback((perekNum: number) => {
-    console.log('Perek clicked:', perekNum);
     onPerekSelect(perekNum);
     onPasukSelect(null);
     setLevel("pasuk");
-    console.log('Level set to: pasuk');
   }, [onPerekSelect, onPasukSelect]);
 
   const handlePasukClick = useCallback((pasukNum: number) => {
-    console.log('Pasuk clicked:', pasukNum);
     onPasukSelect(pasukNum);
     setLevel("sefer");
   }, [onPasukSelect]);
 
   const handleBack = useCallback(() => {
-    console.log('Back clicked from level:', level);
     if (level === "pasuk") {
       setLevel("perek");
       onPasukSelect(null);

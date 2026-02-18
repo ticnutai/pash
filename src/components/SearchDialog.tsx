@@ -8,7 +8,7 @@ import { SearchResults } from "@/components/search/SearchResults";
 import { CommentaryExpandDialog } from "@/components/CommentaryExpandDialog";
 import { useSearchIndex } from "@/hooks/useSearchIndex";
 import { useSearchWorker } from "@/hooks/useSearchWorker";
-import { Loader2, Sparkles, Maximize2, Minimize2 } from "lucide-react";
+import { Loader2, Sparkles, Maximize2, Minimize2, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,6 +19,28 @@ import { cn } from "@/lib/utils";
 import { yieldToMain } from "@/utils/asyncHelpers";
 
 type BookStatus = 'pending' | 'loading' | 'completed' | 'error';
+
+const SEARCH_HISTORY_KEY = 'search_history';
+const MAX_SEARCH_HISTORY = 10;
+
+function getSearchHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function addToSearchHistory(query: string) {
+  const trimmed = query.trim();
+  if (!trimmed) return;
+  const history = getSearchHistory().filter(h => h !== trimmed);
+  history.unshift(trimmed);
+  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_SEARCH_HISTORY)));
+}
+
+function clearSearchHistory() {
+  localStorage.removeItem(SEARCH_HISTORY_KEY);
+}
 
 // Progressive loading with status tracking
 const loadBookData = async (
@@ -106,6 +128,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeResults, setActiveResults] = useState<any[]>([]);
   const [aiSuggestion, setAiSuggestion] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [searchHistoryItems, setSearchHistoryItems] = useState<string[]>(getSearchHistory());
   
   const [expandDialog, setExpandDialog] = useState<{
     open: boolean;
@@ -214,6 +237,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
         mefaresh
       });
       setActiveResults(results);
+      addToSearchHistory(searchQuery);
+      setSearchHistoryItems(getSearchHistory());
     } catch (error) {
       console.error("Search error:", error);
       toast.error("שגיאה בחיפוש");
@@ -294,6 +319,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                 size="icon"
                 onClick={() => setIsMaximized(!isMaximized)}
                 className="h-8 w-8"
+                aria-label={isMaximized ? "הקטן חלון" : "הגדל חלון"}
               >
                 {isMaximized ? (
                   <Minimize2 className="h-4 w-4" />
@@ -324,6 +350,39 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                     onChange={setSearchQuery}
                     onSearch={handleExactSearch}
                   />
+
+                  {/* Recent searches */}
+                  {searchHistoryItems.length > 0 && !searchQuery && activeResults.length === 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          חיפושים אחרונים
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-muted-foreground"
+                          onClick={() => { clearSearchHistory(); setSearchHistoryItems([]); }}
+                        >
+                          נקה
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {searchHistoryItems.map((item, i) => (
+                          <Button
+                            key={i}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 group"
+                            onClick={() => { setSearchQuery(item); }}
+                          >
+                            {item}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   <SearchFilters
                     sefer={sefer}

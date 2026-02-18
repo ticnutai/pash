@@ -90,7 +90,6 @@ export const Commentaries = () => {
   const numPerek = Number(perek);
   const numPasuk = Number(pasuk);
   const pasukId = `${numSeferId}-${numPerek}-${numPasuk}`;
-  console.log('🔍 Commentaries - pasukId:', pasukId);
 
   useEffect(() => {
     const loadData = async () => {
@@ -468,9 +467,9 @@ const CommentarySection = ({ commentary, seferId, perek, pasuk, isFavorite, onTo
   };
 
   const handleShare = () => {
-    const shareText = `${commentary.mefaresh} - ${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentary.text}`;
+    const shareText = `*${commentary.mefaresh}*\n📖 ${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentary.text}\n\n---\nמתוך אפליקציית חמישה חומשי תורה`;
     if (navigator.share) {
-      navigator.share({ title: commentary.mefaresh, text: shareText }).catch(() => {});
+      navigator.share({ title: `${commentary.mefaresh} - פירוש`, text: shareText }).catch(() => {});
     } else {
       navigator.clipboard.writeText(shareText);
       toast.success("הפירוש הועתק לשיתוף");

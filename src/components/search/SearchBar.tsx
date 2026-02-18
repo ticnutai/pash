@@ -23,7 +23,7 @@ export const SearchBar = ({ value, onChange, onSearch, placeholder = "חפש פ�
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
           placeholder={placeholder}
           className="pr-10 text-right"
         />

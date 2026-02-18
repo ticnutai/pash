@@ -59,8 +59,6 @@ export const SefariaDownloader = () => {
         throw new Error(error.message || 'שגיאה בהורדת הנתונים');
       }
 
-      console.log('Received data from Sefaria:', data);
-
       // Save to local file
       const fileName = `${commentary}_on_${book}_${chapter}_${verse}.json`;
       const jsonString = JSON.stringify(data, null, 2);
