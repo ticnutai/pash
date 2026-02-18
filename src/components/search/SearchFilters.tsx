@@ -1,5 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { ALL_MEFARSHIM_HEBREW } from "@/types/sefaria";
 
 interface SearchFiltersProps {
   sefer: number | null;
@@ -18,13 +19,7 @@ const SEFARIM = [
   { id: 5, name: "דברים" }
 ];
 
-const MEFARSHIM = [
-  "הכל",
-  "רש\"י",
-  "רמב\"ן",
-  "אבן עזרא",
-  "ספורנו"
-];
+const MEFARSHIM = ["הכל", ...ALL_MEFARSHIM_HEBREW];
 
 export const SearchFilters = ({
   sefer,

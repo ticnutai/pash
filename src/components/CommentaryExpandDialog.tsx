@@ -1,13 +1,15 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, Copy, Check, Share2 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
-import { loadSefariaCommentary, getSefariaSeferName, getMefareshSefariaUrl } from "@/utils/sefariaCommentaries";
+import { loadSefariaCommentary, getSefariaSeferName, getMefareshSefariaUrl, getAvailableCommentaries } from "@/utils/sefariaCommentaries";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { torahDB } from "@/utils/torahDB";
 import { TextHighlighter } from "./TextHighlighter";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
+import { MEFARESH_MAPPING } from "@/types/sefaria";
+import { toast } from "sonner";
 
 interface CommentaryExpandDialogProps {
   open: boolean;
@@ -17,13 +19,6 @@ interface CommentaryExpandDialogProps {
   pasuk: number;
   mefaresh: string;
 }
-
-const MEFARESH_MAPPING: Record<string, string> = {
-  'רש"י': 'Rashi',
-  'רמב"ן': 'Ramban',
-  'אבן עזרא': 'Ibn_Ezra',
-  'ספורנו': 'Sforno'
-};
 
 export const CommentaryExpandDialog = ({
   open,
@@ -71,17 +66,24 @@ export const CommentaryExpandDialog = ({
           return;
         }
 
+        // Try full local file first
         const data = await loadSefariaCommentary(seferName, mefareshEn);
         
         if (data?.text?.[perek - 1]?.[pasuk - 1]) {
           const text = data.text[perek - 1][pasuk - 1];
           const textContent = Array.isArray(text) ? text.join(" ") : text;
           setCommentaryText(textContent);
-          
-          // Save to IndexedDB for future access
           torahDB.saveCommentary(cacheKey, textContent).catch(() => {});
         } else {
-          setCommentaryText("לא נמצא פירוש");
+          // Fallback: fetch this specific commentary via API
+          const results = await getAvailableCommentaries(sefer, perek, pasuk);
+          const found = results.find(c => c.mefaresh === mefaresh || c.mefareshEn === mefareshEn);
+          if (found?.text) {
+            setCommentaryText(found.text);
+            torahDB.saveCommentary(cacheKey, found.text).catch(() => {});
+          } else {
+            setCommentaryText("לא נמצא פירוש");
+          }
         }
       } catch (error) {
         console.error("Error loading commentary:", error);
@@ -130,7 +132,37 @@ export const CommentaryExpandDialog = ({
               {formatTorahText(commentaryText)}
             </div>
 
-            <div className="flex justify-end pt-4 border-t">
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(commentaryText);
+                    toast.success("הפירוש הועתק ללוח");
+                  }}
+                  title="העתק פירוש"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const seferNames = ["בראשית", "שמות", "ויקרא", "במדבר", "דברים"];
+                    const shareText = `${mefaresh} - ${seferNames[sefer - 1]} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentaryText}`;
+                    if (navigator.share) {
+                      navigator.share({ title: `${mefaresh}`, text: shareText }).catch(() => {});
+                    } else {
+                      navigator.clipboard.writeText(shareText);
+                      toast.success("הפירוש הועתק לשיתוף");
+                    }
+                  }}
+                  title="שתף פירוש"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </div>
               <Button
                 variant="outline"
                 size="sm"

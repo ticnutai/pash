@@ -16,8 +16,24 @@ serve(async (req) => {
     
     console.log(`Fetching from Sefaria: ${commentaryName} on ${book} ${chapter}:${verse}`);
 
-    // Build Sefaria API URL - using v2 API which is more stable
-    const ref = `${commentaryName} on ${book} ${chapter}:${verse}`;
+    // Build Sefaria API URL
+    // Targum Onkelos uses a different ref format
+    let ref: string;
+    if (commentaryName === "Onkelos") {
+      ref = `Onkelos ${book} ${chapter}:${verse}`;
+    } else if (commentaryName === "HaEmek_Davar") {
+      ref = `Haamek Davar on ${book} ${chapter}:${verse}`;
+    } else if (commentaryName === "Metzudat_David") {
+      ref = `Metzudat David on ${book} ${chapter}:${verse}`;
+    } else if (commentaryName === "Daat_Zkenim") {
+      ref = `Da'at Zkenim on ${book} ${chapter}:${verse}`;
+    } else if (commentaryName === "Alshich") {
+      ref = `Alshich on ${book} ${chapter}:${verse}`;
+    } else if (commentaryName === "Malbim") {
+      ref = `Malbim on ${book} ${chapter}:${verse}`;
+    } else {
+      ref = `${commentaryName.replace(/_/g, ' ')} on ${book} ${chapter}:${verse}`;
+    }
     const url = `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}?context=0`;
     
     console.log(`Sefaria URL: ${url}`);

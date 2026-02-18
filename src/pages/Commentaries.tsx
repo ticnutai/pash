@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, BookOpen, ChevronDown, ChevronUp, ExternalLink, GitCompare, X } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronDown, ChevronUp, ExternalLink, GitCompare, X, Copy, Share2, Star, StarOff, Download } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +12,13 @@ import { NotesDialog } from "@/components/NotesDialog";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { getAvailableCommentaries, getPasukSefariaUrl, getMefareshSefariaUrl } from "@/utils/sefariaCommentaries";
-import { SefariaCommentary } from "@/types/sefaria";
+import { SefariaCommentary, AVAILABLE_COMMENTARIES } from "@/types/sefaria";
+import { torahDB } from "@/utils/torahDB";
 import type { Sefer } from "@/types/torah";
 import { formatTorahText } from "@/utils/textUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CommentaryDisplaySettings } from "@/components/CommentaryDisplaySettings";
+import { toast } from "sonner";
 
 export const Commentaries = () => {
   const { seferId, perek, pasuk } = useParams<{ seferId: string; perek: string; pasuk: string }>();
@@ -35,6 +37,55 @@ export const Commentaries = () => {
   const [error, setError] = useState<string | null>(null);
   const selectedMefaresh = searchParams.get('mefaresh');
 
+  // Favorite commentators — persisted in localStorage
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('torah-favorite-mefarshim');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  const toggleFavorite = useCallback((mefareshHebrew: string) => {
+    setFavorites(prev => {
+      const next = prev.includes(mefareshHebrew)
+        ? prev.filter(m => m !== mefareshHebrew)
+        : [...prev, mefareshHebrew];
+      localStorage.setItem('torah-favorite-mefarshim', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // Sort: favorites first, then by original order
+  const sortedCommentaries = useMemo(() => {
+    if (favorites.length === 0) return commentaries;
+    return [...commentaries].sort((a, b) => {
+      const aFav = favorites.includes(a.mefaresh) ? 0 : 1;
+      const bFav = favorites.includes(b.mefaresh) ? 0 : 1;
+      return aFav - bFav;
+    });
+  }, [commentaries, favorites]);
+
+  // Save to view history
+  const saveToHistory = useCallback((sefId: number, prk: number, psk: number, sefName: string) => {
+    try {
+      const history = JSON.parse(localStorage.getItem('torah-commentary-history') || '[]');
+      const entry = {
+        seferId: sefId,
+        perek: prk,
+        pasuk: psk,
+        seferName: sefName,
+        timestamp: Date.now()
+      };
+      // Remove duplicate if exists
+      const filtered = history.filter((h: any) => 
+        !(h.seferId === sefId && h.perek === prk && h.pasuk === psk)
+      );
+      filtered.unshift(entry);
+      // Keep last 50
+      localStorage.setItem('torah-commentary-history', JSON.stringify(filtered.slice(0, 50)));
+    } catch { /* ignore */ }
+  }, []);
+
   const numSeferId = Number(seferId);
   const numPerek = Number(perek);
   const numPasuk = Number(pasuk);
@@ -48,6 +99,7 @@ export const Commentaries = () => {
       setLoading(true);
 
       // Load the pasuk text from the original data
+      let loadedSeferName = "";
       try {
         const seferFiles: Record<number, string> = {
           1: "bereishit",
@@ -60,7 +112,8 @@ export const Commentaries = () => {
         const seferFileName = seferFiles[numSeferId];
         const seferData: Sefer = await import(`@/data/${seferFileName}.json`).then(m => m.default);
         
-        setSeferName(seferData.sefer_name);
+        loadedSeferName = seferData.sefer_name;
+        setSeferName(loadedSeferName);
 
         // Find the pasuk
         for (const parsha of seferData.parshiot) {
@@ -83,6 +136,8 @@ export const Commentaries = () => {
         const sefariaCommentaries = await getAvailableCommentaries(numSeferId, numPerek, numPasuk);
         setCommentaries(sefariaCommentaries);
         setError(null);
+        // Save to history
+        saveToHistory(numSeferId, numPerek, numPasuk, loadedSeferName);
       } catch (err) {
         console.error("Error loading commentaries:", err);
         setError("שגיאה בטעינת הפרשנים");
@@ -105,7 +160,23 @@ export const Commentaries = () => {
     };
 
     loadData();
-  }, [seferId, perek, pasuk, numSeferId, numPerek, numPasuk, selectedMefaresh]);
+  }, [seferId, perek, pasuk, numSeferId, numPerek, numPasuk, selectedMefaresh, saveToHistory]);
+
+  // Smart offline prompt — show once per session if commentaries were loaded via API
+  const [showOfflinePrompt, setShowOfflinePrompt] = useState(false);
+  useEffect(() => {
+    if (!loading && commentaries.length > 0) {
+      const dismissed = sessionStorage.getItem('torah-offline-prompt-dismissed');
+      if (!dismissed) {
+        // Check if user has offline data
+        torahDB.getCommentaryCount().then(count => {
+          if (count < 20) {
+            setShowOfflinePrompt(true);
+          }
+        });
+      }
+    }
+  }, [loading, commentaries]);
 
   const handleBack = () => {
     navigate("/");
@@ -201,6 +272,41 @@ export const Commentaries = () => {
 
         {/* Commentaries Section */}
         <div className="space-y-6">
+          {/* Smart Offline Download Prompt */}
+          {showOfflinePrompt && (
+            <Card className="p-4 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      sessionStorage.setItem('torah-offline-prompt-dismissed', '1');
+                      setShowOfflinePrompt(false);
+                    }}
+                    className="text-xs h-7"
+                  >
+                    לא עכשיו
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      window.open('/settings?tab=sefaria', '_blank');
+                      setShowOfflinePrompt(false);
+                    }}
+                    className="text-xs h-7"
+                  >
+                    <Download className="h-3 w-3 ml-1" />
+                    הורד מפרשים
+                  </Button>
+                </div>
+                <p className="text-sm text-right">
+                  💡 רוצה גישה מהירה ואופליין לכל המפרשים? הורד אותם לאחסון מקומי
+                </p>
+              </div>
+            </Card>
+          )}
+
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <BookOpen className="h-6 w-6 text-primary" />
@@ -323,13 +429,16 @@ export const Commentaries = () => {
               </Card>
             </div>
           ) : (
-            commentaries.map((commentary) => (
+            sortedCommentaries.map((commentary) => (
               <CommentarySection
                 key={commentary.id}
                 commentary={commentary}
                 seferId={numSeferId}
                 perek={numPerek}
                 pasuk={numPasuk}
+                isFavorite={favorites.includes(commentary.mefaresh)}
+                onToggleFavorite={toggleFavorite}
+                seferName={seferName}
               />
             ))
           )}
@@ -344,11 +453,29 @@ interface CommentarySectionProps {
   seferId: number;
   perek: number;
   pasuk: number;
+  isFavorite: boolean;
+  onToggleFavorite: (mefaresh: string) => void;
+  seferName: string;
 }
 
-const CommentarySection = ({ commentary, seferId, perek, pasuk }: CommentarySectionProps) => {
+const CommentarySection = ({ commentary, seferId, perek, pasuk, isFavorite, onToggleFavorite, seferName }: CommentarySectionProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { settings } = useFontAndColorSettings();
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(commentary.text);
+    toast.success("הפירוש הועתק ללוח");
+  };
+
+  const handleShare = () => {
+    const shareText = `${commentary.mefaresh} - ${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentary.text}`;
+    if (navigator.share) {
+      navigator.share({ title: commentary.mefaresh, text: shareText }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareText);
+      toast.success("הפירוש הועתק לשיתוף");
+    }
+  };
 
   return (
     <Card className="overflow-hidden border-r-2 border-r-accent w-full max-w-full" data-mefaresh={commentary.mefaresh}>
@@ -356,9 +483,12 @@ const CommentarySection = ({ commentary, seferId, perek, pasuk }: CommentarySect
         <CollapsibleTrigger asChild>
           <div className="flex items-center justify-between p-4 cursor-pointer transition-colors">
             <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="text-base font-bold px-3 py-1">
-                {commentary.mefaresh}
-              </Badge>
+              <div className="flex items-center gap-1">
+                {isFavorite && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
+                <Badge variant="secondary" className="text-base font-bold px-3 py-1">
+                  {commentary.mefaresh}
+                </Badge>
+              </div>
               <a
                 href={getMefareshSefariaUrl(seferId, perek, pasuk, commentary.mefaresh)}
                 target="_blank"
@@ -401,6 +531,27 @@ const CommentarySection = ({ commentary, seferId, perek, pasuk }: CommentarySect
                   {formatTorahText(commentary.text)}
                 </p>
               </PasukLineActions>
+              
+              {/* Action buttons */}
+              <div className="flex items-center gap-1.5 mt-3 pt-3 border-t">
+                <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 px-2 gap-1 text-xs">
+                  <Copy className="h-3.5 w-3.5" />
+                  העתק
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleShare} className="h-7 px-2 gap-1 text-xs">
+                  <Share2 className="h-3.5 w-3.5" />
+                  שתף
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onToggleFavorite(commentary.mefaresh)}
+                  className={`h-7 px-2 gap-1 text-xs ${isFavorite ? 'text-yellow-600' : ''}`}
+                >
+                  {isFavorite ? <Star className="h-3.5 w-3.5 fill-yellow-500" /> : <StarOff className="h-3.5 w-3.5" />}
+                  {isFavorite ? 'מועדף' : 'הוסף למועדפים'}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </CollapsibleContent>

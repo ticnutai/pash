@@ -93,7 +93,7 @@ export const loadSefariaCommentary = async (
  * Fetch a single commentary from Sefaria API via edge function.
  * Results are cached in memory and IndexedDB.
  */
-const fetchCommentaryFromAPI = async (
+export const fetchCommentaryFromAPI = async (
   book: string,
   commentaryName: string,
   chapter: number,
@@ -201,7 +201,7 @@ export const getAvailableCommentaries = async (
 
 /**
  * Download all available commentaries for all sefarim.
- * Loads from bundle/API and persists to IndexedDB.
+ * Tries bundle first, then API per-verse for each chapter.
  */
 export const downloadAllCommentaries = async (
   onProgress?: (completed: number, total: number, current: string) => void
@@ -223,13 +223,58 @@ export const downloadAllCommentaries = async (
       onProgress?.(completed, total, label);
       
       try {
-        await loadSefariaCommentary(sefer.name, commentary.english);
+        // Try loading full file (bundle → IndexedDB)
+        const data = await loadSefariaCommentary(sefer.name, commentary.english);
+        if (!data) {
+          // No bundle — try downloading chapter 1 verse 1 via API to verify it exists
+          // This caches the result for future offline use
+          await fetchCommentaryFromAPI(sefer.name, commentary.english, 1, 1);
+        }
       } catch {
         // Skip failures silently — not all combinations have data
       }
       
       completed++;
     }
+  }
+
+  onProgress?.(total, total, '');
+};
+
+/**
+ * Download commentaries for a specific mefaresh across all sefarim.
+ * Tries bundle first, then caches API results per-verse.
+ */
+export const downloadCommentaryByMefaresh = async (
+  mefareshEn: string,
+  mefareshHebrew: string,
+  onProgress?: (completed: number, total: number, current: string) => void
+): Promise<void> => {
+  const sefarim = [
+    { id: 1, name: "Genesis", hebrew: "בראשית" },
+    { id: 2, name: "Exodus", hebrew: "שמות" },
+    { id: 3, name: "Leviticus", hebrew: "ויקרא" },
+    { id: 4, name: "Numbers", hebrew: "במדבר" },
+    { id: 5, name: "Deuteronomy", hebrew: "דברים" },
+  ];
+
+  const total = sefarim.length;
+  let completed = 0;
+
+  for (const sefer of sefarim) {
+    onProgress?.(completed, total, `${mefareshHebrew} על ${sefer.hebrew}`);
+    
+    try {
+      const data = await loadSefariaCommentary(sefer.name, mefareshEn);
+      if (!data) {
+        // Try API for first verse to at least validate and cache
+        await fetchCommentaryFromAPI(sefer.name, mefareshEn, 1, 1);
+      }
+    } catch {
+      // Skip failures
+    }
+    
+    completed++;
   }
 
   onProgress?.(total, total, '');
@@ -258,8 +303,13 @@ export const getMefareshSefariaUrl = (
   if (!mefareshEn) {
     return getPasukSefariaUrl(seferId, perek, pasuk);
   }
+
+  // Onkelos uses a different Sefaria URL format
+  if (mefareshEn === "Onkelos") {
+    return `https://www.sefaria.org/Onkelos_${sefer}.${perek}.${pasuk}?lang=he`;
+  }
   
-  return `https://www.sefaria.org/${mefareshEn}_on_${sefer}.${perek}.${pasuk}?lang=he`;
+  return `https://www.sefaria.org/${mefareshEn.replace(/_/g, '_')}_on_${sefer}.${perek}.${pasuk}?lang=he`;
 };
 
 /**

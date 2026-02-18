@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { Download, Trash2, HardDrive, CheckCircle2, Loader2, Database, BookOpen, MessageSquare, Bookmark, Palette, FileText } from "lucide-react";
+import { Download, Trash2, HardDrive, CheckCircle2, Loader2, Database, BookOpen, MessageSquare, Bookmark, Palette, FileText, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { torahDB } from "@/utils/torahDB";
 import { downloadAllSefarim, clearAllSeferCache } from "@/utils/lazyLoadSefer";
-import { downloadAllCommentaries, clearCommentaryCache } from "@/utils/sefariaCommentaries";
+import { downloadAllCommentaries, downloadCommentaryByMefaresh, clearCommentaryCache } from "@/utils/sefariaCommentaries";
+import { AVAILABLE_COMMENTARIES, getCommentariesByCategory } from "@/types/sefaria";
+import { toHebrewNumber } from "@/utils/hebrewNumbers";
 
 const SEFER_NAMES = ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'דברים'];
 
@@ -267,7 +271,7 @@ export const LocalDBManager = () => {
             <span className="text-xs">מחק</span>
           </Button>
           <h4 className="font-semibold flex items-center gap-1.5">
-            <span>מפרשים</span>
+            <span>מפרשים ({AVAILABLE_COMMENTARIES.length} מפרשים זמינים)</span>
             <MessageSquare className="h-4 w-4 text-primary" />
           </h4>
         </div>
@@ -277,20 +281,72 @@ export const LocalDBManager = () => {
             : 'אין מפרשים מאוחסנים — הורדה תאפשר גישה מהירה ואופליין'
           }
         </div>
+
+        {/* Download All */}
         <Button
           onClick={handleDownloadCommentaries}
           disabled={downloadingCommentaries || downloading}
-          className="w-full gap-2"
+          className="w-full gap-2 mb-2"
           size="sm"
           variant="outline"
         >
           {downloadingCommentaries ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <MessageSquare className="h-4 w-4" />
+            <Download className="h-4 w-4" />
           )}
-          <span>הורד את כל המפרשים הזמינים</span>
+          <span>הורד את כל המפרשים</span>
         </Button>
+
+        {/* Selective Download Collapsible */}
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full text-xs gap-1 h-7">
+              <ChevronDown className="h-3 w-3" />
+              הורדה סלקטיבית לפי מפרש
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-2">
+            {[
+              { label: "מפרשים קלאסיים", commentaries: getCommentariesByCategory("classic") },
+              { label: "תרגום", commentaries: getCommentariesByCategory("targum") },
+              { label: "מפרשים נוספים", commentaries: getCommentariesByCategory("additional") },
+            ].map(group => (
+              <div key={group.label}>
+                <div className="text-xs font-semibold text-muted-foreground mb-1 text-right">{group.label}</div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {group.commentaries.map(c => (
+                    <Button
+                      key={c.english}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs justify-end gap-1"
+                      disabled={downloadingCommentaries || downloading}
+                      onClick={async () => {
+                        setDownloadingCommentaries(true);
+                        setCommentaryProgress({ completed: 0, total: 5, current: c.hebrew });
+                        try {
+                          await downloadCommentaryByMefaresh(c.english, c.hebrew, (completed, total, current) => {
+                            setCommentaryProgress({ completed, total, current });
+                          });
+                          toast.success(`${c.hebrew} הורד בהצלחה`);
+                          await loadStatus();
+                        } catch {
+                          toast.error(`שגיאה בהורדת ${c.hebrew}`);
+                        } finally {
+                          setDownloadingCommentaries(false);
+                        }
+                      }}
+                    >
+                      <Download className="h-3 w-3" />
+                      {c.hebrew}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
 
         {downloadingCommentaries && (
           <div className="space-y-2 mt-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
@@ -305,6 +361,9 @@ export const LocalDBManager = () => {
           </div>
         )}
       </Card>
+
+      {/* Commentary View History */}
+      <CommentaryHistory />
 
       {/* User Data Section */}
       <Card className="p-4">
@@ -354,8 +413,77 @@ export const LocalDBManager = () => {
           <li>הורדה מאפשרת גישה מהירה ללא חיבור לאינטרנט</li>
           <li>מפרשים שנטענו מ-API נשמרים אוטומטית לשימוש חוזר</li>
           <li>ניתן למחוק נתונים מקומיים בכל עת — הנתונים בשרת לא ייפגעו</li>
+          <li>ניתן להוריד מפרש בודד או את כולם</li>
+          <li>{AVAILABLE_COMMENTARIES.length} מפרשים זמינים כולל תרגום אונקלוס</li>
         </ul>
       </div>
     </div>
+  );
+};
+
+/**
+ * CommentaryHistory — shows recent commentary views from localStorage
+ */
+const CommentaryHistory = () => {
+  const [history, setHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('torah-commentary-history');
+      if (saved) setHistory(JSON.parse(saved));
+    } catch { /* ignore */ }
+  }, []);
+
+  if (history.length === 0) return null;
+
+  return (
+    <Card className="p-4">
+      <Collapsible open={showHistory} onOpenChange={setShowHistory}>
+        <div className="flex items-center justify-between">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 px-2 gap-1">
+              {showHistory ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              <span className="text-xs">{history.length} רשומות</span>
+            </Button>
+          </CollapsibleTrigger>
+          <h4 className="font-semibold flex items-center gap-1.5 text-sm">
+            <span>היסטוריית צפייה</span>
+            <Clock className="h-4 w-4 text-primary" />
+          </h4>
+        </div>
+        <CollapsibleContent className="mt-2">
+          <div className="space-y-1 max-h-48 overflow-y-auto">
+            {history.slice(0, 20).map((entry, i) => (
+              <a
+                key={i}
+                href={`/commentaries/${entry.seferId}/${entry.perek}/${entry.pasuk}`}
+                className="flex items-center justify-between text-xs p-1.5 rounded hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-muted-foreground">
+                  {new Date(entry.timestamp).toLocaleDateString('he-IL')}
+                </span>
+                <span className="font-medium">
+                  {entry.seferName} {toHebrewNumber(entry.perek)}:{toHebrewNumber(entry.pasuk)}
+                </span>
+              </a>
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full mt-2 text-xs text-destructive hover:text-destructive h-7"
+            onClick={() => {
+              localStorage.removeItem('torah-commentary-history');
+              setHistory([]);
+              toast.success("היסטוריה נמחקה");
+            }}
+          >
+            <Trash2 className="h-3 w-3 ml-1" />
+            מחק היסטוריה
+          </Button>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 };

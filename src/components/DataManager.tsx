@@ -29,6 +29,8 @@ export const DataManager = () => {
         "torah-highlights",
         "torah-bookmarks",
         "torah-user-content",
+        "torah-favorite-mefarshim",
+        "torah-commentary-history",
       ];
 
       for (const key of keysToExport) {
