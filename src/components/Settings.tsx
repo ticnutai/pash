@@ -22,7 +22,80 @@ import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "@/components/ColorPicker";
 import { BookmarksDialog } from "@/components/BookmarksDialog";
 import { getCalendarPreference, setCalendarPreference } from "@/utils/parshaUtils";
+import { getRememberedCredentials, getAutoLoginEnabled, setAutoLoginEnabled, clearRememberedCredentials } from "@/pages/Auth";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+const AutoLoginSetting = () => {
+  const remembered = getRememberedCredentials();
+  const autoLogin = getAutoLoginEnabled();
+  const { user } = useAuth();
+
+  if (!remembered && !user) return null;
+
+  return (
+    <Card className="p-6 space-y-4">
+      <div>
+        <h3 className="font-semibold text-lg mb-2">כניסה אוטומטית</h3>
+        <p className="text-sm text-muted-foreground">
+          הגדר כניסה אוטומטית לחשבון שנשמר
+        </p>
+      </div>
+      
+      <Separator />
+
+      {remembered && (
+        <>
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+            <div className="flex-1 text-right">
+              <Label htmlFor="auto-login-toggle" className="text-base font-semibold cursor-pointer">
+                כניסה אוטומטית
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                כאשר מופעל, תיכנס אוטומטית בלי לראות את דף הכניסה
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                חשבון שמור: {remembered.email}
+              </p>
+            </div>
+            <Switch
+              id="auto-login-toggle"
+              checked={autoLogin}
+              onCheckedChange={(checked) => {
+                setAutoLoginEnabled(checked);
+                toast.success(checked ? "כניסה אוטומטית הופעלה" : "כניסה אוטומטית כובתה");
+              }}
+            />
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => {
+              clearRememberedCredentials();
+              toast.success("החשבון השמור נמחק. בכניסה הבאה תצטרך להזין פרטים מחדש.");
+              // Force re-render
+              window.location.reload();
+            }}
+          >
+            <LogOut className="h-4 w-4" />
+            <span>נתק חשבון שמור (שכח אותי)</span>
+          </Button>
+        </>
+      )}
+
+      {!remembered && user && (
+        <div className="p-4 bg-muted/30 rounded-lg text-right">
+          <p className="text-sm text-muted-foreground">
+            כדי להפעיל כניסה אוטומטית, סמן "זכור אותי" בפעם הבאה שתתחבר.
+          </p>
+        </div>
+      )}
+    </Card>
+  );
+};
 
 const themes = [
   { id: "light" as Theme, name: "בהיר", description: "נושא בהיר ונקי" },
@@ -669,6 +742,8 @@ export const Settings = () => {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-4">
+            <AutoLoginSetting />
+
             <Card className="p-6 space-y-6">
               <div>
                 <h3 className="font-semibold text-lg mb-2">הסימניות שלי</h3>

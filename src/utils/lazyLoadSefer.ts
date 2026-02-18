@@ -22,8 +22,9 @@ export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
   try {
     const cached = await torahDB.getSefer(seferId);
     if (cached) {
-      memoryCache.set(seferId, cached);
-      return cached as Sefer;
+      const seferData = cached as Sefer;
+      memoryCache.set(seferId, seferData);
+      return seferData;
     }
   } catch (e) {
     // IndexedDB failed, continue to bundle
