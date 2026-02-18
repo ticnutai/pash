@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { torahDB } from "@/utils/torahDB";
 import { toast } from "sonner";
 
 export interface Bookmark {
@@ -44,6 +45,14 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     try {
+      // 1. Load from IndexedDB cache instantly
+      const cached = await torahDB.getUserData('bookmarks');
+      if (cached) {
+        setBookmarks(cached as Bookmark[]);
+        setLoading(false);
+      }
+
+      // 2. Sync from Supabase
       const { data, error } = await supabase
         .from("user_bookmarks")
         .select("*")
@@ -62,6 +71,8 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
       }));
 
       setBookmarks(formattedBookmarks);
+      // 3. Save to IndexedDB
+      torahDB.saveUserData('bookmarks', formattedBookmarks).catch(() => {});
     } catch (error) {
       console.error("Error loading bookmarks:", error);
       toast.error("שגיאה בטעינת הסימניות");
@@ -105,7 +116,11 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
         createdAt: data.created_at,
       };
 
-      setBookmarks((prev) => [newBookmark, ...prev]);
+      setBookmarks((prev) => {
+        const next = [newBookmark, ...prev];
+        torahDB.saveUserData('bookmarks', next).catch(() => {});
+        return next;
+      });
       toast.success("הסימניה נוספה בהצלחה");
     } catch (error) {
       console.error("Error adding bookmark:", error);
@@ -125,7 +140,11 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setBookmarks((prev) => prev.filter((b) => b.id !== id));
+      setBookmarks((prev) => {
+        const next = prev.filter((b) => b.id !== id);
+        torahDB.saveUserData('bookmarks', next).catch(() => {});
+        return next;
+      });
       toast.success("הסימניה הוסרה");
     } catch (error) {
       console.error("Error removing bookmark:", error);
@@ -154,9 +173,11 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setBookmarks((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, note, tags } : b))
-      );
+      setBookmarks((prev) => {
+        const next = prev.map((b) => (b.id === id ? { ...b, note, tags } : b));
+        torahDB.saveUserData('bookmarks', next).catch(() => {});
+        return next;
+      });
       toast.success("הסימניה עודכנה");
     } catch (error) {
       console.error("Error updating bookmark:", error);

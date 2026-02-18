@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { torahDB } from "@/utils/torahDB";
 import { toast } from "sonner";
 
 export interface Highlight {
@@ -43,6 +44,14 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
 
+      // 1. Load from IndexedDB cache instantly
+      const cached = await torahDB.getUserData('highlights');
+      if (cached) {
+        setHighlights(cached as Highlight[]);
+        setLoading(false);
+      }
+
+      // 2. Sync from Supabase
       const { data, error } = await supabase
         .from("user_highlights")
         .select("*")
@@ -61,6 +70,8 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
       }));
 
       setHighlights(mappedHighlights);
+      // 3. Save to IndexedDB
+      torahDB.saveUserData('highlights', mappedHighlights).catch(() => {});
     } catch (error: any) {
       console.error("Error loading highlights:", error);
       toast.error("שגיאה בטעינת הדגשות");
@@ -100,7 +111,11 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
         endIndex: data.end_index,
       };
 
-      setHighlights((prev) => [newHighlight, ...prev]);
+      setHighlights((prev) => {
+        const next = [newHighlight, ...prev];
+        torahDB.saveUserData('highlights', next).catch(() => {});
+        return next;
+      });
       toast.success("ההדגשה נוספה בהצלחה");
     } catch (error: any) {
       console.error("Error adding highlight:", error);
@@ -120,7 +135,11 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setHighlights((prev) => prev.filter((h) => h.id !== id));
+      setHighlights((prev) => {
+        const next = prev.filter((h) => h.id !== id);
+        torahDB.saveUserData('highlights', next).catch(() => {});
+        return next;
+      });
       toast.success("ההדגשה נמחקה");
     } catch (error: any) {
       console.error("Error deleting highlight:", error);

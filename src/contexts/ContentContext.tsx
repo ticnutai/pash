@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { torahDB } from "@/utils/torahDB";
 import { toast } from "sonner";
 
 export interface UserAnswer {
@@ -71,6 +72,13 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
+  // Helper: save current state to IndexedDB
+  const syncToIDB = (t: UserTitle[], q: UserQuestion[], a: UserAnswer[]) => {
+    torahDB.saveUserData('content_titles', t).catch(() => {});
+    torahDB.saveUserData('content_questions', q).catch(() => {});
+    torahDB.saveUserData('content_answers', a).catch(() => {});
+  };
+
   const loadContent = async () => {
     try {
       setLoading(true);
@@ -79,7 +87,21 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Load all data in parallel
+      // 1. Load instantly from IndexedDB cache
+      const [cachedTitles, cachedQuestions, cachedAnswers] = await Promise.all([
+        torahDB.getUserData('content_titles'),
+        torahDB.getUserData('content_questions'),
+        torahDB.getUserData('content_answers'),
+      ]);
+      
+      if (cachedTitles || cachedQuestions || cachedAnswers) {
+        if (cachedTitles) setTitles(cachedTitles as UserTitle[]);
+        if (cachedQuestions) setQuestions(cachedQuestions as UserQuestion[]);
+        if (cachedAnswers) setAnswers(cachedAnswers as UserAnswer[]);
+        setLoading(false);
+      }
+
+      // 2. Sync from Supabase in background
       const [titlesRes, questionsRes, answersRes] = await Promise.all([
         supabase.from('user_titles').select('*').order('created_at', { ascending: false }),
         supabase.from('user_questions').select('*').order('created_at', { ascending: false }),
@@ -90,25 +112,25 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       if (questionsRes.error) throw questionsRes.error;
       if (answersRes.error) throw answersRes.error;
 
-      setTitles(titlesRes.data?.map(t => ({
+      const freshTitles = titlesRes.data?.map(t => ({
         id: t.id,
         pasukId: t.pasuk_id,
         title: t.title,
         createdAt: t.created_at,
         isShared: t.is_shared || false,
         userId: t.user_id,
-      })) || []);
+      })) || [];
 
-      setQuestions(questionsRes.data?.map(q => ({
+      const freshQuestions = questionsRes.data?.map(q => ({
         id: q.id,
         titleId: q.title_id,
         text: q.text,
         createdAt: q.created_at,
         isShared: q.is_shared || false,
         userId: q.user_id,
-      })) || []);
+      })) || [];
 
-      setAnswers(answersRes.data?.map(a => ({
+      const freshAnswers = answersRes.data?.map(a => ({
         id: a.id,
         questionId: a.question_id,
         mefaresh: a.mefaresh,
@@ -116,7 +138,14 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         createdAt: a.created_at,
         isShared: a.is_shared || false,
         userId: a.user_id,
-      })) || []);
+      })) || [];
+
+      setTitles(freshTitles);
+      setQuestions(freshQuestions);
+      setAnswers(freshAnswers);
+
+      // 3. Update IndexedDB cache
+      syncToIDB(freshTitles, freshQuestions, freshAnswers);
     } catch (error) {
       console.error("Error loading content:", error);
       toast.error("שגיאה בטעינת תכנים");
@@ -153,7 +182,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         userId: data.user_id,
       };
 
-      setTitles((prev) => [newTitle, ...prev]);
+      setTitles((prev) => {
+        const next = [newTitle, ...prev];
+        torahDB.saveUserData('content_titles', next).catch(() => {});
+        return next;
+      });
       return data.id;
     } catch (error) {
       console.error("Error adding title:", error);
@@ -190,7 +223,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         userId: data.user_id,
       };
 
-      setQuestions((prev) => [newQuestion, ...prev]);
+      setQuestions((prev) => {
+        const next = [newQuestion, ...prev];
+        torahDB.saveUserData('content_questions', next).catch(() => {});
+        return next;
+      });
       return data.id;
     } catch (error) {
       console.error("Error adding question:", error);
@@ -229,7 +266,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         userId: data.user_id,
       };
 
-      setAnswers((prev) => [newAnswer, ...prev]);
+      setAnswers((prev) => {
+        const next = [newAnswer, ...prev];
+        torahDB.saveUserData('content_answers', next).catch(() => {});
+        return next;
+      });
       return data.id;
     } catch (error) {
       console.error("Error adding answer:", error);
@@ -247,7 +288,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setTitles((prev) => prev.map((t) => t.id === id ? { ...t, title } : t));
+      setTitles((prev) => {
+        const next = prev.map((t) => t.id === id ? { ...t, title } : t);
+        torahDB.saveUserData('content_titles', next).catch(() => {});
+        return next;
+      });
       toast.success("הכותרת עודכנה בהצלחה");
     } catch (error) {
       console.error("Error updating title:", error);
@@ -265,7 +310,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, text } : q));
+      setQuestions((prev) => {
+        const next = prev.map((q) => q.id === id ? { ...q, text } : q);
+        torahDB.saveUserData('content_questions', next).catch(() => {});
+        return next;
+      });
       toast.success("השאלה עודכנה בהצלחה");
     } catch (error) {
       console.error("Error updating question:", error);
@@ -283,7 +332,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setAnswers((prev) => prev.map((a) => a.id === id ? { ...a, text, mefaresh } : a));
+      setAnswers((prev) => {
+        const next = prev.map((a) => a.id === id ? { ...a, text, mefaresh } : a);
+        torahDB.saveUserData('content_answers', next).catch(() => {});
+        return next;
+      });
       toast.success("התשובה עודכנה בהצלחה");
     } catch (error) {
       console.error("Error updating answer:", error);
@@ -301,7 +354,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setTitles((prev) => prev.filter((t) => t.id !== id));
+      setTitles((prev) => {
+        const next = prev.filter((t) => t.id !== id);
+        torahDB.saveUserData('content_titles', next).catch(() => {});
+        return next;
+      });
       toast.success("הכותרת נמחקה בהצלחה");
     } catch (error) {
       console.error("Error deleting title:", error);
@@ -319,7 +376,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setQuestions((prev) => prev.filter((q) => q.id !== id));
+      setQuestions((prev) => {
+        const next = prev.filter((q) => q.id !== id);
+        torahDB.saveUserData('content_questions', next).catch(() => {});
+        return next;
+      });
       toast.success("השאלה נמחקה בהצלחה");
     } catch (error) {
       console.error("Error deleting question:", error);
@@ -337,7 +398,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setAnswers((prev) => prev.filter((a) => a.id !== id));
+      setAnswers((prev) => {
+        const next = prev.filter((a) => a.id !== id);
+        torahDB.saveUserData('content_answers', next).catch(() => {});
+        return next;
+      });
       toast.success("התשובה נמחקה בהצלחה");
     } catch (error) {
       console.error("Error deleting answer:", error);
@@ -355,7 +420,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setTitles((prev) => prev.map((t) => t.id === id ? { ...t, isShared } : t));
+      setTitles((prev) => {
+        const next = prev.map((t) => t.id === id ? { ...t, isShared } : t);
+        torahDB.saveUserData('content_titles', next).catch(() => {});
+        return next;
+      });
       toast.success(isShared ? "הכותרת שותפה" : "השיתוף בוטל");
     } catch (error) {
       console.error("Error updating title sharing:", error);
@@ -373,7 +442,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isShared } : q));
+      setQuestions((prev) => {
+        const next = prev.map((q) => q.id === id ? { ...q, isShared } : q);
+        torahDB.saveUserData('content_questions', next).catch(() => {});
+        return next;
+      });
       toast.success(isShared ? "השאלה שותפה" : "השיתוף בוטל");
     } catch (error) {
       console.error("Error updating question sharing:", error);
@@ -391,7 +464,11 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setAnswers((prev) => prev.map((a) => a.id === id ? { ...a, isShared } : a));
+      setAnswers((prev) => {
+        const next = prev.map((a) => a.id === id ? { ...a, isShared } : a);
+        torahDB.saveUserData('content_answers', next).catch(() => {});
+        return next;
+      });
       toast.success(isShared ? "התשובה שותפה" : "השיתוף בוטל");
     } catch (error) {
       console.error("Error updating answer sharing:", error);

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { torahDB } from "@/utils/torahDB";
 import { toast } from "sonner";
 
 export interface Note {
@@ -57,6 +58,18 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
 
+      // 1. Load from IndexedDB cache instantly
+      const [cachedNotes, cachedQuestions] = await Promise.all([
+        torahDB.getUserData('notes'),
+        torahDB.getUserData('personal_questions'),
+      ]);
+      if (cachedNotes || cachedQuestions) {
+        if (cachedNotes) setNotes(cachedNotes as Note[]);
+        if (cachedQuestions) setQuestions(cachedQuestions as PersonalQuestion[]);
+        setLoading(false);
+      }
+
+      // 2. Sync from Supabase
       // Load notes
       const { data: notesData, error: notesError } = await supabase
         .from("user_notes")
@@ -93,6 +106,10 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       }));
 
       setQuestions(mappedQuestions);
+
+      // 3. Save to IndexedDB
+      torahDB.saveUserData('notes', mappedNotes).catch(() => {});
+      torahDB.saveUserData('personal_questions', mappedQuestions).catch(() => {});
     } catch (error: any) {
       console.error("Error loading notes and questions:", error);
       toast.error("שגיאה בטעינת הערות ושאלות");
@@ -127,7 +144,11 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date(data.created_at).getTime(),
       };
 
-      setNotes((prev) => [newNote, ...prev]);
+      setNotes((prev) => {
+        const next = [newNote, ...prev];
+        torahDB.saveUserData('notes', next).catch(() => {});
+        return next;
+      });
       toast.success("ההערה נוספה בהצלחה");
     } catch (error: any) {
       console.error("Error adding note:", error);
@@ -147,9 +168,11 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setNotes((prev) =>
-        prev.map((note) => (note.id === id ? { ...note, content } : note))
-      );
+      setNotes((prev) => {
+        const next = prev.map((note) => (note.id === id ? { ...note, content } : note));
+        torahDB.saveUserData('notes', next).catch(() => {});
+        return next;
+      });
       toast.success("ההערה עודכנה");
     } catch (error: any) {
       console.error("Error updating note:", error);
@@ -169,7 +192,11 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setNotes((prev) => prev.filter((note) => note.id !== id));
+      setNotes((prev) => {
+        const next = prev.filter((note) => note.id !== id);
+        torahDB.saveUserData('notes', next).catch(() => {});
+        return next;
+      });
       toast.success("ההערה נמחקה");
     } catch (error: any) {
       console.error("Error deleting note:", error);
@@ -208,7 +235,11 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date(data.created_at).getTime(),
       };
 
-      setQuestions((prev) => [newQuestion, ...prev]);
+      setQuestions((prev) => {
+        const next = [newQuestion, ...prev];
+        torahDB.saveUserData('personal_questions', next).catch(() => {});
+        return next;
+      });
       toast.success("השאלה נוספה בהצלחה");
     } catch (error: any) {
       console.error("Error adding question:", error);
@@ -231,9 +262,11 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setQuestions((prev) =>
-        prev.map((q) => (q.id === id ? { ...q, question, answer } : q))
-      );
+      setQuestions((prev) => {
+        const next = prev.map((q) => (q.id === id ? { ...q, question, answer } : q));
+        torahDB.saveUserData('personal_questions', next).catch(() => {});
+        return next;
+      });
       toast.success("השאלה עודכנה");
     } catch (error: any) {
       console.error("Error updating question:", error);
@@ -253,7 +286,11 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setQuestions((prev) => prev.filter((q) => q.id !== id));
+      setQuestions((prev) => {
+        const next = prev.filter((q) => q.id !== id);
+        torahDB.saveUserData('personal_questions', next).catch(() => {});
+        return next;
+      });
       toast.success("השאלה נמחקה");
     } catch (error: any) {
       console.error("Error deleting question:", error);
