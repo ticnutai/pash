@@ -33,39 +33,41 @@ const LoadingFallback = () => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <DeviceProvider>
-      <ThemeProvider>
-        <FontAndColorSettingsProvider>
-          <DisplayModeProvider>
-            <HighlightsProvider>
-              <NotesProvider>
-                <BookmarksProvider>
-                  <ContentProvider>
-                    <TooltipProvider>
-                    <Toaster />
-                    <Sonner />
-                    <PWAReloadPrompt />
-                    <BrowserRouter>
-                      <Suspense fallback={<LoadingFallback />}>
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/auth" element={<Auth />} />
-                          <Route path="/profile" element={<UserProfile />} />
-                          <Route path="/commentaries/:seferId/:perek/:pasuk" element={<Commentaries />} />
-                          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </Suspense>
-                    </BrowserRouter>
-                    </TooltipProvider>
-                  </ContentProvider>
-                </BookmarksProvider>
-              </NotesProvider>
-            </HighlightsProvider>
-          </DisplayModeProvider>
-        </FontAndColorSettingsProvider>
-      </ThemeProvider>
-    </DeviceProvider>
+    <AuthProvider>
+      <DeviceProvider>
+        <ThemeProvider>
+          <FontAndColorSettingsProvider>
+            <DisplayModeProvider>
+              <HighlightsProvider>
+                <NotesProvider>
+                  <BookmarksProvider>
+                    <ContentProvider>
+                      <TooltipProvider>
+                      <Toaster />
+                      <Sonner />
+                      <PWAReloadPrompt />
+                      <BrowserRouter>
+                        <Suspense fallback={<LoadingFallback />}>
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/auth" element={<Auth />} />
+                            <Route path="/profile" element={<UserProfile />} />
+                            <Route path="/commentaries/:seferId/:perek/:pasuk" element={<Commentaries />} />
+                            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </Suspense>
+                      </BrowserRouter>
+                      </TooltipProvider>
+                    </ContentProvider>
+                  </BookmarksProvider>
+                </NotesProvider>
+              </HighlightsProvider>
+            </DisplayModeProvider>
+          </FontAndColorSettingsProvider>
+        </ThemeProvider>
+      </DeviceProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
