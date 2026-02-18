@@ -8,7 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 
 const fonts = [
-  { value: "David", label: "דוד" },
+  { value: "David Libre", label: "דוד" },
+  { value: "Noto Serif Hebrew", label: "נוטו סריף" },
   { value: "Frank Ruehl Libre", label: "פרנק רוהל" },
   { value: "Miriam Libre", label: "מרים" },
   { value: "Rubik", label: "רוביק" },

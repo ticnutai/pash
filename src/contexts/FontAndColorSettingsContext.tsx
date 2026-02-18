@@ -55,7 +55,7 @@ interface FontAndColorSettingsContextType {
 }
 
 const defaultSettings: FontAndColorSettings = {
-  pasukFont: "David",
+  pasukFont: "David Libre",
   pasukSize: 18,
   pasukColor: "#1a1a1a",
   pasukBold: false,
