@@ -4,6 +4,7 @@ import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
 import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+import { useDevice } from "@/contexts/DeviceContext";
 
 interface ContinuousTextViewProps {
   pesukim: FlatPasuk[];
@@ -12,6 +13,7 @@ interface ContinuousTextViewProps {
 export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
+  const { isMobile } = useDevice();
 
   if (pesukim.length === 0) {
     return (
@@ -21,7 +23,7 @@ export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
     );
   }
 
-  // Group pesukim by perek for optional perek headers
+  // Group pesukim by perek
   const perekGroups: { perek: number; pesukim: FlatPasuk[] }[] = [];
   for (const pasuk of pesukim) {
     const last = perekGroups[perekGroups.length - 1];
@@ -32,6 +34,13 @@ export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
     }
   }
 
+  // On mobile, cap the effective font size to avoid huge text
+  const baseFontSize = settings.pasukSize || 18;
+  const scale = displayStyles.fontScale;
+  const effectiveSize = isMobile 
+    ? Math.min(baseFontSize * scale, 24) 
+    : baseFontSize * scale;
+
   return (
     <Card
       className="overflow-hidden w-full animate-fade-in border-r-4 border-r-primary/30 shadow-md"
@@ -41,11 +50,11 @@ export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
       }}
     >
       <div
-        className="p-4 sm:p-6 md:p-8"
+        className="p-3 sm:p-6 md:p-8"
         dir="rtl"
         style={{
           fontFamily: settings.pasukFont || "'Frank Ruhl Libre'",
-          fontSize: `calc(${settings.pasukSize || 20}px * ${displayStyles.fontScale})`,
+          fontSize: `${effectiveSize}px`,
           color: settings.pasukColor,
           fontWeight: settings.pasukBold ? "bold" : "normal",
           lineHeight: displayStyles.lineHeight,
