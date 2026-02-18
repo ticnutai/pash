@@ -1,5 +1,6 @@
 import { SEFARIA_BOOK_NAMES, MEFARESH_MAPPING, AVAILABLE_COMMENTARIES, SefariaCommentary } from "@/types/sefaria";
 import { supabase } from "@/integrations/supabase/client";
+import { torahDB } from "@/utils/torahDB";
 
 // Cache for loaded commentaries to improve performance
 const commentaryCache = new Map<string, any>();
@@ -34,6 +35,7 @@ export const getEnglishSeferName = (seferId: number): string => {
 
 /**
  * Load a specific commentary from local Sefaria data
+ * Uses 3-tier cache: memory → IndexedDB → dynamic import
  */
 export const loadSefariaCommentary = async (
   sefer: string,
@@ -41,16 +43,28 @@ export const loadSefariaCommentary = async (
 ): Promise<any> => {
   const cacheKey = `${sefer}-${mefareshEn}`;
   
-  // Check cache first
+  // Tier 1: Memory cache
   if (commentaryCache.has(cacheKey)) {
     return commentaryCache.get(cacheKey);
   }
 
+  // Tier 2: IndexedDB cache
   try {
-    // Dynamic import of the commentary file
+    const cached = await torahDB.getCommentary(cacheKey);
+    if (cached) {
+      commentaryCache.set(cacheKey, cached);
+      return cached;
+    }
+  } catch (e) {}
+
+  try {
+    // Tier 3: Dynamic import of the commentary file
     const data = await import(`@/data/sefaria/${mefareshEn}_on_${sefer}.json`);
-    commentaryCache.set(cacheKey, data.default || data);
-    return data.default || data;
+    const result = data.default || data;
+    commentaryCache.set(cacheKey, result);
+    // Save to IndexedDB for next time
+    torahDB.saveCommentary(cacheKey, result).catch(() => {});
+    return result;
   } catch (error) {
     console.warn(`Commentary not found: ${mefareshEn} on ${sefer}`, error);
     return null;

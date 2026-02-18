@@ -46,8 +46,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        globIgnores: ['**/assets/bereishit-*.js', '**/assets/shemot-*.js', '**/assets/vayikra-*.js', '**/assets/bamidbar-*.js', '**/assets/devarim-*.js'],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB for other assets
+        globIgnores: ['**/assets/data-*.js'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
         runtimeCaching: [
           {
             urlPattern: /\.json$/,
@@ -98,6 +98,22 @@ export default defineConfig(({ mode }) => ({
       }
     })
   ].filter(Boolean),
+  build: {
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-select', '@radix-ui/react-tooltip', '@radix-ui/react-popover'],
+          'data-bereishit': ['./src/data/bereishit.json'],
+          'data-shemot': ['./src/data/shemot.json'],
+          'data-vayikra': ['./src/data/vayikra.json'],
+          'data-bamidbar': ['./src/data/bamidbar.json'],
+          'data-devarim': ['./src/data/devarim.json'],
+        }
+      }
+    }
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

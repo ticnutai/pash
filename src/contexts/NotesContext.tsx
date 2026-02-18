@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export interface Note {
@@ -177,9 +177,9 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getNotesForPasuk = (pasukId: string) => {
+  const getNotesForPasuk = useCallback((pasukId: string) => {
     return notes.filter((note) => note.pasukId === pasukId);
-  };
+  }, [notes]);
 
   const addQuestion = async (pasukId: string, question: string) => {
     if (!user) {
@@ -261,25 +261,27 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getQuestionsForPasuk = (pasukId: string) => {
+  const getQuestionsForPasuk = useCallback((pasukId: string) => {
     return questions.filter((q) => q.pasukId === pasukId);
-  };
+  }, [questions]);
+
+  const value = useMemo(() => ({
+    notes,
+    questions,
+    addNote,
+    updateNote,
+    deleteNote,
+    getNotesForPasuk,
+    addQuestion,
+    updateQuestion,
+    deleteQuestion,
+    getQuestionsForPasuk,
+    loading,
+  }), [notes, questions, addNote, updateNote, deleteNote, getNotesForPasuk, addQuestion, updateQuestion, deleteQuestion, getQuestionsForPasuk, loading]);
 
   return (
     <NotesContext.Provider
-      value={{
-        notes,
-        questions,
-        addNote,
-        updateNote,
-        deleteNote,
-        getNotesForPasuk,
-        addQuestion,
-        updateQuestion,
-        deleteQuestion,
-        getQuestionsForPasuk,
-        loading,
-      }}
+      value={value}
     >
       {children}
     </NotesContext.Provider>

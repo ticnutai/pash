@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createContext, useContext, useMemo, useCallback, ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 
 export interface FontAndColorSettings {
@@ -99,19 +99,8 @@ const defaultSettings: FontAndColorSettings = {
 const FontAndColorSettingsContext = createContext<FontAndColorSettingsContextType | undefined>(undefined);
 
 export const FontAndColorSettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
 
   const { data: settings, setData: setSettingsData, status } = useSyncedState<FontAndColorSettings>({
     localStorageKey: "torah-font-color-settings",
@@ -122,12 +111,14 @@ export const FontAndColorSettingsProvider = ({ children }: { children: ReactNode
     defaultValue: defaultSettings,
   });
 
-  const updateSettings = (newSettings: Partial<FontAndColorSettings>) => {
+  const updateSettings = useCallback((newSettings: Partial<FontAndColorSettings>) => {
     setSettingsData((prev) => ({ ...prev, ...newSettings }));
-  };
+  }, [setSettingsData]);
+
+  const value = useMemo(() => ({ settings, updateSettings, syncStatus: status }), [settings, updateSettings, status]);
 
   return (
-    <FontAndColorSettingsContext.Provider value={{ settings, updateSettings, syncStatus: status }}>
+    <FontAndColorSettingsContext.Provider value={value}>
       {children}
     </FontAndColorSettingsContext.Provider>
   );

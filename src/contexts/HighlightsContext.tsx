@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export interface Highlight {
@@ -128,13 +128,17 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getHighlightsForPasuk = (pasukId: string) => {
+  const getHighlightsForPasuk = useCallback((pasukId: string) => {
     return highlights.filter((h) => h.pasukId === pasukId);
-  };
+  }, [highlights]);
+
+  const value = useMemo(() => ({
+    highlights, addHighlight, removeHighlight, getHighlightsForPasuk, loading
+  }), [highlights, addHighlight, removeHighlight, getHighlightsForPasuk, loading]);
 
   return (
     <HighlightsContext.Provider
-      value={{ highlights, addHighlight, removeHighlight, getHighlightsForPasuk, loading }}
+      value={value}
     >
       {children}
     </HighlightsContext.Provider>

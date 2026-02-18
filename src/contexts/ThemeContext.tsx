@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 
 export type Theme = "classic" | "royal-gold" | "elegant-night" | "ancient-scroll" | "light" | "gold-silver";
@@ -13,19 +13,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
 
   const { data: theme, setData: setThemeData, status } = useSyncedState<Theme>({
     localStorageKey: "torah-theme",
@@ -41,12 +30,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     document.documentElement.classList.add(theme);
   }, [theme]);
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = useCallback((newTheme: Theme) => {
     setThemeData(newTheme);
-  };
+  }, [setThemeData]);
+
+  const value = useMemo(() => ({ theme, setTheme, syncStatus: status }), [theme, setTheme, status]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, syncStatus: status }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

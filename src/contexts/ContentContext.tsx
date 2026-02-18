@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export interface UserAnswer {
@@ -52,50 +53,44 @@ interface ContentContextType {
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 export const ContentProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
   const [titles, setTitles] = useState<UserTitle[]>([]);
   const [questions, setQuestions] = useState<UserQuestion[]>([]);
   const [answers, setAnswers] = useState<UserAnswer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load from Supabase on mount
+  // Load from Supabase when user changes
   useEffect(() => {
-    loadContent();
-  }, []);
+    if (user) {
+      loadContent();
+    } else {
+      setTitles([]);
+      setQuestions([]);
+      setAnswers([]);
+      setLoading(false);
+    }
+  }, [user]);
 
   const loadContent = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
         return;
       }
 
-      // Load titles
-      const { data: titlesData, error: titlesError } = await supabase
-        .from('user_titles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Load all data in parallel
+      const [titlesRes, questionsRes, answersRes] = await Promise.all([
+        supabase.from('user_titles').select('*').order('created_at', { ascending: false }),
+        supabase.from('user_questions').select('*').order('created_at', { ascending: false }),
+        supabase.from('user_answers').select('*').order('created_at', { ascending: false }),
+      ]);
 
-      if (titlesError) throw titlesError;
+      if (titlesRes.error) throw titlesRes.error;
+      if (questionsRes.error) throw questionsRes.error;
+      if (answersRes.error) throw answersRes.error;
 
-      // Load questions
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('user_questions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (questionsError) throw questionsError;
-
-      // Load answers
-      const { data: answersData, error: answersError } = await supabase
-        .from('user_answers')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (answersError) throw answersError;
-
-      setTitles(titlesData?.map(t => ({
+      setTitles(titlesRes.data?.map(t => ({
         id: t.id,
         pasukId: t.pasuk_id,
         title: t.title,
@@ -104,7 +99,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         userId: t.user_id,
       })) || []);
 
-      setQuestions(questionsData?.map(q => ({
+      setQuestions(questionsRes.data?.map(q => ({
         id: q.id,
         titleId: q.title_id,
         text: q.text,
@@ -113,7 +108,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         userId: q.user_id,
       })) || []);
 
-      setAnswers(answersData?.map(a => ({
+      setAnswers(answersRes.data?.map(a => ({
         id: a.id,
         questionId: a.question_id,
         mefaresh: a.mefaresh,
@@ -133,7 +128,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
   const addTitle = async (pasukId: string, title: string, isShared: boolean = false): Promise<number> => {
     try {
       console.log('🔍 ContentContext - Adding title with pasukId:', pasukId, 'title:', title);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
@@ -171,7 +165,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
   const addQuestion = async (titleId: number, question: string, isShared: boolean = false): Promise<number> => {
     try {
       console.log('🔍 ContentContext - Adding question with titleId:', titleId, 'question:', question);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
@@ -209,7 +202,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
   const addAnswer = async (questionId: number, mefaresh: string, text: string, isShared: boolean = false): Promise<number> => {
     try {
       console.log('🔍 ContentContext - Adding answer with questionId:', questionId, 'mefaresh:', mefaresh);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase

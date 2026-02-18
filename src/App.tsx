@@ -11,6 +11,7 @@ import { NotesProvider } from "@/contexts/NotesContext";
 import { BookmarksProvider } from "@/contexts/BookmarksContext";
 import { ContentProvider } from "@/contexts/ContentContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { PWAReloadPrompt } from "@/components/PWAReloadPrompt";

@@ -1,4 +1,5 @@
 import { Settings as SettingsIcon, Palette, Type, Download, Layout, Database, Calendar, BookmarkCheck } from "lucide-react";
+import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -719,6 +720,8 @@ export const Settings = () => {
               </div>
             </Card>
             
+            <LocalDBManager />
+
             <div className="text-center py-4">
               <DataManager />
             </div>

@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export interface Bookmark {
@@ -164,26 +164,28 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getBookmarksForPasuk = (pasukId: string) => {
+  const getBookmarksForPasuk = useCallback((pasukId: string) => {
     return bookmarks.filter((b) => b.pasukId === pasukId);
-  };
+  }, [bookmarks]);
 
-  const isBookmarked = (pasukId: string) => {
+  const isBookmarked = useCallback((pasukId: string) => {
     return bookmarks.some((b) => b.pasukId === pasukId);
-  };
+  }, [bookmarks]);
+
+  const value = useMemo(() => ({
+    bookmarks,
+    addBookmark,
+    removeBookmark,
+    toggleBookmark,
+    updateBookmark,
+    getBookmarksForPasuk,
+    isBookmarked,
+    loading,
+  }), [bookmarks, addBookmark, removeBookmark, toggleBookmark, updateBookmark, getBookmarksForPasuk, isBookmarked, loading]);
 
   return (
     <BookmarksContext.Provider
-      value={{
-        bookmarks,
-        addBookmark,
-        removeBookmark,
-        toggleBookmark,
-        updateBookmark,
-        getBookmarksForPasuk,
-        isBookmarked,
-        loading,
-      }}
+      value={value}
     >
       {children}
     </BookmarksContext.Provider>
