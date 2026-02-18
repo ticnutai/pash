@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
 import { Book, Loader2, ChevronRight, ChevronLeft, BookText } from "lucide-react";
+import { MobileTypographySheet } from "@/components/MobileTypographySheet";
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { SeferSelector } from "@/components/SeferSelector";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
@@ -680,24 +681,10 @@ const displayedPesukim = useMemo(() => {
                 />
               )}
               
-              {/* Mobile controls - Always show ViewModeToggle */}
+              {/* Mobile controls */}
               {isMobile && (
                 <div className="flex items-center gap-2 flex-nowrap">
-                  {filteredPesukim.length > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedPasuk(null);
-                        setSelectedPerek(null);
-                        setSelectedParsha(null);
-                        setSinglePasukMode(false);
-                      }}
-                      className="gap-2 flex-shrink-0"
-                    >
-                      <Book className="h-4 w-4" />
-                      חומשים
-                    </Button>
-                  )}
+                  <MobileTypographySheet />
                   <ViewModeToggle seferId={selectedSefer} />
                   {displayMode === "verses-only" && filteredPesukim.length > 0 && (
                     <Button
@@ -709,13 +696,6 @@ const displayedPesukim = useMemo(() => {
                       <BookText className="h-4 w-4" />
                       שמו״ת
                     </Button>
-                  )}
-                  {filteredPesukim.length > 0 && (
-                    <MinimizeButton
-                      variant="global"
-                      isMinimized={globalMinimize}
-                      onClick={() => setGlobalMinimize(!globalMinimize)}
-                    />
                   )}
                 </div>
               )}
