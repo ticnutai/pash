@@ -322,7 +322,9 @@ export type Database = {
         Row: {
           created_at: string
           display_settings: Json | null
+          display_settings_mobile: Json | null
           font_settings: Json | null
+          font_settings_mobile: Json | null
           id: string
           show_shared_content: boolean | null
           theme: string | null
@@ -332,7 +334,9 @@ export type Database = {
         Insert: {
           created_at?: string
           display_settings?: Json | null
+          display_settings_mobile?: Json | null
           font_settings?: Json | null
+          font_settings_mobile?: Json | null
           id?: string
           show_shared_content?: boolean | null
           theme?: string | null
@@ -342,7 +346,9 @@ export type Database = {
         Update: {
           created_at?: string
           display_settings?: Json | null
+          display_settings_mobile?: Json | null
           font_settings?: Json | null
+          font_settings_mobile?: Json | null
           id?: string
           show_shared_content?: boolean | null
           theme?: string | null

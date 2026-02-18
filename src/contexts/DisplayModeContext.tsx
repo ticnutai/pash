@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useCallback, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
+import { useDevice } from "@/contexts/DeviceContext";
 
 export type DisplayMode = "full" | "verses-only" | "verses-questions" | "minimized" | "compact" | "scroll";
 
@@ -25,11 +26,16 @@ const DisplayModeContext = createContext<DisplayModeContextType | undefined>(und
 export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const { isMobile } = useDevice();
+
+  // Use device-specific column and localStorage key
+  const column = isMobile ? "display_settings_mobile" : "display_settings";
+  const localStorageKey = isMobile ? "torah-display-settings-mobile" : "torah-display-settings";
 
   const { data: displaySettings, setData: setDisplaySettingsData, status } = useSyncedState<DisplaySettings>({
-    localStorageKey: "torah-display-settings",
+    localStorageKey,
     tableName: "user_settings",
-    column: "display_settings",
+    column,
     userId,
     syncToCloud: !!userId,
     defaultValue: defaultSettings,

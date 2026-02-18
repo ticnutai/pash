@@ -1,7 +1,9 @@
 import { createContext, useContext, useMemo, useCallback, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
+import { useDevice } from "@/contexts/DeviceContext";
 
+// ... keep existing code (FontAndColorSettings interface - lines 5-47)
 export interface FontAndColorSettings {
   // Pasuk
   pasukFont: string;
@@ -53,46 +55,33 @@ interface FontAndColorSettingsContextType {
 }
 
 const defaultSettings: FontAndColorSettings = {
-  // Pasuk
   pasukFont: "David",
   pasukSize: 18,
   pasukColor: "#1a1a1a",
   pasukBold: false,
-  
-  // Title
   titleFont: "Frank Ruehl Libre",
   titleSize: 16,
   titleColor: "#2563eb",
   titleBold: true,
-  
-  // Question
   questionFont: "Arial",
   questionSize: 16,
   questionColor: "#1a1a1a",
   questionBold: false,
-  
-  // Answer
   answerFont: "Arial",
   answerSize: 14,
   answerColor: "#666666",
   answerBold: false,
-  
-  // Commentary
   commentaryFont: "Frank Ruehl Libre",
   commentarySize: 18,
   commentaryColor: "#2d2d2d",
   commentaryBold: false,
   commentaryLineHeight: "relaxed",
   commentaryMaxWidth: "medium",
-  
-  // Display Settings
   textAlignment: "right",
   contentSpacing: "normal",
   lineHeight: "normal",
   contentWidth: "normal",
   letterSpacing: "normal",
-  
-  // Dynamic Zoom
   fontScale: 1,
 };
 
@@ -101,11 +90,16 @@ const FontAndColorSettingsContext = createContext<FontAndColorSettingsContextTyp
 export const FontAndColorSettingsProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const { isMobile } = useDevice();
+
+  // Use device-specific column and localStorage key
+  const column = isMobile ? "font_settings_mobile" : "font_settings";
+  const localStorageKey = isMobile ? "torah-font-color-settings-mobile" : "torah-font-color-settings";
 
   const { data: settings, setData: setSettingsData, status } = useSyncedState<FontAndColorSettings>({
-    localStorageKey: "torah-font-color-settings",
+    localStorageKey,
     tableName: "user_settings",
-    column: "font_settings",
+    column,
     userId,
     syncToCloud: !!userId,
     defaultValue: defaultSettings,
