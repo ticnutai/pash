@@ -66,7 +66,7 @@ export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
             <p style={{ textAlignLast: "right" }}>
               {group.pesukim.map((pasuk, i) => (
                 <span key={pasuk.id}>
-                  <span className="text-primary font-bold text-[0.7em] align-super select-none mx-0.5">
+                  <span className="text-primary font-bold select-none mx-1">
                     {toHebrewNumber(pasuk.pasuk_num)}
                   </span>
                   {formatTorahText(pasuk.text)}
