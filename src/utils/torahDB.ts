@@ -16,8 +16,30 @@ interface StoredSefer {
 class TorahLocalDB {
   private db: IDBDatabase | null = null;
   private isAvailable = false;
+  private initPromise: Promise<void> | null = null;
 
+  /**
+   * Initialize the database. Safe to call multiple times.
+   * Returns a promise that resolves when DB is ready.
+   */
   async init(): Promise<void> {
+    if (this.db) return;
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = this._doInit();
+    return this.initPromise;
+  }
+
+  /**
+   * Ensure init is complete before any DB operation.
+   */
+  private async ensureReady(): Promise<boolean> {
+    if (!this.isAvailable && this.initPromise) {
+      await this.initPromise;
+    }
+    return this.isAvailable && this.db !== null;
+  }
+
+  private async _doInit(): Promise<void> {
     if (this.db) return;
     
     return new Promise((resolve) => {
@@ -75,7 +97,7 @@ class TorahLocalDB {
   // ===== SEFARIM =====
 
   async getSefer(seferId: number): Promise<unknown | null> {
-    if (!this.isAvailable || !this.db) return null;
+    if (!await this.ensureReady()) return null;
 
     return new Promise((resolve) => {
       try {
@@ -96,7 +118,7 @@ class TorahLocalDB {
   }
 
   async saveSefer(seferId: number, data: unknown): Promise<void> {
-    if (!this.isAvailable || !this.db) return;
+    if (!await this.ensureReady()) return;
 
     return new Promise((resolve) => {
       try {
@@ -121,7 +143,7 @@ class TorahLocalDB {
   }
 
   async getStoredSefarim(): Promise<{ seferId: number; timestamp: number; sizeMB: number }[]> {
-    if (!this.isAvailable || !this.db) return [];
+    if (!await this.ensureReady()) return [];
 
     return new Promise((resolve) => {
       try {
@@ -146,7 +168,7 @@ class TorahLocalDB {
   }
 
   async clearSefarim(): Promise<void> {
-    if (!this.isAvailable || !this.db) return;
+    if (!await this.ensureReady()) return;
 
     return new Promise((resolve) => {
       try {
@@ -163,7 +185,7 @@ class TorahLocalDB {
   // ===== USER DATA =====
 
   async getUserData(key: string): Promise<unknown | null> {
-    if (!this.isAvailable || !this.db) return null;
+    if (!await this.ensureReady()) return null;
 
     return new Promise((resolve) => {
       try {
@@ -183,7 +205,7 @@ class TorahLocalDB {
   }
 
   async saveUserData(key: string, data: unknown): Promise<void> {
-    if (!this.isAvailable || !this.db) return;
+    if (!await this.ensureReady()) return;
 
     return new Promise((resolve) => {
       try {
@@ -200,7 +222,7 @@ class TorahLocalDB {
   }
 
   async hasUserData(key: string): Promise<boolean> {
-    if (!this.isAvailable || !this.db) return false;
+    if (!await this.ensureReady()) return false;
 
     return new Promise((resolve) => {
       try {
@@ -217,7 +239,7 @@ class TorahLocalDB {
   }
 
   async clearUserData(): Promise<void> {
-    if (!this.isAvailable || !this.db) return;
+    if (!await this.ensureReady()) return;
 
     return new Promise((resolve) => {
       try {
@@ -234,7 +256,7 @@ class TorahLocalDB {
   // ===== COMMENTARIES =====
 
   async getCommentary(key: string): Promise<unknown | null> {
-    if (!this.isAvailable || !this.db) return null;
+    if (!await this.ensureReady()) return null;
 
     return new Promise((resolve) => {
       try {
@@ -254,7 +276,7 @@ class TorahLocalDB {
   }
 
   async saveCommentary(key: string, data: unknown): Promise<void> {
-    if (!this.isAvailable || !this.db) return;
+    if (!await this.ensureReady()) return;
 
     return new Promise((resolve) => {
       try {
@@ -271,7 +293,7 @@ class TorahLocalDB {
   }
 
   async getCommentaryCount(): Promise<number> {
-    if (!this.isAvailable || !this.db) return 0;
+    if (!await this.ensureReady()) return 0;
 
     return new Promise((resolve) => {
       try {
@@ -288,7 +310,7 @@ class TorahLocalDB {
   }
 
   async clearCommentaries(): Promise<void> {
-    if (!this.isAvailable || !this.db) return;
+    if (!await this.ensureReady()) return;
 
     return new Promise((resolve) => {
       try {
@@ -302,31 +324,80 @@ class TorahLocalDB {
     });
   }
 
-  // ===== GENERAL =====
-
-  async getTotalSize(): Promise<number> {
-    if (!this.isAvailable || !this.db) return 0;
+  /**
+   * Get all stored commentary keys (e.g., "Genesis-Rashi")
+   */
+  async getStoredCommentaryKeys(): Promise<string[]> {
+    if (!await this.ensureReady()) return [];
 
     return new Promise((resolve) => {
       try {
-        const tx = this.db!.transaction('sefarim', 'readonly');
-        const store = tx.objectStore('sefarim');
-        const request = store.getAll();
+        const tx = this.db!.transaction('commentaries', 'readonly');
+        const store = tx.objectStore('commentaries');
+        const request = store.getAllKeys();
 
         request.onsuccess = () => {
-          const total = (request.result as StoredSefer[]).reduce((sum, s) => sum + (s.sizeMB || 0), 0);
-          resolve(total);
+          resolve(request.result as string[]);
         };
 
-        request.onerror = () => resolve(0);
+        request.onerror = () => resolve([]);
       } catch {
-        resolve(0);
+        resolve([]);
       }
     });
   }
 
+  // ===== GENERAL =====
+
+  /**
+   * Get total size of all stored data (sefarim + commentaries) in MB
+   */
+  async getTotalSize(): Promise<number> {
+    if (!await this.ensureReady()) return 0;
+
+    const estimateStoreSize = (storeName: string): Promise<number> => {
+      return new Promise((resolve) => {
+        try {
+          const tx = this.db!.transaction(storeName, 'readonly');
+          const store = tx.objectStore(storeName);
+          const request = store.getAll();
+
+          request.onsuccess = () => {
+            if (storeName === 'sefarim') {
+              const total = (request.result as StoredSefer[]).reduce((sum, s) => sum + (s.sizeMB || 0), 0);
+              resolve(total);
+            } else {
+              // Estimate size from JSON stringification
+              let totalBytes = 0;
+              for (const item of request.result) {
+                try {
+                  totalBytes += JSON.stringify(item.data).length;
+                } catch {
+                  totalBytes += 1000; // fallback estimate
+                }
+              }
+              resolve(totalBytes / (1024 * 1024));
+            }
+          };
+
+          request.onerror = () => resolve(0);
+        } catch {
+          resolve(0);
+        }
+      });
+    };
+
+    const [sefarimSize, commentarySize, userDataSize] = await Promise.all([
+      estimateStoreSize('sefarim'),
+      estimateStoreSize('commentaries'),
+      estimateStoreSize('user_data'),
+    ]);
+
+    return sefarimSize + commentarySize + userDataSize;
+  }
+
   async clearAll(): Promise<void> {
-    if (!this.isAvailable || !this.db) return;
+    if (!await this.ensureReady()) return;
 
     await Promise.all([
       this.clearSefarim(),

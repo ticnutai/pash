@@ -17,16 +17,26 @@ export const DataManager = () => {
       const exportData = {
         version: "1.0",
         timestamp: new Date().toISOString(),
-        data: {
-          fontColorSettings: localStorage.getItem("torah-font-color-settings"),
-          displaySettings: localStorage.getItem("torah-display-settings"),
-          theme: localStorage.getItem("torah-theme"),
-          notes: localStorage.getItem("torah-notes"),
-          highlights: localStorage.getItem("torah-highlights"),
-          bookmarks: localStorage.getItem("torah-bookmarks"),
-          userContent: localStorage.getItem("torah-user-content"),
-        }
+        data: {} as Record<string, string | null>
       };
+
+      // Collect all torah-prefixed data from localStorage
+      const keysToExport = [
+        "torah-font-color-settings",
+        "torah-display-settings", 
+        "torah-theme",
+        "torah-notes",
+        "torah-highlights",
+        "torah-bookmarks",
+        "torah-user-content",
+      ];
+
+      for (const key of keysToExport) {
+        const value = localStorage.getItem(key);
+        if (value) {
+          exportData.data[key] = value;
+        }
+      }
 
       // Create blob and download
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {

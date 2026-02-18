@@ -4,7 +4,7 @@ import { ExternalLink, Loader2 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { loadSefariaCommentary, getSefariaSeferName, getMefareshSefariaUrl } from "@/utils/sefariaCommentaries";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
-import { useSefariaCache } from "@/hooks/useSefariaCache";
+import { torahDB } from "@/utils/torahDB";
 import { TextHighlighter } from "./TextHighlighter";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
@@ -36,11 +36,10 @@ export const CommentaryExpandDialog = ({
   const [loading, setLoading] = useState(true);
   const [commentaryText, setCommentaryText] = useState<string>("");
   const { settings } = useFontAndColorSettings();
-  const { getFromCache, saveToCache } = useSefariaCache();
 
   // Memoize cache key
   const cacheKey = useMemo(() => 
-    `${sefer}_${perek}_${pasuk}_${mefaresh}`,
+    `expand_${sefer}_${perek}_${pasuk}_${mefaresh}`,
     [sefer, perek, pasuk, mefaresh]
   );
 
@@ -50,12 +49,16 @@ export const CommentaryExpandDialog = ({
     const loadCommentary = async () => {
       setLoading(true);
       
-      // Try cache first
-      const cached = getFromCache(cacheKey);
-      if (cached) {
-        setCommentaryText(cached);
-        setLoading(false);
-        return;
+      // Try IndexedDB cache first
+      try {
+        const cached = await torahDB.getCommentary(cacheKey);
+        if (cached && typeof cached === 'string') {
+          setCommentaryText(cached);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Cache miss, continue loading
       }
 
       try {
@@ -75,8 +78,8 @@ export const CommentaryExpandDialog = ({
           const textContent = Array.isArray(text) ? text.join(" ") : text;
           setCommentaryText(textContent);
           
-          // Save to cache
-          saveToCache(cacheKey, textContent);
+          // Save to IndexedDB for future access
+          torahDB.saveCommentary(cacheKey, textContent).catch(() => {});
         } else {
           setCommentaryText("לא נמצא פירוש");
         }
@@ -89,7 +92,7 @@ export const CommentaryExpandDialog = ({
     };
 
     loadCommentary();
-  }, [open, sefer, perek, pasuk, mefaresh, cacheKey, getFromCache, saveToCache]);
+  }, [open, sefer, perek, pasuk, mefaresh, cacheKey]);
 
   const sefariaUrl = getMefareshSefariaUrl(sefer, perek, pasuk, mefaresh);
 

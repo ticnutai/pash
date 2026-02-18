@@ -2,8 +2,24 @@ import { SEFARIA_BOOK_NAMES, MEFARESH_MAPPING, AVAILABLE_COMMENTARIES, SefariaCo
 import { supabase } from "@/integrations/supabase/client";
 import { torahDB } from "@/utils/torahDB";
 
-// Cache for loaded commentaries to improve performance
+// ===== In-memory caches =====
+// Full commentary files (keyed by "Genesis-Rashi")
 const commentaryCache = new Map<string, any>();
+// Per-verse API results (keyed by "Genesis-Rashi-1-1")
+const verseCache = new Map<string, string>();
+
+// ===== Rate limiting for API calls =====
+const API_DELAY_MS = 150; // minimum ms between API calls
+let lastApiCall = 0;
+
+const rateLimitedDelay = async (): Promise<void> => {
+  const now = Date.now();
+  const elapsed = now - lastApiCall;
+  if (elapsed < API_DELAY_MS) {
+    await new Promise(resolve => setTimeout(resolve, API_DELAY_MS - elapsed));
+  }
+  lastApiCall = Date.now();
+};
 
 /**
  * Get the Sefaria book name from internal book ID
@@ -34,8 +50,8 @@ export const getEnglishSeferName = (seferId: number): string => {
 };
 
 /**
- * Load a specific commentary from local Sefaria data
- * Uses 3-tier cache: memory → IndexedDB → dynamic import
+ * Load a full commentary file from local Sefaria data.
+ * Uses 3-tier cache: memory → IndexedDB → dynamic import.
  */
 export const loadSefariaCommentary = async (
   sefer: string,
@@ -55,24 +71,27 @@ export const loadSefariaCommentary = async (
       commentaryCache.set(cacheKey, cached);
       return cached;
     }
-  } catch (e) {}
+  } catch (e) {
+    // IndexedDB read failed, continue to bundle
+  }
 
   try {
-    // Tier 3: Dynamic import of the commentary file
+    // Tier 3: Dynamic import of the bundled commentary file
     const data = await import(`@/data/sefaria/${mefareshEn}_on_${sefer}.json`);
     const result = data.default || data;
     commentaryCache.set(cacheKey, result);
-    // Save to IndexedDB for next time
+    // Persist to IndexedDB for offline access
     torahDB.saveCommentary(cacheKey, result).catch(() => {});
     return result;
-  } catch (error) {
-    console.warn(`Commentary not found: ${mefareshEn} on ${sefer}`, error);
+  } catch {
+    // No bundled file exists for this commentary — not an error
     return null;
   }
 };
 
 /**
- * Fetch a single commentary from Sefaria API via edge function
+ * Fetch a single commentary from Sefaria API via edge function.
+ * Results are cached in memory and IndexedDB.
  */
 const fetchCommentaryFromAPI = async (
   book: string,
@@ -80,31 +99,55 @@ const fetchCommentaryFromAPI = async (
   chapter: number,
   verse: number
 ): Promise<string | null> => {
+  const verseCacheKey = `${book}-${commentaryName}-${chapter}-${verse}`;
+
+  // Tier 1: Memory cache for verse-level results
+  if (verseCache.has(verseCacheKey)) {
+    return verseCache.get(verseCacheKey)!;
+  }
+
+  // Tier 2: IndexedDB per-verse cache
   try {
+    const cached = await torahDB.getCommentary(verseCacheKey);
+    if (cached && typeof cached === 'string') {
+      verseCache.set(verseCacheKey, cached);
+      return cached;
+    }
+  } catch {
+    // IndexedDB read failed, continue to API
+  }
+
+  // Tier 3: Sefaria API via edge function
+  try {
+    await rateLimitedDelay();
+
     const { data, error } = await supabase.functions.invoke('fetch-sefaria', {
-      body: {
-        commentaryName,
-        book,
-        chapter,
-        verse
-      }
+      body: { commentaryName, book, chapter, verse }
     });
 
     if (error) {
-      console.warn(`Error fetching ${commentaryName} from API:`, error);
+      console.warn(`[Sefaria] API error for ${commentaryName}:`, error);
       return null;
     }
 
-    return data?.text || null;
+    const text = data?.text || null;
+
+    if (text) {
+      // Cache in memory and IndexedDB for future access
+      verseCache.set(verseCacheKey, text);
+      torahDB.saveCommentary(verseCacheKey, text).catch(() => {});
+    }
+
+    return text;
   } catch (error) {
-    console.warn(`Failed to fetch ${commentaryName} from Sefaria:`, error);
+    console.warn(`[Sefaria] Failed to fetch ${commentaryName}:`, error);
     return null;
   }
 };
 
 /**
- * Get available commentaries for a specific verse
- * First tries local files, then falls back to Sefaria API
+ * Get available commentaries for a specific verse.
+ * First tries full local files, then falls back to cached API results.
  */
 export const getAvailableCommentaries = async (
   seferId: number,
@@ -116,7 +159,7 @@ export const getAvailableCommentaries = async (
   const results = await Promise.all(
     AVAILABLE_COMMENTARIES.map(async (commentary, index) => {
       try {
-        // Try loading from local files first
+        // Try loading from full commentary file (memory/IndexedDB/bundle)
         const localData = await loadSefariaCommentary(sefer, commentary.english);
         
         if (localData) {
@@ -133,8 +176,7 @@ export const getAvailableCommentaries = async (
           }
         }
 
-        // If local data not found, fetch from Sefaria API
-        console.log(`Fetching ${commentary.hebrew} from Sefaria API...`);
+        // Fallback: fetch from Sefaria API (with caching)
         const apiText = await fetchCommentaryFromAPI(sefer, commentary.english, perek, pasuk);
         
         if (apiText) {
@@ -148,13 +190,49 @@ export const getAvailableCommentaries = async (
 
         return null;
       } catch (error) {
-        console.warn(`Error loading ${commentary.english}:`, error);
+        console.warn(`[Sefaria] Error loading ${commentary.english}:`, error);
         return null;
       }
     })
   );
   
   return results.filter((c): c is SefariaCommentary => c !== null && c.text?.length > 0);
+};
+
+/**
+ * Download all available commentaries for all sefarim.
+ * Loads from bundle/API and persists to IndexedDB.
+ */
+export const downloadAllCommentaries = async (
+  onProgress?: (completed: number, total: number, current: string) => void
+): Promise<void> => {
+  const sefarim = [
+    { id: 1, name: "Genesis", hebrew: "בראשית" },
+    { id: 2, name: "Exodus", hebrew: "שמות" },
+    { id: 3, name: "Leviticus", hebrew: "ויקרא" },
+    { id: 4, name: "Numbers", hebrew: "במדבר" },
+    { id: 5, name: "Deuteronomy", hebrew: "דברים" },
+  ];
+
+  const total = sefarim.length * AVAILABLE_COMMENTARIES.length;
+  let completed = 0;
+
+  for (const sefer of sefarim) {
+    for (const commentary of AVAILABLE_COMMENTARIES) {
+      const label = `${commentary.hebrew} על ${sefer.hebrew}`;
+      onProgress?.(completed, total, label);
+      
+      try {
+        await loadSefariaCommentary(sefer.name, commentary.english);
+      } catch {
+        // Skip failures silently — not all combinations have data
+      }
+      
+      completed++;
+    }
+  }
+
+  onProgress?.(total, total, '');
 };
 
 /**
@@ -185,8 +263,9 @@ export const getMefareshSefariaUrl = (
 };
 
 /**
- * Clear the commentary cache (useful for memory management)
+ * Clear the commentary caches (memory only — IndexedDB cleared via torahDB)
  */
 export const clearCommentaryCache = () => {
   commentaryCache.clear();
+  verseCache.clear();
 };

@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, Palette, Type, Download, Layout, Database, Calendar, BookmarkCheck } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "@/components/ColorPicker";
-import { SefariaDownloader } from "@/components/SefariaDownloader";
 import { BookmarksDialog } from "@/components/BookmarksDialog";
 import { getCalendarPreference, setCalendarPreference } from "@/utils/parshaUtils";
 import { useState, useEffect } from "react";
@@ -97,9 +96,9 @@ export const Settings = () => {
               <Layout className="h-3 w-3 sm:h-4 sm:w-4" />
             </TabsTrigger>
             <TabsTrigger value="sefaria" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">הורדת תוכן</span>
-              <span className="sm:hidden">הורד</span>
-              <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">אחסון והורדות</span>
+              <span className="sm:hidden">אחסון</span>
+              <HardDrive className="h-3 w-3 sm:h-4 sm:w-4" />
             </TabsTrigger>
             <TabsTrigger value="data" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2">
               <span className="hidden sm:inline">ניהול נתונים</span>
@@ -666,18 +665,7 @@ export const Settings = () => {
           </TabsContent>
 
           <TabsContent value="sefaria" className="space-y-4">
-            <div className="text-center py-4">
-              <SefariaDownloader />
-            </div>
-            <div className="text-sm text-muted-foreground text-right p-4 bg-muted/30 rounded-lg space-y-2">
-              <p className="font-semibold">📥 הורדת פרשנים מספריא</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>בחר פרשן, ספר, פרק ופסוק</li>
-                <li>הקובץ יורד אוטומטית בפורמט JSON</li>
-                <li>ניתן להשתמש בקובץ לצרכי מחקר ולימוד</li>
-                <li>התוכן מגיע ישירות מספריא</li>
-              </ul>
-            </div>
+            <LocalDBManager />
           </TabsContent>
 
           <TabsContent value="data" className="space-y-4">
@@ -720,8 +708,6 @@ export const Settings = () => {
               </div>
             </Card>
             
-            <LocalDBManager />
-
             <div className="text-center py-4">
               <DataManager />
             </div>
