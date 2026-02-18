@@ -8,7 +8,7 @@ const DB_VERSION = 3;
 
 interface StoredSefer {
   seferId: number;
-  data: any;
+  data: unknown;
   timestamp: number;
   sizeMB: number;
 }
@@ -74,7 +74,7 @@ class TorahLocalDB {
 
   // ===== SEFARIM =====
 
-  async getSefer(seferId: number): Promise<any | null> {
+  async getSefer(seferId: number): Promise<unknown | null> {
     if (!this.isAvailable || !this.db) return null;
 
     return new Promise((resolve) => {
@@ -95,7 +95,7 @@ class TorahLocalDB {
     });
   }
 
-  async saveSefer(seferId: number, data: any): Promise<void> {
+  async saveSefer(seferId: number, data: unknown): Promise<void> {
     if (!this.isAvailable || !this.db) return;
 
     return new Promise((resolve) => {
@@ -162,7 +162,7 @@ class TorahLocalDB {
 
   // ===== USER DATA =====
 
-  async getUserData(key: string): Promise<any | null> {
+  async getUserData(key: string): Promise<unknown | null> {
     if (!this.isAvailable || !this.db) return null;
 
     return new Promise((resolve) => {
@@ -182,7 +182,7 @@ class TorahLocalDB {
     });
   }
 
-  async saveUserData(key: string, data: any): Promise<void> {
+  async saveUserData(key: string, data: unknown): Promise<void> {
     if (!this.isAvailable || !this.db) return;
 
     return new Promise((resolve) => {
@@ -233,7 +233,7 @@ class TorahLocalDB {
 
   // ===== COMMENTARIES =====
 
-  async getCommentary(key: string): Promise<any | null> {
+  async getCommentary(key: string): Promise<unknown | null> {
     if (!this.isAvailable || !this.db) return null;
 
     return new Promise((resolve) => {
@@ -253,7 +253,7 @@ class TorahLocalDB {
     });
   }
 
-  async saveCommentary(key: string, data: any): Promise<void> {
+  async saveCommentary(key: string, data: unknown): Promise<void> {
     if (!this.isAvailable || !this.db) return;
 
     return new Promise((resolve) => {
