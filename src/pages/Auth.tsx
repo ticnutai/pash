@@ -5,15 +5,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Loader2, Book } from "lucide-react";
+import { Loader2, Book, Eye, EyeOff } from "lucide-react";
+
+const REMEMBER_ME_KEY = "torah_remember_me";
+const AUTO_LOGIN_KEY = "torah_auto_login";
+
+export const getRememberedCredentials = () => {
+  try {
+    const stored = localStorage.getItem(REMEMBER_ME_KEY);
+    if (stored) return JSON.parse(stored) as { email: string; password: string };
+  } catch {}
+  return null;
+};
+
+export const getAutoLoginEnabled = () => {
+  return localStorage.getItem(AUTO_LOGIN_KEY) === "true";
+};
+
+export const setAutoLoginEnabled = (enabled: boolean) => {
+  localStorage.setItem(AUTO_LOGIN_KEY, enabled ? "true" : "false");
+};
+
+export const clearRememberedCredentials = () => {
+  localStorage.removeItem(REMEMBER_ME_KEY);
+  localStorage.removeItem(AUTO_LOGIN_KEY);
+};
 
 export const Auth = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const remembered = getRememberedCredentials();
+  const [email, setEmail] = useState(remembered?.email || "");
+  const [password, setPassword] = useState(remembered?.password || "");
   const [displayName, setDisplayName] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(!!remembered);
+  const [attemptedAutoLogin, setAttemptedAutoLogin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,9 +50,29 @@ export const Auth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/");
+        return;
+      }
+
+      // Auto-login if enabled and credentials are remembered
+      if (!attemptedAutoLogin && getAutoLoginEnabled() && remembered) {
+        setAttemptedAutoLogin(true);
+        setIsLoading(true);
+        supabase.auth.signInWithPassword({
+          email: remembered.email,
+          password: remembered.password,
+        }).then(({ error }) => {
+          if (!error) {
+            navigate("/");
+          } else {
+            setIsLoading(false);
+            // Credentials invalid, clear them
+            clearRememberedCredentials();
+            setRememberMe(false);
+          }
+        });
       }
     });
-  }, [navigate]);
+  }, [navigate, attemptedAutoLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +86,15 @@ export const Auth = () => {
         });
 
         if (error) throw error;
+
+        // Save or clear remembered credentials
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_ME_KEY, JSON.stringify({ email, password }));
+        } else {
+          localStorage.removeItem(REMEMBER_ME_KEY);
+          localStorage.removeItem(AUTO_LOGIN_KEY);
+        }
+
         toast.success("התחברת בהצלחה!");
         navigate("/");
       } else {
@@ -68,6 +126,15 @@ export const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  // Show loading while auto-login is in progress
+  if (isLoading && attemptedAutoLogin && !email) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background flex items-center justify-center p-4">
@@ -118,23 +185,50 @@ export const Auth = () => {
 
             <div className="space-y-2">
               <Label htmlFor="password">סיסמה</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="text-right"
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="text-right pl-10"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {!isLogin && (
                 <p className="text-xs text-muted-foreground text-right">
                   לפחות 6 תווים
                 </p>
               )}
             </div>
+
+            {isLogin && (
+              <div className="flex items-center gap-2 justify-end">
+                <Label htmlFor="remember-me" className="text-sm cursor-pointer">
+                  זכור אותי
+                </Label>
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+              </div>
+            )}
           </CardContent>
 
           <CardFooter className="flex flex-col gap-4">
