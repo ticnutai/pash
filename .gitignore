@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Android release artifacts
+*.jks
+*.keystore
+signing.properties
+keystore.properties
+torah-app-debug.apk
+torah-app-release.apk
+torah-app-release.aab
+
+# Android build outputs
+*.apk
+*.aab
+*.jks
+keystore.properties
