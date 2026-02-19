@@ -424,8 +424,16 @@ export const LocalDBManager = () => {
 /**
  * CommentaryHistory — shows recent commentary views from localStorage
  */
+interface CommentaryHistoryEntry {
+  seferId: string;
+  seferName: string;
+  perek: number;
+  pasuk: number;
+  timestamp: string;
+}
+
 const CommentaryHistory = () => {
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<CommentaryHistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
