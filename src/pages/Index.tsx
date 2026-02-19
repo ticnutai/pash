@@ -400,13 +400,17 @@ const displayedPesukim = useMemo(() => {
   }, []);
 
   const handleSeferSelect = useCallback((seferId: number) => {
+    // Clear old data immediately to prevent showing stale parshiot
+    if (seferId !== selectedSefer) {
+      setSeferData(null);
+    }
     setSelectedSefer(seferId);
     setSelectedParsha(null);
     setSelectedPerek(null);
     setSelectedPasuk(null);
     setSinglePasukMode(false);
     setCurrentPasukIndex(0);
-  }, []);
+  }, [selectedSefer]);
 
   const handleParshaSelect = useCallback((p: number | null) => {
     setSelectedParsha(p);
