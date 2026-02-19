@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">חמישה חומשי תורה</string>
+    <string name="title_activity_main">חמישה חומשי תורה</string>
+    <string name="package_name">com.torahapp.pash</string>
+    <string name="custom_url_scheme">com.torahapp.pash</string>
+</resources>
