@@ -118,7 +118,7 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addNote = async (pasukId: string, content: string) => {
+  const addNote = useCallback(async (pasukId: string, content: string) => {
     if (!user) {
       toast.error("יש להתחבר כדי להוסיף הערה");
       return;
@@ -154,9 +154,9 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error adding note:", error);
       toast.error("שגיאה בהוספת הערה");
     }
-  };
+  }, [user]);
 
-  const updateNote = async (id: string, content: string) => {
+  const updateNote = useCallback(async (id: string, content: string) => {
     if (!user) return;
 
     try {
@@ -178,9 +178,9 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error updating note:", error);
       toast.error("שגיאה בעדכון הערה");
     }
-  };
+  }, [user]);
 
-  const deleteNote = async (id: string) => {
+  const deleteNote = useCallback(async (id: string) => {
     if (!user) return;
 
     try {
@@ -202,13 +202,13 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error deleting note:", error);
       toast.error("שגיאה במחיקת הערה");
     }
-  };
+  }, [user]);
 
   const getNotesForPasuk = useCallback((pasukId: string) => {
     return notes.filter((note) => note.pasukId === pasukId);
   }, [notes]);
 
-  const addQuestion = async (pasukId: string, question: string) => {
+  const addQuestion = useCallback(async (pasukId: string, question: string) => {
     if (!user) {
       toast.error("יש להתחבר כדי להוסיף שאלה");
       return;
@@ -245,9 +245,9 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error adding question:", error);
       toast.error("שגיאה בהוספת שאלה");
     }
-  };
+  }, [user]);
 
-  const updateQuestion = async (id: string, question: string, answer?: string) => {
+  const updateQuestion = useCallback(async (id: string, question: string, answer?: string) => {
     if (!user) return;
 
     try {
@@ -272,9 +272,9 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error updating question:", error);
       toast.error("שגיאה בעדכון שאלה");
     }
-  };
+  }, [user]);
 
-  const deleteQuestion = async (id: string) => {
+  const deleteQuestion = useCallback(async (id: string) => {
     if (!user) return;
 
     try {
@@ -296,7 +296,7 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error deleting question:", error);
       toast.error("שגיאה במחיקת שאלה");
     }
-  };
+  }, [user]);
 
   const getQuestionsForPasuk = useCallback((pasukId: string) => {
     return questions.filter((q) => q.pasukId === pasukId);

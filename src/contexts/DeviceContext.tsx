@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, useMemo, ReactNode } from "react";
 import { useDeviceType, DeviceType } from "@/hooks/useDeviceType";
 
 interface DeviceContextValue {
@@ -13,12 +13,12 @@ const DeviceContext = createContext<DeviceContextValue | undefined>(undefined);
 export function DeviceProvider({ children }: { children: ReactNode }) {
   const deviceType = useDeviceType();
 
-  const value: DeviceContextValue = {
+  const value = useMemo<DeviceContextValue>(() => ({
     deviceType,
     isMobile: deviceType === 'mobile',
     isTablet: deviceType === 'tablet',
     isDesktop: deviceType === 'desktop',
-  };
+  }), [deviceType]);
 
   return (
     <DeviceContext.Provider value={value}>

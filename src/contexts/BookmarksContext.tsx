@@ -81,7 +81,7 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addBookmark = async (
+  const addBookmark = useCallback(async (
     pasukId: string,
     pasukText: string,
     note?: string,
@@ -126,9 +126,9 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error adding bookmark:", error);
       toast.error("שגיאה בהוספת סימניה");
     }
-  };
+  }, [user]);
 
-  const removeBookmark = async (id: string) => {
+  const removeBookmark = useCallback(async (id: string) => {
     if (!user) return;
 
     try {
@@ -150,18 +150,18 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error removing bookmark:", error);
       toast.error("שגיאה בהסרת סימניה");
     }
-  };
+  }, [user]);
 
-  const toggleBookmark = async (pasukId: string, pasukText: string) => {
+  const toggleBookmark = useCallback(async (pasukId: string, pasukText: string) => {
     const existing = bookmarks.find((b) => b.pasukId === pasukId);
     if (existing) {
       await removeBookmark(existing.id);
     } else {
       await addBookmark(pasukId, pasukText);
     }
-  };
+  }, [bookmarks, removeBookmark, addBookmark]);
 
-  const updateBookmark = async (id: string, note?: string, tags?: string[]) => {
+  const updateBookmark = useCallback(async (id: string, note?: string, tags?: string[]) => {
     if (!user) return;
 
     try {
@@ -183,7 +183,7 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error updating bookmark:", error);
       toast.error("שגיאה בעדכון סימניה");
     }
-  };
+  }, [user]);
 
   const getBookmarksForPasuk = useCallback((pasukId: string) => {
     return bookmarks.filter((b) => b.pasukId === pasukId);

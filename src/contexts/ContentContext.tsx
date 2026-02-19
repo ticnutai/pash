@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { torahDB } from "@/utils/torahDB";
@@ -154,7 +154,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addTitle = async (pasukId: string, title: string, isShared: boolean = false): Promise<number> => {
+  const addTitle = useCallback(async (pasukId: string, title: string, isShared: boolean = false): Promise<number> => {
     try {
       if (!user) throw new Error("User not authenticated");
 
@@ -191,9 +191,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בהוספת כותרת");
       throw error;
     }
-  };
+  }, [user]);
 
-  const addQuestion = async (titleId: number, question: string, isShared: boolean = false): Promise<number> => {
+  const addQuestion = useCallback(async (titleId: number, question: string, isShared: boolean = false): Promise<number> => {
     try {
       if (!user) throw new Error("User not authenticated");
 
@@ -230,9 +230,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בהוספת שאלה");
       throw error;
     }
-  };
+  }, [user]);
 
-  const addAnswer = async (questionId: number, mefaresh: string, text: string, isShared: boolean = false): Promise<number> => {
+  const addAnswer = useCallback(async (questionId: number, mefaresh: string, text: string, isShared: boolean = false): Promise<number> => {
     try {
       if (!user) throw new Error("User not authenticated");
 
@@ -271,9 +271,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בהוספת תשובה");
       throw error;
     }
-  };
+  }, [user]);
 
-  const updateTitle = async (id: number, title: string) => {
+  const updateTitle = useCallback(async (id: number, title: string) => {
     try {
       const { error } = await supabase
         .from('user_titles')
@@ -293,9 +293,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בעדכון כותרת");
       throw error;
     }
-  };
+  }, []);
 
-  const updateQuestion = async (id: number, text: string) => {
+  const updateQuestion = useCallback(async (id: number, text: string) => {
     try {
       const { error } = await supabase
         .from('user_questions')
@@ -315,9 +315,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בעדכון שאלה");
       throw error;
     }
-  };
+  }, []);
 
-  const updateAnswer = async (id: number, text: string, mefaresh: string) => {
+  const updateAnswer = useCallback(async (id: number, text: string, mefaresh: string) => {
     try {
       const { error } = await supabase
         .from('user_answers')
@@ -337,9 +337,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בעדכון תשובה");
       throw error;
     }
-  };
+  }, []);
 
-  const deleteTitle = async (id: number) => {
+  const deleteTitle = useCallback(async (id: number) => {
     try {
       const { error } = await supabase
         .from('user_titles')
@@ -359,9 +359,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה במחיקת כותרת");
       throw error;
     }
-  };
+  }, []);
 
-  const deleteQuestion = async (id: number) => {
+  const deleteQuestion = useCallback(async (id: number) => {
     try {
       const { error } = await supabase
         .from('user_questions')
@@ -381,9 +381,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה במחיקת שאלה");
       throw error;
     }
-  };
+  }, []);
 
-  const deleteAnswer = async (id: number) => {
+  const deleteAnswer = useCallback(async (id: number) => {
     try {
       const { error } = await supabase
         .from('user_answers')
@@ -403,9 +403,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה במחיקת תשובה");
       throw error;
     }
-  };
+  }, []);
 
-  const updateTitleSharing = async (id: number, isShared: boolean) => {
+  const updateTitleSharing = useCallback(async (id: number, isShared: boolean) => {
     try {
       const { error } = await supabase
         .from('user_titles')
@@ -425,9 +425,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בעדכון שיתוף");
       throw error;
     }
-  };
+  }, []);
 
-  const updateQuestionSharing = async (id: number, isShared: boolean) => {
+  const updateQuestionSharing = useCallback(async (id: number, isShared: boolean) => {
     try {
       const { error } = await supabase
         .from('user_questions')
@@ -447,9 +447,9 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בעדכון שיתוף");
       throw error;
     }
-  };
+  }, []);
 
-  const updateAnswerSharing = async (id: number, isShared: boolean) => {
+  const updateAnswerSharing = useCallback(async (id: number, isShared: boolean) => {
     try {
       const { error } = await supabase
         .from('user_answers')
@@ -469,29 +469,32 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
       toast.error("שגיאה בעדכון שיתוף");
       throw error;
     }
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    titles,
+    questions,
+    answers,
+    addTitle,
+    addQuestion,
+    addAnswer,
+    updateTitle,
+    updateQuestion,
+    updateAnswer,
+    deleteTitle,
+    deleteQuestion,
+    deleteAnswer,
+    updateTitleSharing,
+    updateQuestionSharing,
+    updateAnswerSharing,
+    loading,
+  }), [titles, questions, answers, addTitle, addQuestion, addAnswer,
+       updateTitle, updateQuestion, updateAnswer,
+       deleteTitle, deleteQuestion, deleteAnswer,
+       updateTitleSharing, updateQuestionSharing, updateAnswerSharing, loading]);
 
   return (
-    <ContentContext.Provider
-      value={{
-        titles,
-        questions,
-        answers,
-        addTitle,
-        addQuestion,
-        addAnswer,
-        updateTitle,
-        updateQuestion,
-        updateAnswer,
-        deleteTitle,
-        deleteQuestion,
-        deleteAnswer,
-        updateTitleSharing,
-        updateQuestionSharing,
-        updateAnswerSharing,
-        loading,
-      }}
-    >
+    <ContentContext.Provider value={value}>
       {children}
     </ContentContext.Provider>
   );

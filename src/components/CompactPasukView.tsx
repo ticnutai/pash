@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote } from "lucide-react";
@@ -8,7 +8,6 @@ import { PasukDisplay } from "@/components/PasukDisplay";
 import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { cn } from "@/lib/utils";
-import { memo } from "react";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { Button } from "@/components/ui/button";
 import { NotesDialog } from "@/components/NotesDialog";
@@ -22,7 +21,7 @@ interface CompactPasukViewProps {
   forceMinimized?: boolean;
 }
 
-export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
+export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
   const [expandedPasukId, setExpandedPasukId] = useState<number | null>(null);
   const [editorPasukId, setEditorPasukId] = useState<string | null>(null);
   const displayStyles = useTextDisplayStyles();
@@ -30,27 +29,26 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const navigate = useNavigate();
 
-  const togglePasuk = (pasukId: number) => {
-    setExpandedPasukId(expandedPasukId === pasukId ? null : pasukId);
-  };
+  const togglePasuk = useCallback((pasukId: number) => {
+    setExpandedPasukId(prev => prev === pasukId ? null : pasukId);
+  }, []);
 
-  const handleBookmark = (e: React.MouseEvent, pasuk: FlatPasuk) => {
+  const handleBookmark = useCallback((e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
     const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
     toggleBookmark(pasukId, pasuk.text);
-    toast.success(isBookmarked(pasukId) ? "הסימניה הוסרה" : "הסימניה נוספה");
-  };
+  }, [seferId, toggleBookmark]);
 
-  const handleCommentaries = (e: React.MouseEvent, pasuk: FlatPasuk) => {
+  const handleCommentaries = useCallback((e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
     navigate(`/commentaries?sefer=${seferId}&perek=${pasuk.perek}&pasuk=${pasuk.pasuk_num}`);
-  };
+  }, [seferId, navigate]);
 
-  const handleAddContent = (e: React.MouseEvent, pasuk: FlatPasuk) => {
+  const handleAddContent = useCallback((e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
     const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
     setEditorPasukId(pasukId);
-  };
+  }, [seferId]);
 
   return (
     <div 
@@ -228,6 +226,6 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
       )}
     </div>
   );
-};
+});
 
-// Component is exported above with memo wrapping if needed
+// Component is exported above with memo wrapping

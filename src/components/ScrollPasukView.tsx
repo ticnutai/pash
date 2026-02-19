@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
@@ -13,13 +13,13 @@ interface ScrollPasukViewProps {
   forceMinimized?: boolean;
 }
 
-export const ScrollPasukView = ({ pesukim, seferId, forceMinimized = false }: ScrollPasukViewProps) => {
+export const ScrollPasukView = memo(({ pesukim, seferId, forceMinimized = false }: ScrollPasukViewProps) => {
   const [expandedPasukIds, setExpandedPasukIds] = useState<Set<string>>(new Set());
 
-  const getPasukKey = (pasuk: FlatPasuk) => `${pasuk.sefer}-${pasuk.perek}-${pasuk.pasuk_num}`;
+  const getPasukKey = useCallback((pasuk: FlatPasuk) => `${pasuk.sefer}-${pasuk.perek}-${pasuk.pasuk_num}`, []);
 
-  const handlePasukClick = (pasuk: FlatPasuk) => {
-    const key = getPasukKey(pasuk);
+  const handlePasukClick = useCallback((pasuk: FlatPasuk) => {
+    const key = `${pasuk.sefer}-${pasuk.perek}-${pasuk.pasuk_num}`;
     setExpandedPasukIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(key)) {
@@ -29,7 +29,7 @@ export const ScrollPasukView = ({ pesukim, seferId, forceMinimized = false }: Sc
       }
       return newSet;
     });
-  };
+  }, []);
 
   const isPasukExpanded = (pasuk: FlatPasuk) => expandedPasukIds.has(getPasukKey(pasuk));
 
@@ -108,4 +108,4 @@ export const ScrollPasukView = ({ pesukim, seferId, forceMinimized = false }: Sc
       )}
     </div>
   );
-};
+});

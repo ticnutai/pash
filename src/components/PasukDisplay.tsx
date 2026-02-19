@@ -60,7 +60,7 @@ interface PasukDisplayProps {
   hideHeaderActions?: boolean; // Hide actions when displayed in CompactPasukView
 }
 
-export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false, hideHeaderActions = false }: PasukDisplayProps) => {
+const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderActions = false }: PasukDisplayProps) => {
   const { settings } = useFontAndColorSettings();
   const { displaySettings } = useDisplayMode();
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
@@ -690,7 +690,7 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false, hideHeade
   );
 };
 
-const QuestionSection = ({ 
+const QuestionSection = memo(({ 
   question, 
   showAnswers = true,
   onAddAnswer,
@@ -815,9 +815,9 @@ const QuestionSection = ({
       )}
     </Collapsible>
   );
-};
+});
 
-const AnswerSection = ({ 
+const AnswerSection = memo(({ 
   perush, 
   parentOpen,
   onAddAnswer,
@@ -912,6 +912,7 @@ const AnswerSection = ({
       </div>
     </div>
   );
-};
+});
 
-export default memo(PasukDisplay);
+export const PasukDisplay = memo(PasukDisplayBase);
+export default PasukDisplay;

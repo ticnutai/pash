@@ -78,6 +78,26 @@ export function useSyncedState<T>({
     localStorage.setItem(localStorageKey, JSON.stringify(data));
   }, [localStorageKey]);
 
+  // Re-read from localStorage when key changes (e.g., device type switch)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(localStorageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          const merged = typeof parsed === 'object' && parsed !== null && typeof defaultValue === 'object' && defaultValue !== null
+            ? { ...defaultValue, ...parsed }
+            : parsed;
+          setSyncState(prev => ({ ...prev, data: merged }));
+        } catch {
+          setSyncState(prev => ({ ...prev, data: saved as T }));
+        }
+      } else {
+        setSyncState(prev => ({ ...prev, data: defaultValue }));
+      }
+    } catch { /* ignore */ }
+  }, [localStorageKey]);
+
   // Save to Supabase (debounced)
   const saveToCloud = useCallback(async (data: T) => {
     if (!syncToCloud || !userId || !tableName || !column) return;
