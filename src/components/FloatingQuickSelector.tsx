@@ -132,7 +132,7 @@ export const FloatingQuickSelector = ({
         side="top"
         align="start"
         sideOffset={12}
-        className="w-[320px] max-h-[400px] p-0 overflow-hidden border-2"
+        className="w-[320px] max-h-[400px] p-0 overflow-hidden border border-accent bg-card text-foreground"
       >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b p-3 flex items-center justify-between gap-2" dir="rtl">
@@ -141,7 +141,7 @@ export const FloatingQuickSelector = ({
               <Button
                 size="sm"
                 onClick={handleBack}
-                className="h-8 px-3 flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                className="h-8 px-3 flex-shrink-0 bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
               >
                 <ArrowRight className="h-4 w-4 ml-1" />
                 חזור
@@ -170,7 +170,7 @@ export const FloatingQuickSelector = ({
                   <Button
                     key={parsha.parsha_id}
                     variant={selectedParsha === parsha.parsha_id ? "default" : "outline"}
-                    className="w-full justify-end text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal"
+                    className="w-full justify-end text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal direction-rtl"
                     onClick={() => handleParshaSelect(parsha.parsha_id)}
                   >
                     <span className="font-semibold break-words">{parsha.parsha_name}</span>
@@ -185,7 +185,7 @@ export const FloatingQuickSelector = ({
                   <Button
                     key={perek.perek_num}
                     variant={selectedPerek === perek.perek_num ? "default" : "outline"}
-                    className="w-full justify-end text-right h-auto py-3 px-4 touch-manipulation"
+                    className="w-full justify-end text-right h-auto py-3 px-4 touch-manipulation direction-rtl"
                     onClick={() => handlePerekSelect(perek.perek_num)}
                   >
                     <span className="font-semibold">
@@ -205,7 +205,7 @@ export const FloatingQuickSelector = ({
                       key={pasukNum}
                       variant={selectedPasuk === pasukNum ? "default" : "outline"}
                       className={cn(
-                        "w-full justify-between text-right h-auto py-3 px-4 touch-manipulation",
+                        "w-full justify-between text-right h-auto py-3 px-4 touch-manipulation direction-rtl",
                         !hasContent && "opacity-50"
                       )}
                       onClick={() => handlePasukSelect(pasukNum)}
@@ -215,7 +215,7 @@ export const FloatingQuickSelector = ({
                         פסוק {toHebrewNumber(pasukNum)}
                       </span>
                       {hasContent && (
-                        <span className="h-2 w-2 rounded-full bg-green-500" />
+                        <span className="h-2 w-2 rounded-full bg-accent" />
                       )}
                     </Button>
                   );
