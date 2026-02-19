@@ -14,34 +14,34 @@ interface ScrollPasukViewProps {
 }
 
 export const ScrollPasukView = ({ pesukim, seferId, forceMinimized = false }: ScrollPasukViewProps) => {
-  const [selectedPasukId, setSelectedPasukId] = useState<number | null>(null);
-  const [expandedPasukIds, setExpandedPasukIds] = useState<Set<number>>(new Set());
+  const [expandedPasukIds, setExpandedPasukIds] = useState<Set<string>>(new Set());
 
-  const handlePasukClick = (pasukId: number) => {
-    // Toggle expansion for this pasuk
+  const getPasukKey = (pasuk: FlatPasuk) => `${pasuk.sefer}-${pasuk.perek}-${pasuk.pasuk_num}`;
+
+  const handlePasukClick = (pasuk: FlatPasuk) => {
+    const key = getPasukKey(pasuk);
     setExpandedPasukIds(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(pasukId)) {
-        newSet.delete(pasukId);
+      if (newSet.has(key)) {
+        newSet.delete(key);
       } else {
-        newSet.add(pasukId);
+        newSet.add(key);
       }
       return newSet;
     });
   };
 
-  const isPasukExpanded = (pasukId: number) => expandedPasukIds.has(pasukId);
+  const isPasukExpanded = (pasuk: FlatPasuk) => expandedPasukIds.has(getPasukKey(pasuk));
 
   return (
     <div className="space-y-4 w-full max-w-full overflow-hidden animate-fade-in">
       {/* Each Pasuk with expandable content */}
       {pesukim.map((pasuk) => {
-        const isExpanded = isPasukExpanded(pasuk.id);
-        
+        const isExpanded = isPasukExpanded(pasuk);
         return (
           <Card 
-            key={pasuk.id} 
-            id={`pasuk-${pasuk.id}`}
+            key={`${pasuk.sefer}-${pasuk.perek}-${pasuk.pasuk_num}`} 
+            id={`pasuk-${pasuk.sefer}-${pasuk.perek}-${pasuk.pasuk_num}`}
             className={cn(
               "overflow-hidden w-full transition-all duration-300 border-r-4",
               isExpanded ? "border-r-primary shadow-xl ring-2 ring-primary/50" : "border-r-accent shadow-sm hover:shadow-md"
@@ -56,7 +56,7 @@ export const ScrollPasukView = ({ pesukim, seferId, forceMinimized = false }: Sc
               className="w-full text-right p-4 md:p-6 transition-all duration-200"
             >
               <button 
-                onClick={() => handlePasukClick(pasuk.id)}
+                onClick={() => handlePasukClick(pasuk)}
                 className="flex items-start gap-3 w-full hover:bg-accent/10 p-2 rounded-lg transition-colors"
               >
                 <span className="font-bold text-primary text-xl md:text-2xl flex-shrink-0 font-['Frank_Ruhl_Libre'] transition-colors duration-200">
