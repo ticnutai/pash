@@ -132,6 +132,7 @@ export const FloatingQuickSelector = ({
         side="top"
         align="start"
         sideOffset={12}
+        dir="rtl"
         className="w-[320px] max-h-[400px] p-0 overflow-hidden border border-accent bg-card text-foreground"
       >
         {/* Header */}
@@ -170,7 +171,7 @@ export const FloatingQuickSelector = ({
                   <Button
                     key={parsha.parsha_id}
                     variant={selectedParsha === parsha.parsha_id ? "default" : "outline"}
-                    className="w-full justify-end text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal direction-rtl"
+                    className="w-full justify-start text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal"
                     onClick={() => handleParshaSelect(parsha.parsha_id)}
                   >
                     <span className="font-semibold break-words">{parsha.parsha_name}</span>
@@ -185,7 +186,7 @@ export const FloatingQuickSelector = ({
                   <Button
                     key={perek.perek_num}
                     variant={selectedPerek === perek.perek_num ? "default" : "outline"}
-                    className="w-full justify-end text-right h-auto py-3 px-4 touch-manipulation direction-rtl"
+                    className="w-full justify-start text-right h-auto py-3 px-4 touch-manipulation"
                     onClick={() => handlePerekSelect(perek.perek_num)}
                   >
                     <span className="font-semibold">
@@ -205,7 +206,7 @@ export const FloatingQuickSelector = ({
                       key={pasukNum}
                       variant={selectedPasuk === pasukNum ? "default" : "outline"}
                       className={cn(
-                        "w-full justify-between text-right h-auto py-3 px-4 touch-manipulation direction-rtl",
+                        "w-full justify-start text-right h-auto py-3 px-4 touch-manipulation",
                         !hasContent && "opacity-50"
                       )}
                       onClick={() => handlePasukSelect(pasukNum)}
