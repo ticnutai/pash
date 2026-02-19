@@ -88,7 +88,7 @@ export const SeferSelector = ({
       <div className="flex items-center justify-between gap-2 mb-2" dir="rtl">
         <div className="flex items-center gap-3">
           {showBack && (
-            <Button size="sm" onClick={handleBack} className="h-10 px-5 text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white border-0">
+            <Button size="sm" onClick={handleBack} className="h-10 px-5 text-sm font-bold bg-accent text-accent-foreground hover:bg-accent/90 border-0">
               חזרה
             </Button>
           )}
