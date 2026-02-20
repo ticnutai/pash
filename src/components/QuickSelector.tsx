@@ -134,7 +134,7 @@ export const QuickSelector = ({
   if (!sefer) return null;
 
   return (
-    <Card className="p-4 h-fit w-full sticky top-24 animate-fade-in">
+    <Card className="p-4 h-fit w-full animate-fade-in">
       <div className="space-y-4">
         {/* Header with Navigation */}
         <div className="flex items-center justify-between gap-2 flex-wrap transition-all duration-300">
