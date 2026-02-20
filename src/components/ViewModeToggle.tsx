@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Layers, Hash } from "lucide-react";
+import { Eye, EyeOff, Layers, Hash, BookText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +25,7 @@ export const ViewModeToggle = ({ seferId: _seferId }: ViewModeToggleProps) => {
   const modes: { value: DisplayMode; label: string; icon: React.ReactNode }[] = [
     { value: "full", label: "הצג הכל", icon: <Eye className="h-4 w-4 ml-2" /> },
     { value: "compact", label: "תצוגה רצופה", icon: <Layers className="h-4 w-4 ml-2" /> },
+    { value: "chumash", label: "תצוגת חומש", icon: <BookText className="h-4 w-4 ml-2" /> },
     { value: "luxury", label: "תצוגה מפוארת", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "minimized", label: "מזער הכל", icon: <EyeOff className="h-4 w-4 ml-2" /> },
   ];

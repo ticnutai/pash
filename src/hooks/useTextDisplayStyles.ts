@@ -10,29 +10,38 @@ export const useTextDisplayStyles = () => {
     // Get font scale (default 1)
     const fontScale = settings.fontScale || 1;
 
-    // Spacing values - responsive
-    const spacingMap = {
+    // Spacing values - responsive (supports custom)
+    const spacingMap: Record<string, string> = {
       compact: isMobile ? "0.25rem" : "0.5rem",
       normal: isMobile ? "0.5rem" : "1rem",
       comfortable: isMobile ? "0.75rem" : "1.5rem",
       spacious: isMobile ? "1rem" : "2rem",
     };
+    const gap = settings.contentSpacing === "custom"
+      ? `${settings.contentSpacingCustom ?? 1}rem`
+      : spacingMap[settings.contentSpacing] || spacingMap.normal;
 
-    // Line height values
-    const lineHeightMap = {
+    // Line height values (supports custom)
+    const lineHeightMap: Record<string, string> = {
       tight: "1.3",
       normal: "1.5",
       relaxed: "1.7",
       loose: "2.0",
     };
+    const lineHeight = settings.lineHeight === "custom"
+      ? String(settings.lineHeightCustom ?? 1.5)
+      : lineHeightMap[settings.lineHeight] || lineHeightMap.normal;
 
-    // Letter spacing values
-    const letterSpacingMap = {
+    // Letter spacing values (supports custom)
+    const letterSpacingMap: Record<string, string> = {
       tight: "-0.02em",
       normal: "0em",
       wide: "0.05em",
       wider: "0.1em",
     };
+    const letterSpacing = settings.letterSpacing === "custom"
+      ? `${settings.letterSpacingCustom ?? 0}em`
+      : letterSpacingMap[settings.letterSpacing] || letterSpacingMap.normal;
 
     // Content width values - responsive with max constraints
     const getMaxWidth = () => {
@@ -59,15 +68,16 @@ export const useTextDisplayStyles = () => {
 
     return {
       textAlign: alignmentMap[settings.textAlignment] as "right" | "center" | "left",
-      gap: spacingMap[settings.contentSpacing],
-      lineHeight: lineHeightMap[settings.lineHeight],
-      letterSpacing: letterSpacingMap[settings.letterSpacing],
+      gap,
+      lineHeight,
+      letterSpacing,
       maxWidth: getMaxWidth(),
       margin: settings.textAlignment === "center" ? "0 auto" : "0",
       padding,
       fontScale,
       isMobile,
     };
-  }, [settings.fontScale, settings.textAlignment, settings.contentSpacing,
-      settings.lineHeight, settings.letterSpacing, settings.contentWidth, isMobile]);
+  }, [settings.fontScale, settings.textAlignment, settings.contentSpacing, settings.contentSpacingCustom,
+      settings.lineHeight, settings.lineHeightCustom, settings.letterSpacing, settings.letterSpacingCustom,
+      settings.contentWidth, isMobile]);
 };

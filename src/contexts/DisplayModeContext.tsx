@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useDevice } from "@/contexts/DeviceContext";
 
-export type DisplayMode = "full" | "compact" | "luxury" | "minimized";
+export type DisplayMode = "full" | "compact" | "luxury" | "minimized" | "chumash";
 
 export interface DisplaySettings {
   mode: DisplayMode;
@@ -27,6 +27,7 @@ const normalizeDisplayMode = (mode: unknown): DisplayMode => {
     case "compact":
     case "luxury":
     case "minimized":
+    case "chumash":
       return mode;
     // Legacy modes (kept for backward-compat with persisted settings)
     case "scroll":

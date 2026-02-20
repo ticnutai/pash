@@ -39,10 +39,13 @@ export interface FontAndColorSettings {
   
   // Display Settings
   textAlignment: "right" | "center" | "left";
-  contentSpacing: "compact" | "normal" | "comfortable" | "spacious";
-  lineHeight: "tight" | "normal" | "relaxed" | "loose";
+  contentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
+  contentSpacingCustom: number;
+  lineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
+  lineHeightCustom: number;
   contentWidth: "narrow" | "normal" | "wide" | "full";
-  letterSpacing: "tight" | "normal" | "wide" | "wider";
+  letterSpacing: "tight" | "normal" | "wide" | "wider" | "custom";
+  letterSpacingCustom: number;
   
   // Dynamic Zoom
   fontScale: number;
@@ -79,9 +82,12 @@ const defaultSettings: FontAndColorSettings = {
   commentaryMaxWidth: "medium",
   textAlignment: "right",
   contentSpacing: "normal",
+  contentSpacingCustom: 1,
   lineHeight: "normal",
+  lineHeightCustom: 1.5,
   contentWidth: "normal",
   letterSpacing: "normal",
+  letterSpacingCustom: 0,
   fontScale: 1,
 };
 

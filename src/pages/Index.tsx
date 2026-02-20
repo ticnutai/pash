@@ -32,6 +32,8 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 const CompactPasukView = lazy(() => import("@/components/CompactPasukView").then(m => ({ default: m.CompactPasukView })));
 const PaginatedPasukList = lazy(() => import("@/components/PaginatedPasukList").then(m => ({ default: m.PaginatedPasukList })));
 const LuxuryTextView = lazy(() => import("@/components/LuxuryTextView").then(m => ({ default: m.LuxuryTextView })));
+const ChumashView = lazy(() => import("@/components/ChumashView").then(m => ({ default: m.ChumashView })));
+const SideContentPanel = lazy(() => import("@/components/SideContentPanel").then(m => ({ default: m.SideContentPanel })));
 
 // Navigation components (loaded after initial render)
 const QuickSelector = lazy(() => import("@/components/QuickSelector").then(m => ({ default: m.QuickSelector })));
@@ -63,6 +65,12 @@ const Index = () => {
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const weeklyParshaLoadedRef = useRef(false);
+  
+  // Side content panel state (for Chumash view)
+  const [sidePanelOpen, setSidePanelOpen] = useState(false);
+  const [sidePanelMode, setSidePanelMode] = useState<"user" | "pasuk">("pasuk");
+  const [sidePanelPasuk, setSidePanelPasuk] = useState<FlatPasuk | null>(null);
+  const [chumashSelectedPasukId, setChumashSelectedPasukId] = useState<number | null>(null);
   
   // Enable pinch-to-zoom for dynamic font scaling
   usePinchZoom({ minScale: 0.5, maxScale: 2.5, step: 0.1 });
@@ -447,6 +455,14 @@ const Index = () => {
     return 0;
   }, [seferData, selectedPerek]);
 
+  // Handler for ChumashView pasuk selection (opens side panel)
+  const handleChumashPasukSelect = useCallback((_pasukId: number, pasuk: FlatPasuk) => {
+    setChumashSelectedPasukId(pasuk.id);
+    setSidePanelPasuk(pasuk);
+    setSidePanelMode("pasuk");
+    setSidePanelOpen(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background pb-20 overflow-x-hidden">
       {/* Header - Fully Responsive */}
@@ -689,6 +705,13 @@ const Index = () => {
                     >
                       {displayMode === "luxury" ? (
                         <LuxuryTextView pesukim={displayedPesukim} />
+                      ) : displayMode === "chumash" ? (
+                        <ChumashView 
+                          pesukim={displayedPesukim} 
+                          seferId={selectedSefer}
+                          selectedPasukId={chumashSelectedPasukId}
+                          onPasukSelect={handleChumashPasukSelect}
+                        />
                       ) : displayMode === "compact" ? (
                         <CompactPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
                       ) : (
@@ -714,6 +737,18 @@ const Index = () => {
           totalPesukimInPerek={totalPesukimInPerek}
           selectedPasuk={selectedPasuk}
           onPasukSelect={handlePasukSelect}
+        />
+      </Suspense>
+
+      {/* Side Content Panel (for Chumash view) */}
+      <Suspense fallback={null}>
+        <SideContentPanel
+          isOpen={sidePanelOpen}
+          onClose={() => setSidePanelOpen(false)}
+          mode={sidePanelMode}
+          onModeChange={setSidePanelMode}
+          selectedPasuk={sidePanelPasuk}
+          seferId={selectedSefer}
         />
       </Suspense>
     </div>
