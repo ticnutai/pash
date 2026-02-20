@@ -697,7 +697,7 @@ const Index = () => {
                 </Card>
               ) : (
                 <Suspense fallback={<ComponentLoader />}>
-                  <div className="pl-2 animate-fade-in"
+                  <div className="animate-fade-in"
                     key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
                   >
                     {displayMode === "luxury" ? (

@@ -112,6 +112,8 @@ export const FloatingQuickSelector = ({
 
   if (!sefer) return null;
 
+  const selectedButtonClass = "border-accent text-primary";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -170,8 +172,11 @@ export const FloatingQuickSelector = ({
                 {sefer.parshiot.map((parsha) => (
                   <Button
                     key={parsha.parsha_id}
-                    variant={selectedParsha === parsha.parsha_id ? "default" : "outline"}
-                    className="w-full justify-start text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal",
+                      selectedParsha === parsha.parsha_id && selectedButtonClass
+                    )}
                     onClick={() => handleParshaSelect(parsha.parsha_id)}
                   >
                     <span className="font-semibold break-words">{parsha.parsha_name}</span>
@@ -185,8 +190,11 @@ export const FloatingQuickSelector = ({
                 {perakimToShow.map((perek) => (
                   <Button
                     key={perek.perek_num}
-                    variant={selectedPerek === perek.perek_num ? "default" : "outline"}
-                    className="w-full justify-start text-right h-auto py-3 px-4 touch-manipulation"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-right h-auto py-3 px-4 touch-manipulation",
+                      selectedPerek === perek.perek_num && selectedButtonClass
+                    )}
                     onClick={() => handlePerekSelect(perek.perek_num)}
                   >
                     <span className="font-semibold">
@@ -204,9 +212,10 @@ export const FloatingQuickSelector = ({
                   return (
                     <Button
                       key={pasukNum}
-                      variant={selectedPasuk === pasukNum ? "default" : "outline"}
+                      variant="outline"
                       className={cn(
                         "w-full justify-start text-right h-auto py-3 px-4 touch-manipulation",
+                        selectedPasuk === pasukNum && selectedButtonClass,
                         !hasContent && "opacity-50"
                       )}
                       onClick={() => handlePasukSelect(pasukNum)}

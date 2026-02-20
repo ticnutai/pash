@@ -32,6 +32,13 @@ export const QuickSelector = ({
 }: QuickSelectorProps) => {
   const [currentLevel, setCurrentLevel] = useState<SelectionLevel>("parsha");
 
+  const selectedParshaName = useMemo(() => {
+    if (!sefer || selectedParsha === null) return null;
+    return sefer.parshiot.find(p => p.parsha_id === selectedParsha)?.parsha_name ?? null;
+  }, [sefer, selectedParsha]);
+
+  const selectedButtonClass = "border-accent text-primary";
+
   // Reset to parsha level when sefer changes
   useEffect(() => {
     setCurrentLevel("parsha");
@@ -143,6 +150,30 @@ export const QuickSelector = ({
           </div>
         </div>
 
+        {/* Selected context tabs (Sefer / Parsha) */}
+        <div className="flex items-center gap-2" dir="rtl">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReset}
+            className={cn("h-9 px-4 font-bold", selectedButtonClass)}
+            title="איפוס בחירה"
+          >
+            {sefer.sefer_name}
+          </Button>
+          {selectedParshaName && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentLevel("perek")}
+              className={cn("h-9 px-4 font-bold", selectedButtonClass)}
+              title="בחירת פרק"
+            >
+              {selectedParshaName}
+            </Button>
+          )}
+        </div>
+
         {/* Dynamic Content Based on Current Level */}
         <ScrollArea className="h-[400px]">
           {currentLevel === "parsha" && (
@@ -150,9 +181,12 @@ export const QuickSelector = ({
               {sefer.parshiot.map((parsha) => (
                 <Button
                   key={parsha.parsha_id}
-                  variant={selectedParsha === parsha.parsha_id ? "default" : "outline"}
+                  variant="outline"
                   onClick={() => handleParshaSelect(parsha.parsha_id)}
-                  className="text-xs sm:text-sm h-auto py-3 px-2 sm:px-3 break-words whitespace-normal text-center transition-opacity duration-200"
+                  className={cn(
+                    "text-xs sm:text-sm h-auto py-3 px-2 sm:px-3 break-words whitespace-normal text-center transition-opacity duration-200",
+                    selectedParsha === parsha.parsha_id && selectedButtonClass
+                  )}
                 >
                   {parsha.parsha_name}
                 </Button>
@@ -165,9 +199,12 @@ export const QuickSelector = ({
               {perakimToShow.map((perek, index) => (
                 <Button
                   key={perek.perek_num}
-                  variant={selectedPerek === perek.perek_num ? "default" : "outline"}
+                  variant="outline"
                   onClick={() => handlePerekSelect(perek.perek_num)}
-                  className="aspect-square font-bold text-base sm:text-lg touch-manipulation"
+                  className={cn(
+                    "aspect-square font-bold text-base sm:text-lg touch-manipulation",
+                    selectedPerek === perek.perek_num && selectedButtonClass
+                  )}
                 >
                   {toHebrewNumber(perek.perek_num)}
                 </Button>
@@ -182,10 +219,11 @@ export const QuickSelector = ({
                 return (
                   <Button
                     key={pasuk}
-                    variant={selectedPasuk === pasuk ? "default" : "outline"}
+                    variant="outline"
                     onClick={() => handlePasukSelect(pasuk)}
                     className={cn(
                       "aspect-square font-bold relative touch-manipulation text-base sm:text-lg transition-opacity duration-200",
+                      selectedPasuk === pasuk && selectedButtonClass,
                       !hasContent && "opacity-40"
                     )}
                     disabled={!hasContent}
