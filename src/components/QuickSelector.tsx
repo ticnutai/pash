@@ -165,31 +165,51 @@ export const QuickSelector = ({
           </div>
         </div>
 
-        {/* Selected context tabs (Sefer / Parsha) */}
+        {/* Breadcrumb tabs (Sefer / Parsha / Perek) */}
         <div className="flex items-center gap-2 flex-nowrap overflow-x-auto" dir="rtl">
           <Button
             variant="outline"
             size="sm"
             onClick={handleReset}
             className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
-            title="איפוס בחירה"
+            title="חזרה לבחירת פרשה"
           >
             {sefer.sefer_name}
           </Button>
           {selectedParshaName && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                onPerekSelect(null);
-                onPasukSelect(null);
-                setCurrentLevel("perek");
-              }}
-              className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
-              title="בחירת פרק"
-            >
-              {selectedParshaName}
-            </Button>
+            <>
+              <span className="text-muted-foreground select-none">›</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onPerekSelect(null);
+                  onPasukSelect(null);
+                  setCurrentLevel("perek");
+                }}
+                className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
+                title="חזרה לבחירת פרק"
+              >
+                {selectedParshaName}
+              </Button>
+            </>
+          )}
+          {selectedPerek !== null && (
+            <>
+              <span className="text-muted-foreground select-none">›</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onPasukSelect(null);
+                  setCurrentLevel("pasuk");
+                }}
+                className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
+                title="חזרה לבחירת פסוק"
+              >
+                פרק {toHebrewNumber(selectedPerek)}
+              </Button>
+            </>
           )}
         </div>
 

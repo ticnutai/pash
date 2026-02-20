@@ -526,17 +526,130 @@ const Index = () => {
         {loading ? (
           <SeferSkeleton />
         ) : (
-          <div className="grid lg:grid-cols-[320px_1fr] gap-6 w-full max-w-full overflow-hidden">
-            {/* Quick Selector Sidebar - Hide on mobile when content is showing */}
-            {(!isMobile || filteredPesukim.length === 0) && (
-              <Suspense fallback={<ComponentLoader />}>
-                <div className="w-full space-y-4">
-                  {!isMobile && currentParshaName && filteredPesukim.length > 0 && (
-                    <div className="h-[56px]" aria-hidden="true" />
+          <>
+            {/* Desktop navigation bar - ABOVE the grid so sidebar aligns with verse cards */}
+            {currentParshaName && filteredPesukim.length > 0 && (
+              <div className="w-full">
+                {/* Mobile layout: single clean row with pasuk nav and parsha name */}
+                <div className="flex md:hidden items-center justify-between gap-2 w-full">
+                  {/* Pasuk navigation - right side, takes remaining space */}
+                    {parshaAllPesukim.length > 0 && displayMode === "compact" && (
+                    <div className="flex-1 min-w-0">
+                      <PasukSimpleNavigator
+                        pesukim={parshaAllPesukim}
+                        currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
+                        onNavigate={handlePasukSelect}
+                      />
+                    </div>
                   )}
-                  {!isMobile && parshaAllPesukim.length > 0 && selectedPasuk !== null && (
-                    <div className="h-[36px]" aria-hidden="true" />
+
+                  {/* Parsha name & arrows - left side, fixed width to avoid wrapping */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigateToParsha('prev')}
+                      disabled={!canNavigatePrev}
+                      className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+                      title="פרשה קודמת"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+
+                    <span className="text-lg font-semibold text-primary truncate max-w-[8rem] text-center">
+                      {currentParshaName}
+                    </span>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigateToParsha('next')}
+                      disabled={!canNavigateNext}
+                      className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+                      title="פרשה הבאה"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Desktop layout: original 3-part bar */}
+                <div className="hidden md:flex items-center justify-between gap-2 w-full">
+                  {/* Pasuk navigation - right side */}
+                    {parshaAllPesukim.length > 0 && displayMode === "compact" && (
+                    <PasukSimpleNavigator
+                      pesukim={parshaAllPesukim}
+                      currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
+                      onNavigate={handlePasukSelect}
+                    />
                   )}
+
+                  {/* Chapter and verse display - center */}
+                  {selectedPerek && (selectedPasuk || filteredPesukim[0]) && (
+                    <div className="text-center">
+                      <span className="text-sm font-medium text-foreground">
+                        פרק {toHebrewNumber(selectedPerek)} פסוק {toHebrewNumber(selectedPasuk || filteredPesukim[0]?.pasuk_num || 1)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Parsha navigation - left side */}
+                  <div className="flex items-center justify-center gap-3 py-2 px-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigateToParsha('prev')}
+                      disabled={!canNavigatePrev}
+                      className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+                      title="פרשה קודמת"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                      <span className="text-lg font-semibold text-primary">
+                        {currentParshaName}
+                      </span>
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                    </div>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigateToParsha('next')}
+                      disabled={!canNavigateNext}
+                      className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+                      title="פרשה הבאה"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Reading progress bar - ABOVE the grid */}
+            {parshaAllPesukim.length > 0 && selectedPasuk !== null && (
+              <ReadingProgress
+                totalPesukim={parshaAllPesukim.length}
+                currentPasukIndex={parshaAllPesukim.findIndex(p => p.pasuk_num === selectedPasuk && p.perek === selectedPerek)}
+                parshaName={currentParshaName}
+              />
+            )}
+
+            {/* Mobile controls - ABOVE the grid */}
+            {isMobile && (
+              <div className="flex items-center gap-2 flex-nowrap">
+                <MobileTypographySheet />
+                <ViewModeToggle seferId={selectedSefer} />
+              </div>
+            )}
+
+            <div className="grid lg:grid-cols-[320px_1fr] gap-6 w-full max-w-full overflow-hidden items-start">
+              {/* Quick Selector Sidebar - Hide on mobile when content is showing */}
+              {(!isMobile || filteredPesukim.length === 0) && (
+                <Suspense fallback={<ComponentLoader />}>
                   <QuickSelector
                     sefer={seferData}
                     selectedParsha={selectedParsha}
@@ -547,165 +660,46 @@ const Index = () => {
                     selectedPasuk={selectedPasuk}
                     onPasukSelect={handlePasukSelect}
                   />
-                </div>
-              </Suspense>
-            )}
-
-            {/* Main Content */}
-            <div className="space-y-4 w-full min-w-0 overflow-hidden" style={{ maxWidth: "100%" }}>
-              {/* Navigation bar - Pasuk on right, chapter/verse display in center, Parsha on left */}
-              {currentParshaName && filteredPesukim.length > 0 && (
-                <div className="w-full">
-                  {/* Mobile layout: single clean row with pasuk nav and parsha name */}
-                  <div className="flex md:hidden items-center justify-between gap-2 w-full">
-                    {/* Pasuk navigation - right side, takes remaining space */}
-                      {parshaAllPesukim.length > 0 && displayMode === "compact" && (
-                      <div className="flex-1 min-w-0">
-                        <PasukSimpleNavigator
-                          pesukim={parshaAllPesukim}
-                          currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
-                          onNavigate={handlePasukSelect}
-                        />
-                      </div>
-                    )}
-
-                    {/* Parsha name & arrows - left side, fixed width to avoid wrapping */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigateToParsha('prev')}
-                        disabled={!canNavigatePrev}
-                        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
-                        title="פרשה קודמת"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-
-                      <span className="text-lg font-semibold text-primary truncate max-w-[8rem] text-center">
-                        {currentParshaName}
-                      </span>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigateToParsha('next')}
-                        disabled={!canNavigateNext}
-                        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
-                        title="פרשה הבאה"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Desktop layout: original 3-part bar */}
-                  <div className="hidden md:flex items-center justify-between gap-2 w-full">
-                    {/* Pasuk navigation - right side */}
-                      {parshaAllPesukim.length > 0 && displayMode === "compact" && (
-                      <PasukSimpleNavigator
-                        pesukim={parshaAllPesukim}
-                        currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
-                        onNavigate={handlePasukSelect}
-                      />
-                    )}
-
-                    {/* Chapter and verse display - center */}
-                    {selectedPerek && (selectedPasuk || filteredPesukim[0]) && (
-                      <div className="text-center">
-                        <span className="text-sm font-medium text-foreground">
-                          פרק {toHebrewNumber(selectedPerek)} פסוק {toHebrewNumber(selectedPasuk || filteredPesukim[0]?.pasuk_num || 1)}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Parsha navigation - left side */}
-                    <div className="flex items-center justify-center gap-3 py-2 px-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigateToParsha('prev')}
-                        disabled={!canNavigatePrev}
-                        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
-                        title="פרשה קודמת"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </Button>
-                      
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-primary" />
-                        <span className="text-lg font-semibold text-primary">
-                          {currentParshaName}
-                        </span>
-                        <div className="h-2 w-2 rounded-full bg-primary" />
-                      </div>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigateToParsha('next')}
-                        disabled={!canNavigateNext}
-                        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
-                        title="פרשה הבאה"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Reading progress bar */}
-              {parshaAllPesukim.length > 0 && selectedPasuk !== null && (
-                <ReadingProgress
-                  totalPesukim={parshaAllPesukim.length}
-                  currentPasukIndex={parshaAllPesukim.findIndex(p => p.pasuk_num === selectedPasuk && p.perek === selectedPerek)}
-                  parshaName={currentParshaName}
-                />
-              )}
-              
-              {/* Mobile controls */}
-              {isMobile && (
-                <div className="flex items-center gap-2 flex-nowrap">
-                  <MobileTypographySheet />
-                  <ViewModeToggle seferId={selectedSefer} />
-                </div>
-              )}
-              
-              {filteredPesukim.length === 0 ? (
-                <Card className="p-12 text-center animate-fade-in">
-                  <p className="text-lg text-muted-foreground mb-2">
-                    {selectedPasuk !== null && selectedPerek !== null
-                      ? `אין תוכן זמין לפסוק ${toHebrewNumber(selectedPasuk)} בפרק ${toHebrewNumber(selectedPerek)}`
-                      : selectedPerek !== null
-                      ? `אין פסוקים עם תוכן בפרק ${toHebrewNumber(selectedPerek)}`
-                      : selectedParsha !== null
-                      ? "אין פסוקים עם תוכן בפרשה הנבחרת"
-                      : "בחר חומש ופרשה להתחלה"}
-                  </p>
-                  {selectedPasuk !== null && (
-                    <p className="text-sm text-muted-foreground">
-                      בחר פסוק עם נקודה ירוקה לצפייה בשאלות ותשובות
-                    </p>
-                  )}
-                </Card>
-              ) : (
-                <Suspense fallback={<ComponentLoader />}>
-                  <div className="animate-fade-in"
-                    key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
-                  >
-                    {displayMode === "luxury" ? (
-                      <LuxuryTextView pesukim={displayedPesukim} />
-                    ) : displayMode === "compact" ? (
-                      <CompactPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
-                    ) : (
-                      <PaginatedPasukList pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
-                    )}
-                  </div>
                 </Suspense>
               )}
+
+              {/* Main Content - Verse cards */}
+              <div className="space-y-4 w-full min-w-0 overflow-hidden" style={{ maxWidth: "100%" }}>
+                {filteredPesukim.length === 0 ? (
+                  <Card className="p-12 text-center animate-fade-in">
+                    <p className="text-lg text-muted-foreground mb-2">
+                      {selectedPasuk !== null && selectedPerek !== null
+                        ? `אין תוכן זמין לפסוק ${toHebrewNumber(selectedPasuk)} בפרק ${toHebrewNumber(selectedPerek)}`
+                        : selectedPerek !== null
+                        ? `אין פסוקים עם תוכן בפרק ${toHebrewNumber(selectedPerek)}`
+                        : selectedParsha !== null
+                        ? "אין פסוקים עם תוכן בפרשה הנבחרת"
+                        : "בחר חומש ופרשה להתחלה"}
+                    </p>
+                    {selectedPasuk !== null && (
+                      <p className="text-sm text-muted-foreground">
+                        בחר פסוק עם נקודה ירוקה לצפייה בשאלות ותשובות
+                      </p>
+                    )}
+                  </Card>
+                ) : (
+                  <Suspense fallback={<ComponentLoader />}>
+                    <div className="animate-fade-in"
+                      key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
+                    >
+                      {displayMode === "luxury" ? (
+                        <LuxuryTextView pesukim={displayedPesukim} />
+                      ) : displayMode === "compact" ? (
+                        <CompactPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
+                      ) : (
+                        <PaginatedPasukList pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
+                      )}
+                    </div>
+                  </Suspense>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 
