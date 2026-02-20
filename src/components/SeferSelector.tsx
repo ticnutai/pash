@@ -109,6 +109,7 @@ export const SeferSelector = ({
       onPasukSelect(null);
     } else if (targetLevel === "perek") {
       setLevel("perek");
+      onPerekSelect(null);
       onPasukSelect(null);
     } else if (targetLevel === "pasuk") {
       setLevel("pasuk");

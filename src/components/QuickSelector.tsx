@@ -165,7 +165,11 @@ export const QuickSelector = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentLevel("perek")}
+              onClick={() => {
+                onPerekSelect(null);
+                onPasukSelect(null);
+                setCurrentLevel("perek");
+              }}
               className={cn("h-9 px-4 font-bold", selectedButtonClass)}
               title="בחירת פרק"
             >
