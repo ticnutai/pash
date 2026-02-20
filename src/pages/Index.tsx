@@ -512,7 +512,10 @@ const Index = () => {
         <Settings />
       </Suspense>
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6">
+      <div 
+        className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6 transition-[padding] duration-300 ease-in-out"
+        style={{ paddingLeft: sidePanelOpen && !isMobile ? '25rem' : undefined }}
+      >
         {/* Sefer / Parsha / Perek / Pasuk Selector */}
         <SeferSelector 
           sefer={seferData}

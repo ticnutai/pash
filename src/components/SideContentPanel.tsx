@@ -94,7 +94,13 @@ export const SideContentPanel = ({
   const totalUserItems = bookmarks.length + notes.length + questions.length + highlights.length;
 
   return (
-    <div className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-160px)] bg-background border-r border-border shadow-lg z-40 animate-fade-in flex flex-col">
+    <>
+      {/* Mobile backdrop overlay */}
+      <div 
+        className="fixed inset-0 bg-black/30 z-30 md:hidden animate-fade-in"
+        onClick={onClose}
+      />
+      <div className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] bg-background border-r border-border shadow-lg z-40 animate-fade-in flex flex-col">
       {/* Header with mode toggle */}
       <div className="flex items-center justify-between p-3 border-b bg-muted/30">
         <div className="flex gap-1">
@@ -147,6 +153,7 @@ export const SideContentPanel = ({
         />
       )}
     </div>
+    </>
   );
 };
 
