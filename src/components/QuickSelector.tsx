@@ -44,6 +44,21 @@ export const QuickSelector = ({
     setCurrentLevel("parsha");
   }, [sefer?.sefer_id]);
 
+  // Keep the dialog in sync with the actual selection state
+  useEffect(() => {
+    if (selectedParsha === null) {
+      setCurrentLevel("parsha");
+      return;
+    }
+
+    if (selectedPerek === null) {
+      setCurrentLevel("perek");
+      return;
+    }
+
+    setCurrentLevel("pasuk");
+  }, [selectedParsha, selectedPerek]);
+
   // Get perakim for the selected parsha only
   const perakimToShow = useMemo(() => {
     if (!sefer || selectedParsha === null) return [];
@@ -119,7 +134,7 @@ export const QuickSelector = ({
   if (!sefer) return null;
 
   return (
-    <Card className="p-4 h-fit sticky top-24 animate-fade-in">
+    <Card className="p-4 h-fit w-full sticky top-24 animate-fade-in">
       <div className="space-y-4">
         {/* Header with Navigation */}
         <div className="flex items-center justify-between gap-2 flex-wrap transition-all duration-300">
@@ -151,12 +166,12 @@ export const QuickSelector = ({
         </div>
 
         {/* Selected context tabs (Sefer / Parsha) */}
-        <div className="flex items-center gap-2" dir="rtl">
+        <div className="flex items-center gap-2 flex-nowrap overflow-x-auto" dir="rtl">
           <Button
             variant="outline"
             size="sm"
             onClick={handleReset}
-            className={cn("h-9 px-4 font-bold", selectedButtonClass)}
+            className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
             title="איפוס בחירה"
           >
             {sefer.sefer_name}
@@ -170,7 +185,7 @@ export const QuickSelector = ({
                 onPasukSelect(null);
                 setCurrentLevel("perek");
               }}
-              className={cn("h-9 px-4 font-bold", selectedButtonClass)}
+              className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
               title="בחירת פרק"
             >
               {selectedParshaName}
