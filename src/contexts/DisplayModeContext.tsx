@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useDevice } from "@/contexts/DeviceContext";
 
-export type DisplayMode = "full" | "verses-only" | "verses-questions" | "minimized" | "compact" | "scroll" | "luxury";
+export type DisplayMode = "full" | "compact" | "luxury" | "minimized";
 
 export interface DisplaySettings {
   mode: DisplayMode;
@@ -17,8 +17,26 @@ interface DisplayModeContextType {
 }
 
 const defaultSettings: DisplaySettings = {
-  mode: "scroll",
-  pasukCount: 10,
+  mode: "compact",
+  pasukCount: 20,
+};
+
+const normalizeDisplayMode = (mode: unknown): DisplayMode => {
+  switch (mode) {
+    case "full":
+    case "compact":
+    case "luxury":
+    case "minimized":
+      return mode;
+    // Legacy modes (kept for backward-compat with persisted settings)
+    case "scroll":
+      return "compact";
+    case "verses-only":
+    case "verses-questions":
+      return "full";
+    default:
+      return defaultSettings.mode;
+  }
 };
 
 const DisplayModeContext = createContext<DisplayModeContextType | undefined>(undefined);
@@ -47,7 +65,7 @@ export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
 
   // Safety layer: ensure displaySettings always has valid structure
   const safeDisplaySettings: DisplaySettings = useMemo(() => ({
-    mode: displaySettings?.mode || defaultSettings.mode,
+    mode: normalizeDisplayMode(displaySettings?.mode),
     pasukCount: displaySettings?.pasukCount || defaultSettings.pasukCount,
   }), [displaySettings]);
 

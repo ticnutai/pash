@@ -6,12 +6,9 @@ import {
   MessageSquare, 
   BookOpen, 
   Sparkles, 
-  Bookmark, 
-  BookmarkCheck,
   Pencil,
   Trash2 
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { FlatPasuk } from "@/types/torah";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -64,7 +61,6 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
   const { settings } = useFontAndColorSettings();
   const { displaySettings } = useDisplayMode();
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
-  const navigate = useNavigate();
   const displayStyles = useTextDisplayStyles();
   const { 
     titles: userTitles, 
@@ -82,6 +78,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
   
   const [editorOpen, setEditorOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [expandedInMinimizedMode, setExpandedInMinimizedMode] = useState(false);
   const [editorContext, setEditorContext] = useState<{
     type: "title" | "question" | "answer";
     titleId?: number;
@@ -99,7 +96,19 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
   const [deletingQuestion, setDeletingQuestion] = useState<number | null>(null);
   const [deletingAnswer, setDeletingAnswer] = useState<number | null>(null);
 
-  const effectiveMinimized = forceMinimized || isMinimized;
+  const effectiveMinimized = forceMinimized || isMinimized || (displayMode === "minimized" && !expandedInMinimizedMode);
+
+  useEffect(() => {
+    if (displayMode !== "minimized") {
+      setExpandedInMinimizedMode(false);
+    }
+  }, [displayMode]);
+
+  useEffect(() => {
+    if (isMinimized) {
+      setExpandedInMinimizedMode(false);
+    }
+  }, [isMinimized]);
   
   // Safety check: ensure content exists and is an array
   const content = pasuk.content || [];
@@ -183,120 +192,8 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
     }));
   }, [formattedPasukText, pasukId]);
 
-  // In scroll mode, always show the pasuk even if no questions
-  // In other modes, don't show if no questions
-  if (totalQuestions === 0 && displayMode !== "scroll") return null;
-
-  // Display mode: verses-only - show only the pasuk text
-  if (displayMode === "verses-only") {
-    return (
-      <Card 
-        className="overflow-hidden border-r-4 border-r-accent shadow-md transition-all w-full"
-        style={{
-          maxWidth: displayStyles.maxWidth,
-          margin: displayStyles.margin,
-          padding: displayStyles.isMobile ? "0.5rem" : undefined,
-          wordWrap: "break-word",
-          overflowWrap: "break-word",
-        }}
-      >
-        <CardHeader 
-          className="bg-gradient-to-l from-secondary/30 to-card"
-          style={{ padding: displayStyles.isMobile ? "0.75rem" : undefined }}
-        >
-          <div className={`flex items-start gap-2 ${displayStyles.isMobile ? 'flex-col' : 'justify-between gap-4'}`}>
-            <div className="flex-1 w-full">
-              <div className={`flex items-center gap-2 mb-2 ${displayStyles.isMobile ? 'flex-wrap' : 'justify-between'}`}>
-                <div className="flex gap-1 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleBookmark(pasukId, formattedPasukText);
-                    }}
-                    title={bookmarked ? "הסר סימניה" : "הוסף סימניה"}
-                  >
-                    {bookmarked ? (
-                      <BookmarkCheck className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Bookmark className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <NotesDialog pasukId={pasukId} pasukText={formattedPasukText} />
-                  <ContentEditor pasukId={pasukId} pasukText={formattedPasukText} />
-                  <Button
-                    variant="ghost"
-                    size={displayStyles.isMobile ? "icon" : "sm"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`, '_blank');
-                    }}
-                    className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
-                    title="פרשנים נוספים מספריא (נפתח בטאב חדש)"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Badge variant="outline" className={`font-bold ${displayStyles.isMobile ? 'text-xs' : ''}`}>
-                  פרק {toHebrewNumber(pasuk.perek)} פסוק {toHebrewNumber(pasuk.pasuk_num)}
-                </Badge>
-              </div>
-              <PasukLineActions 
-                text={formattedPasukText}
-                onBookmark={() => toggleBookmark(pasukId, formattedPasukText)}
-              >
-                <ClickableText 
-                  text={formattedPasukText} 
-                  pasukId={pasukId}
-                  fontFamily={settings.pasukFont}
-                  fontSize={`${settings.pasukSize}px`}
-                  color={settings.pasukColor}
-                  fontWeight={settings.pasukBold ? 'bold' : 'normal'}
-                />
-              </PasukLineActions>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <Badge variant="secondary" className="gap-1">
-                <MessageCircle className="h-3 w-3" />
-                {toHebrewNumber(totalQuestions)}
-              </Badge>
-              <Badge variant="secondary" className="gap-1">
-                <MessageSquare className="h-3 w-3" />
-                {toHebrewNumber(totalAnswers)}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  // Display mode: minimized - show compact view
-  if (displayMode === "minimized") {
-    return (
-      <Card className="overflow-hidden border-r-4 border-r-accent shadow-sm transition-all">
-        <CardHeader className="bg-gradient-to-l from-secondary/20 to-card py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex gap-2">
-              <Badge variant="secondary" className="gap-1">
-                <MessageCircle className="h-3 w-3" />
-                {toHebrewNumber(totalQuestions)}
-              </Badge>
-              <Badge variant="secondary" className="gap-1">
-                <MessageSquare className="h-3 w-3" />
-                {toHebrewNumber(totalAnswers)}
-              </Badge>
-            </div>
-            <Badge variant="outline" className="font-bold">
-              פרק {toHebrewNumber(pasuk.perek)} פסוק {toHebrewNumber(pasuk.pasuk_num)}
-            </Badge>
-          </div>
-        </CardHeader>
-      </Card>
-    );
-  }
+  // Don't show if no questions
+  if (totalQuestions === 0) return null;
 
   // Full mode or verses-questions mode
   return (
@@ -310,54 +207,56 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
           width: "100%",
           overflowX: "hidden",
         }}
+        onClick={() => {
+          if (displayMode === "minimized" && !expandedInMinimizedMode && !forceMinimized) {
+            setExpandedInMinimizedMode(true);
+          }
+        }}
       >
-        {/* במצב scroll, אל תציג את הפסוק שוב - הוא כבר מוצג בכרטיס הראשי */}
-        {displayMode !== "scroll" && (
-          <CardHeader 
-            className="bg-gradient-to-l from-secondary/30 to-card relative group"
-            style={{ padding: displayStyles.isMobile ? "0.75rem" : undefined }}
+        <CardHeader 
+          className="bg-gradient-to-l from-secondary/30 to-card relative group"
+          style={{ padding: displayStyles.isMobile ? "0.75rem" : undefined }}
+        >
+          <div className="absolute top-2 left-2 z-10 flex gap-1">
+            <AddContentButton 
+              type="title"
+              onClick={openAddTitle}
+            />
+            <MinimizeButton
+              variant="individual"
+              isMinimized={effectiveMinimized}
+              onClick={() => setIsMinimized(!isMinimized)}
+            />
+          </div>
+          <div 
+            className={`flex items-start gap-2 ${displayStyles.isMobile ? 'flex-col' : 'justify-between gap-4'}`}
+            style={{ textAlign: displayStyles.textAlign }}
           >
-            <div className="absolute top-2 left-2 z-10 flex gap-1">
-              <AddContentButton 
-                type="title"
-                onClick={openAddTitle}
-              />
-              <MinimizeButton
-                variant="individual"
-                isMinimized={effectiveMinimized}
-                onClick={() => setIsMinimized(!isMinimized)}
-              />
-            </div>
-            <div 
-              className={`flex items-start gap-2 ${displayStyles.isMobile ? 'flex-col' : 'justify-between gap-4'}`}
-              style={{ textAlign: displayStyles.textAlign }}
-            >
-              <div className="flex-1 w-full min-w-0 overflow-hidden">
-                <div className={`flex items-center gap-2 mb-2 ${displayStyles.isMobile ? "flex-wrap" : "justify-between"}`}>
-                  {!hideHeaderActions && (
-                    <>
-                      <div className="flex gap-1 flex-wrap">
-                        <NotesDialog pasukId={pasukId} pasukText={formattedPasukText} />
-                        <Button
-                          variant="ghost"
-                          size={displayStyles.isMobile ? "icon" : "sm"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`, '_blank');
-                          }}
-                          className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
-                          title="פרשנים נוספים מספריא (נפתח בטאב חדש)"
-                        >
-                          <BookOpen className="h-4 w-4" />
-                          {(displayMode as string) === "scroll" && !displayStyles.isMobile && <span>פרשנים נוספים</span>}
-                        </Button>
-                      </div>
-                      <Badge variant="outline" className={`font-bold flex-shrink-0 ${displayStyles.isMobile ? "text-xs" : ""}`}>
-                        פרק {toHebrewNumber(pasuk.perek)} פסוק {toHebrewNumber(pasuk.pasuk_num)}
-                      </Badge>
-                    </>
-                  )}
-                </div>
+            <div className="flex-1 w-full min-w-0 overflow-hidden">
+              <div className={`flex items-center gap-2 mb-2 ${displayStyles.isMobile ? "flex-wrap" : "justify-between"}`}>
+                {!hideHeaderActions && (
+                  <>
+                    <div className="flex gap-1 flex-wrap">
+                      <NotesDialog pasukId={pasukId} pasukText={formattedPasukText} />
+                      <Button
+                        variant="ghost"
+                        size={displayStyles.isMobile ? "icon" : "sm"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`, '_blank');
+                        }}
+                        className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
+                        title="פרשנים נוספים מספריא (נפתח בטאב חדש)"
+                      >
+                        <BookOpen className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Badge variant="outline" className={`font-bold flex-shrink-0 ${displayStyles.isMobile ? "text-xs" : ""}`}>
+                      פרק {toHebrewNumber(pasuk.perek)} פסוק {toHebrewNumber(pasuk.pasuk_num)}
+                    </Badge>
+                  </>
+                )}
+              </div>
                 <div className="w-full overflow-hidden" style={{ maxWidth: "100%" }}>
                   <PasukLineActions 
                     text={formattedPasukText}
@@ -391,12 +290,11 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                   {toHebrewNumber(totalAnswers)}
                 </Badge>
               </div>
-            </div>
-          </CardHeader>
-        )}
+          </div>
+        </CardHeader>
 
         <CardContent 
-          className={displayMode === "scroll" ? "pt-2" : "pt-4"} 
+          className="pt-4" 
           style={{
             display: "flex",
             flexDirection: "column",
@@ -406,25 +304,6 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
             overflowX: "hidden",
           }}
         >
-        {/* במצב scroll, הוסף כפתורי פעולה בחלק העליון */}
-        {displayMode === "scroll" && (
-          <div className="flex gap-1 flex-wrap pb-2 border-b">
-            <NotesDialog pasukId={pasukId} pasukText={formattedPasukText} />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`, '_blank');
-              }}
-              className="gap-2 h-8"
-              title="פרשנים נוספים מספריא (נפתח בטאב חדש)"
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>פרשנים נוספים</span>
-            </Button>
-          </div>
-        )}
         {!effectiveMinimized && mergedContent.map((contentItem) => {
           const hasQuestions = contentItem.questions.length > 0;
           const isUserTitle = contentItem.title && typeof contentItem.id === 'number';

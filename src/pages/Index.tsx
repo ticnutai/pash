@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, BookText } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
 import { MobileTypographySheet } from "@/components/MobileTypographySheet";
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { SeferSelector } from "@/components/SeferSelector";
@@ -29,10 +29,8 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
-const ScrollPasukView = lazy(() => import("@/components/ScrollPasukView").then(m => ({ default: m.ScrollPasukView })));
 const CompactPasukView = lazy(() => import("@/components/CompactPasukView").then(m => ({ default: m.CompactPasukView })));
 const PaginatedPasukList = lazy(() => import("@/components/PaginatedPasukList").then(m => ({ default: m.PaginatedPasukList })));
-const ContinuousTextView = lazy(() => import("@/components/ContinuousTextView").then(m => ({ default: m.ContinuousTextView })));
 const LuxuryTextView = lazy(() => import("@/components/LuxuryTextView").then(m => ({ default: m.LuxuryTextView })));
 
 // Navigation components (loaded after initial render)
@@ -63,7 +61,6 @@ const Index = () => {
   const [currentPasukIndex, setCurrentPasukIndex] = useState(0);
   const [singlePasukMode, setSinglePasukMode] = useState(false);
   const [globalMinimize, setGlobalMinimize] = useState(false);
-  const [shmotMode, setShmotMode] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const weeklyParshaLoadedRef = useRef(false);
   
@@ -355,35 +352,29 @@ const Index = () => {
 
     // Don't filter by specific pasuk in these cases:
     // 1. When in single pasuk mode (allows navigation between pesukim)
-    // 2. When in scroll mode (we want to show multiple pesukim starting from selected)
-    if (selectedPasuk !== null && !singlePasukMode && displayMode !== "scroll") {
+    // 2. When in compact mode (we want to show multiple pesukim starting from selected)
+    if (selectedPasuk !== null && !singlePasukMode && displayMode !== "compact") {
       pesukim = pesukim.filter(p => p.pasuk_num === selectedPasuk);
     }
 
     return pesukim;
   }, [flattenedPesukim, selectedParsha, selectedPerek, selectedPasuk, singlePasukMode, displayMode]);
 
-const displayedPesukim = useMemo(() => {
+  const displayedPesukim = useMemo(() => {
     if (singlePasukMode && filteredPesukim.length > 0) {
       return [filteredPesukim[currentPasukIndex]];
     }
     
-    // In compact mode, limit to pasukCount
+    // In compact mode, show up to pasukCount starting from selectedPasuk (if any)
     if (displayMode === "compact") {
-      return filteredPesukim.slice(0, displaySettings?.pasukCount || 20);
-    }
-    
-    // In scroll mode, show selected pasuk + 9 after it (10 total)
-    if (displayMode === "scroll" && selectedPasuk !== null) {
-      const startIndex = filteredPesukim.findIndex(p => p.pasuk_num === selectedPasuk);
-      if (startIndex >= 0) {
-        return filteredPesukim.slice(startIndex, startIndex + 10);
+      const count = displaySettings?.pasukCount || 20;
+      if (selectedPasuk !== null) {
+        const startIndex = filteredPesukim.findIndex(p => p.pasuk_num === selectedPasuk);
+        if (startIndex >= 0) {
+          return filteredPesukim.slice(startIndex, startIndex + count);
+        }
       }
-    }
-    
-    // In scroll mode without specific pasuk, show all
-    if (displayMode === "scroll") {
-      return filteredPesukim;
+      return filteredPesukim.slice(0, count);
     }
     
     // Default: show all
@@ -439,7 +430,7 @@ const displayedPesukim = useMemo(() => {
       setSelectedPerek(selectedPasukData.perek);
     }
     
-    if (displayMode === "scroll" || displayMode === "compact") {
+    if (displayMode === "compact") {
       setSelectedPasuk(p);
       setSinglePasukMode(false);
     } else {
@@ -534,17 +525,6 @@ const displayedPesukim = useMemo(() => {
         <div className="hidden md:flex justify-start items-center gap-2">
           <MobileTypographySheet />
           <ViewModeToggle seferId={selectedSefer} />
-          {displayMode === "verses-only" && filteredPesukim.length > 0 && (
-            <Button
-              variant={shmotMode ? "default" : "outline"}
-              size="sm"
-              className="gap-2"
-              onClick={() => setShmotMode(!shmotMode)}
-            >
-              <BookText className="h-4 w-4" />
-              שמו״ת
-            </Button>
-          )}
           {filteredPesukim.length > 0 && (
             <MinimizeButton
               variant="global"
@@ -582,7 +562,7 @@ const displayedPesukim = useMemo(() => {
                   {/* Mobile layout: single clean row with pasuk nav and parsha name */}
                   <div className="flex md:hidden items-center justify-between gap-2 w-full">
                     {/* Pasuk navigation - right side, takes remaining space */}
-                    {parshaAllPesukim.length > 0 && (displayMode === "scroll" || displayMode === "compact") && (
+                      {parshaAllPesukim.length > 0 && displayMode === "compact" && (
                       <div className="flex-1 min-w-0">
                         <PasukSimpleNavigator
                           pesukim={parshaAllPesukim}
@@ -625,7 +605,7 @@ const displayedPesukim = useMemo(() => {
                   {/* Desktop layout: original 3-part bar */}
                   <div className="hidden md:flex items-center justify-between gap-2 w-full">
                     {/* Pasuk navigation - right side */}
-                    {parshaAllPesukim.length > 0 && (displayMode === "scroll" || displayMode === "compact") && (
+                      {parshaAllPesukim.length > 0 && displayMode === "compact" && (
                       <PasukSimpleNavigator
                         pesukim={parshaAllPesukim}
                         currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
@@ -692,17 +672,6 @@ const displayedPesukim = useMemo(() => {
                 <div className="flex items-center gap-2 flex-nowrap">
                   <MobileTypographySheet />
                   <ViewModeToggle seferId={selectedSefer} />
-                  {displayMode === "verses-only" && filteredPesukim.length > 0 && (
-                    <Button
-                      variant={shmotMode ? "default" : "outline"}
-                      size="sm"
-                      className="gap-1 flex-shrink-0"
-                      onClick={() => setShmotMode(!shmotMode)}
-                    >
-                      <BookText className="h-4 w-4" />
-                      שמו״ת
-                    </Button>
-                  )}
                 </div>
               )}
               
@@ -730,12 +699,8 @@ const displayedPesukim = useMemo(() => {
                   >
                     {displayMode === "luxury" ? (
                       <LuxuryTextView pesukim={displayedPesukim} />
-                    ) : displayMode === "verses-only" && shmotMode ? (
-                      <ContinuousTextView pesukim={displayedPesukim} />
                     ) : displayMode === "compact" ? (
                       <CompactPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
-                    ) : displayMode === "scroll" ? (
-                      <ScrollPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
                     ) : (
                       <PaginatedPasukList pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
                     )}

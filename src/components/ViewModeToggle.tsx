@@ -17,18 +17,15 @@ interface ViewModeToggleProps {
   seferId: number;
 }
 
-export const ViewModeToggle = ({ seferId }: ViewModeToggleProps) => {
+export const ViewModeToggle = ({ seferId: _seferId }: ViewModeToggleProps) => {
   const { displaySettings, updateDisplaySettings } = useDisplayMode();
   const safeSettings = displaySettings || { mode: 'full' as const, pasukCount: 20 };
   const [customCount, setCustomCount] = useState((safeSettings.pasukCount || 20).toString());
 
   const modes: { value: DisplayMode; label: string; icon: React.ReactNode }[] = [
     { value: "full", label: "הצג הכל", icon: <Eye className="h-4 w-4 ml-2" /> },
-    { value: "scroll", label: "תצוגת חומש", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "compact", label: "תצוגה רצופה", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "luxury", label: "תצוגה מפוארת", icon: <Layers className="h-4 w-4 ml-2" /> },
-    { value: "verses-only", label: "פסוקים בלבד", icon: <Layers className="h-4 w-4 ml-2" /> },
-    { value: "verses-questions", label: "פסוקים ושאלות", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "minimized", label: "מזער הכל", icon: <EyeOff className="h-4 w-4 ml-2" /> },
   ];
 
