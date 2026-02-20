@@ -541,10 +541,10 @@ const Index = () => {
               setSidePanelMode("user");
               setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
             }}
-            className={sidePanelOpen && sidePanelMode === "user" ? "bg-primary text-primary-foreground" : ""}
+            className={sidePanelOpen && sidePanelMode === "user" ? "bg-[#C5A55A]/15 border-[#C5A55A] text-[#C5A55A] ring-1 ring-[#C5A55A]/30" : ""}
             title="התוכן שלי"
           >
-            <User className="h-4 w-4" />
+            <User className={`h-4 w-4 ${sidePanelOpen && sidePanelMode === "user" ? "text-[#C5A55A]" : ""}`} />
           </Button>
           {displayMode === "chumash" && (
             <Button
@@ -554,10 +554,10 @@ const Index = () => {
                 setSidePanelMode("pasuk");
                 setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "pasuk");
               }}
-              className={sidePanelOpen && sidePanelMode === "pasuk" ? "bg-primary text-primary-foreground" : ""}
+              className={sidePanelOpen && sidePanelMode === "pasuk" ? "bg-[#C5A55A]/15 border-[#C5A55A] text-[#C5A55A] ring-1 ring-[#C5A55A]/30" : ""}
               title="פירושים"
             >
-              <BookOpen className="h-4 w-4" />
+              <BookOpen className={`h-4 w-4 ${sidePanelOpen && sidePanelMode === "pasuk" ? "text-[#C5A55A]" : ""}`} />
             </Button>
           )}
           {filteredPesukim.length > 0 && (
@@ -723,7 +723,7 @@ const Index = () => {
                     setSidePanelMode("user");
                     setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
                   }}
-                  className={sidePanelOpen && sidePanelMode === "user" ? "bg-primary text-primary-foreground flex-shrink-0" : "flex-shrink-0"}
+                  className={sidePanelOpen && sidePanelMode === "user" ? "bg-[#C5A55A]/15 border-[#C5A55A] text-[#C5A55A] ring-1 ring-[#C5A55A]/30 flex-shrink-0" : "flex-shrink-0"}
                   title="התוכן שלי"
                 >
                   <User className="h-4 w-4" />

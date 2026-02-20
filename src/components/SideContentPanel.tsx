@@ -97,33 +97,36 @@ export const SideContentPanel = ({
     <>
       {/* Mobile backdrop overlay */}
       <div 
-        className="fixed inset-0 bg-black/30 z-30 md:hidden animate-fade-in"
+        className="fixed inset-0 bg-black/40 z-30 md:hidden animate-fade-in"
         onClick={onClose}
       />
-      <div className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] bg-background border-r border-border shadow-lg z-40 animate-fade-in flex flex-col">
+      <div 
+        dir="rtl"
+        className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] bg-background border-2 border-[#C5A55A]/60 rounded-l-xl shadow-2xl z-40 animate-fade-in flex flex-col overflow-hidden"
+      >
       {/* Header with mode toggle */}
-      <div className="flex items-center justify-between p-3 border-b bg-muted/30">
-        <div className="flex gap-1">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#C5A55A]/30 bg-gradient-to-l from-amber-50/40 to-transparent dark:from-amber-900/10">
+        <div className="flex gap-2">
           <Button
-            variant={mode === "pasuk" ? "default" : "ghost"}
+            variant={mode === "pasuk" ? "default" : "outline"}
             size="sm"
             onClick={() => onModeChange("pasuk")}
-            className="gap-1.5"
+            className={cn("gap-2 font-semibold", mode === "pasuk" ? "shadow-md" : "border-[#C5A55A]/40 hover:bg-amber-50/50 dark:hover:bg-amber-900/20")}
           >
-            <BookOpen className="h-4 w-4" />
+            <BookOpen className={cn("h-4 w-4", mode === "pasuk" ? "text-white" : "text-[#C5A55A]")} />
             פירושים
           </Button>
           <Button
-            variant={mode === "user" ? "default" : "ghost"}
+            variant={mode === "user" ? "default" : "outline"}
             size="sm"
             onClick={() => onModeChange("user")}
-            className="gap-1.5"
+            className={cn("gap-2 font-semibold", mode === "user" ? "shadow-md" : "border-[#C5A55A]/40 hover:bg-amber-50/50 dark:hover:bg-amber-900/20")}
           >
-            <User className="h-4 w-4" />
+            <User className={cn("h-4 w-4", mode === "user" ? "text-white" : "text-[#C5A55A]")} />
             שלי ({totalUserItems})
           </Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
+        <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full">
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -167,11 +170,13 @@ const PasukContentView = ({
 }) => {
   if (!pasuk) {
     return (
-      <div className="flex-1 flex items-center justify-center p-6 text-center">
-        <div className="text-muted-foreground">
-          <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="text-lg font-medium">בחר פסוק</p>
-          <p className="text-sm mt-2">לחץ על פסוק בטקסט כדי לראות את הפירושים והשאלות</p>
+      <div className="flex-1 flex items-center justify-center p-8 text-center" dir="rtl">
+        <div className="text-muted-foreground space-y-3">
+          <div className="mx-auto w-16 h-16 rounded-full bg-[#C5A55A]/10 flex items-center justify-center">
+            <BookOpen className="h-8 w-8 text-[#C5A55A]/60" />
+          </div>
+          <p className="text-lg font-semibold">בחר פסוק</p>
+          <p className="text-sm leading-relaxed">לחץ על פסוק בטקסט כדי לראות<br/>את הפירושים והשאלות</p>
         </div>
       </div>
     );
@@ -179,13 +184,13 @@ const PasukContentView = ({
 
   return (
     <ScrollArea className="flex-1">
-      <div className="p-4">
+      <div className="p-5" dir="rtl">
         {/* Selected pasuk header */}
-        <div className="mb-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <div className="text-sm text-muted-foreground mb-1">
+        <div className="mb-5 p-4 bg-gradient-to-l from-primary/8 to-primary/3 rounded-xl border border-[#C5A55A]/30 shadow-sm">
+          <div className="text-sm text-muted-foreground mb-2 font-medium">
             {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
           </div>
-          <div className="text-lg font-['Frank_Ruhl_Libre'] leading-relaxed" dir="rtl">
+          <div className="text-lg font-['Frank_Ruhl_Libre'] leading-relaxed">
             {pasuk.text}
           </div>
         </div>
@@ -198,8 +203,8 @@ const PasukContentView = ({
             forceMinimized={false}
           />
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>אין תוכן לפסוק זה</p>
+          <div className="text-center py-10 text-muted-foreground">
+            <p className="text-sm">אין תוכן לפסוק זה</p>
           </div>
         )}
       </div>
@@ -243,47 +248,51 @@ const UserContentView = ({
 }: UserContentViewProps) => {
   if (!user) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <User className="h-12 w-12 mb-4 text-muted-foreground/50" />
-        <p className="text-muted-foreground mb-4">יש להתחבר כדי לצפות בתוכן שלך</p>
-        <Button onClick={() => navigate("/auth")}>התחברות</Button>
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center" dir="rtl">
+        <div className="w-16 h-16 rounded-full bg-[#C5A55A]/10 flex items-center justify-center mb-5">
+          <User className="h-8 w-8 text-[#C5A55A]/60" />
+        </div>
+        <p className="text-muted-foreground mb-5 text-sm leading-relaxed">יש להתחבר כדי לצפות בתוכן שלך</p>
+        <Button onClick={() => navigate("/auth")} className="shadow-md">התחברות</Button>
       </div>
     );
   }
 
   return (
     <ScrollArea className="flex-1">
-      <div className="p-3 space-y-3">
+      <div className="p-4 space-y-4" dir="rtl">
         {/* Bookmarks Section */}
         <Collapsible open={expandedSections.bookmarks} onOpenChange={() => toggleSection('bookmarks')}>
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border-[#C5A55A]/20 shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between p-3 h-auto">
-                <div className="flex items-center gap-2">
-                  <BookmarkIcon className="h-4 w-4 text-primary" />
-                  <span className="font-medium">סימניות</span>
-                  <span className="text-xs text-muted-foreground">({bookmarks.length})</span>
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <BookmarkIcon className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="font-semibold text-sm">סימניות</span>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">({bookmarks.length})</span>
                 </div>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", expandedSections.bookmarks && "rotate-180")} />
+                <ChevronDown className={cn("h-4 w-4 transition-transform text-muted-foreground", expandedSections.bookmarks && "rotate-180")} />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="px-3 pb-3 space-y-2 max-h-48 overflow-y-auto">
+              <div className="px-4 pb-4 space-y-2.5 max-h-52 overflow-y-auto">
                 {bookmarks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-2">אין סימניות</p>
+                  <p className="text-sm text-muted-foreground text-center py-3">אין סימניות</p>
                 ) : (
                   bookmarks.map((bookmark) => (
-                    <div key={bookmark.id} className="flex items-start gap-2 p-2 rounded-md bg-muted/50 text-sm group">
+                    <div key={bookmark.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group hover:bg-muted/70 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">{formatPasukLocation(bookmark.pasukId)}</p>
-                        <p className="truncate" dir="rtl">{bookmark.pasukText?.slice(0, 50)}...</p>
+                        <p className="text-xs text-muted-foreground mb-1">{formatPasukLocation(bookmark.pasukId)}</p>
+                        <p className="truncate text-foreground">{bookmark.pasukText?.slice(0, 50)}...</p>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigateToPasuk(bookmark.pasukId)}>
-                          <ExternalLink className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigateToPasuk(bookmark.pasukId)}>
+                          <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeBookmark(bookmark.id)}>
-                          <Trash2 className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-destructive hover:bg-destructive/10" onClick={() => removeBookmark(bookmark.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -296,34 +305,36 @@ const UserContentView = ({
 
         {/* Notes Section */}
         <Collapsible open={expandedSections.notes} onOpenChange={() => toggleSection('notes')}>
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border-[#C5A55A]/20 shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between p-3 h-auto">
-                <div className="flex items-center gap-2">
-                  <StickyNote className="h-4 w-4 text-yellow-500" />
-                  <span className="font-medium">הערות</span>
-                  <span className="text-xs text-muted-foreground">({notes.length})</span>
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                    <StickyNote className="h-4 w-4 text-yellow-500" />
+                  </div>
+                  <span className="font-semibold text-sm">הערות</span>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">({notes.length})</span>
                 </div>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", expandedSections.notes && "rotate-180")} />
+                <ChevronDown className={cn("h-4 w-4 transition-transform text-muted-foreground", expandedSections.notes && "rotate-180")} />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="px-3 pb-3 space-y-2 max-h-48 overflow-y-auto">
+              <div className="px-4 pb-4 space-y-2.5 max-h-52 overflow-y-auto">
                 {notes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-2">אין הערות</p>
+                  <p className="text-sm text-muted-foreground text-center py-3">אין הערות</p>
                 ) : (
                   notes.map((note) => (
-                    <div key={note.id} className="flex items-start gap-2 p-2 rounded-md bg-muted/50 text-sm group">
+                    <div key={note.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group hover:bg-muted/70 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">{formatPasukLocation(note.pasukId)}</p>
-                        <p className="truncate" dir="rtl">{note.content}</p>
+                        <p className="text-xs text-muted-foreground mb-1">{formatPasukLocation(note.pasukId)}</p>
+                        <p className="truncate text-foreground">{note.content}</p>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigateToPasuk(note.pasukId)}>
-                          <ExternalLink className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigateToPasuk(note.pasukId)}>
+                          <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteNote(note.id)}>
-                          <Trash2 className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-destructive hover:bg-destructive/10" onClick={() => deleteNote(note.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -336,34 +347,36 @@ const UserContentView = ({
 
         {/* Questions Section */}
         <Collapsible open={expandedSections.questions} onOpenChange={() => toggleSection('questions')}>
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border-[#C5A55A]/20 shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between p-3 h-auto">
-                <div className="flex items-center gap-2">
-                  <HelpCircle className="h-4 w-4 text-blue-500" />
-                  <span className="font-medium">שאלות</span>
-                  <span className="text-xs text-muted-foreground">({questions.length})</span>
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <HelpCircle className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <span className="font-semibold text-sm">שאלות</span>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">({questions.length})</span>
                 </div>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", expandedSections.questions && "rotate-180")} />
+                <ChevronDown className={cn("h-4 w-4 transition-transform text-muted-foreground", expandedSections.questions && "rotate-180")} />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="px-3 pb-3 space-y-2 max-h-48 overflow-y-auto">
+              <div className="px-4 pb-4 space-y-2.5 max-h-52 overflow-y-auto">
                 {questions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-2">אין שאלות</p>
+                  <p className="text-sm text-muted-foreground text-center py-3">אין שאלות</p>
                 ) : (
                   questions.map((question) => (
-                    <div key={question.id} className="flex items-start gap-2 p-2 rounded-md bg-muted/50 text-sm group">
+                    <div key={question.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group hover:bg-muted/70 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">{formatPasukLocation(question.pasukId)}</p>
-                        <p className="truncate" dir="rtl">{question.question}</p>
+                        <p className="text-xs text-muted-foreground mb-1">{formatPasukLocation(question.pasukId)}</p>
+                        <p className="truncate text-foreground">{question.question}</p>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigateToPasuk(question.pasukId)}>
-                          <ExternalLink className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigateToPasuk(question.pasukId)}>
+                          <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteQuestion(question.id)}>
-                          <Trash2 className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-destructive hover:bg-destructive/10" onClick={() => deleteQuestion(question.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -376,34 +389,36 @@ const UserContentView = ({
 
         {/* Highlights Section */}
         <Collapsible open={expandedSections.highlights} onOpenChange={() => toggleSection('highlights')}>
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border-[#C5A55A]/20 shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between p-3 h-auto">
-                <div className="flex items-center gap-2">
-                  <Highlighter className="h-4 w-4 text-orange-500" />
-                  <span className="font-medium">הדגשות</span>
-                  <span className="text-xs text-muted-foreground">({highlights.length})</span>
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                    <Highlighter className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <span className="font-semibold text-sm">הדגשות</span>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">({highlights.length})</span>
                 </div>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", expandedSections.highlights && "rotate-180")} />
+                <ChevronDown className={cn("h-4 w-4 transition-transform text-muted-foreground", expandedSections.highlights && "rotate-180")} />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="px-3 pb-3 space-y-2 max-h-48 overflow-y-auto">
+              <div className="px-4 pb-4 space-y-2.5 max-h-52 overflow-y-auto">
                 {highlights.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-2">אין הדגשות</p>
+                  <p className="text-sm text-muted-foreground text-center py-3">אין הדגשות</p>
                 ) : (
                   highlights.map((highlight) => (
-                    <div key={highlight.id} className="flex items-start gap-2 p-2 rounded-md bg-muted/50 text-sm group">
+                    <div key={highlight.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group hover:bg-muted/70 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">{formatPasukLocation(highlight.pasukId)}</p>
-                        <p className={cn("truncate rounded px-1", highlight.color)} dir="rtl">{highlight.text}</p>
+                        <p className="text-xs text-muted-foreground mb-1">{formatPasukLocation(highlight.pasukId)}</p>
+                        <p className={cn("truncate rounded-md px-1.5 py-0.5", highlight.color)}>{highlight.text}</p>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigateToPasuk(highlight.pasukId)}>
-                          <ExternalLink className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigateToPasuk(highlight.pasukId)}>
+                          <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeHighlight(highlight.id)}>
-                          <Trash2 className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-destructive hover:bg-destructive/10" onClick={() => removeHighlight(highlight.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
