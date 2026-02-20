@@ -95,10 +95,10 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
               />
             </div>
 
-            {/* Continuous flowing text with golden verse numbers */}
-            <p style={{ textAlignLast: "right" }}>
-              {group.pesukim.map((pasuk, i) => (
-                <span key={pasuk.id}>
+            {/* Each verse on its own line, no empty lines between */}
+            <div style={{ textAlign: "right" }}>
+              {group.pesukim.map((pasuk) => (
+                <p key={pasuk.id} style={{ margin: 0 }}>
                   <span
                     className="select-none"
                     style={{
@@ -106,7 +106,6 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
                       fontWeight: 700,
                       fontSize: `${effectiveSize * 0.85}px`,
                       fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                      marginInlineStart: i === 0 ? "0" : "0.3em",
                       marginInlineEnd: "0.2em",
                       textShadow: "0 1px 2px rgba(200, 160, 77, 0.15)",
                     }}
@@ -114,10 +113,9 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
                     {toHebrewNumber(pasuk.pasuk_num)}'
                   </span>
                   {formatTorahText(pasuk.text)}
-                  {i < group.pesukim.length - 1 ? " " : ""}
-                </span>
+                </p>
               ))}
-            </p>
+            </div>
           </div>
         ))}
       </div>

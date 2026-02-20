@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -66,38 +66,92 @@ export const SeferSelector = ({
     setLevel("sefer");
   }, [onPasukSelect]);
 
-  const handleBack = useCallback(() => {
-    if (level === "pasuk") {
-      setLevel("perek");
-      onPasukSelect(null);
-    } else if (level === "perek") {
-      setLevel("parsha");
-      onPerekSelect(null);
-    } else if (level === "parsha") {
+  // Build breadcrumb data
+  const selectedSeferName = SEFARIM.find((s) => s.id === selectedSefer)?.name;
+  const selectedParshaName = sefer?.parshiot.find((p) => p.parsha_id === selectedParsha)?.parsha_name;
+  const selectedPerekLabel = selectedPerek ? toHebrewNumber(selectedPerek) : null;
+  const selectedPasukLabel = selectedPasuk ? toHebrewNumber(selectedPasuk) : null;
+
+  const handleBreadcrumbClick = useCallback((targetLevel: SelectionLevel) => {
+    if (targetLevel === "sefer") {
       setLevel("sefer");
       onParshaSelect(null);
       onPerekSelect(null);
       onPasukSelect(null);
+    } else if (targetLevel === "parsha") {
+      setLevel("parsha");
+      onPerekSelect(null);
+      onPasukSelect(null);
+    } else if (targetLevel === "perek") {
+      setLevel("perek");
+      onPasukSelect(null);
+    } else if (targetLevel === "pasuk") {
+      setLevel("pasuk");
     }
-  }, [level, onParshaSelect, onPerekSelect, onPasukSelect]);
-
-  const showBack = level !== "sefer";
+  }, [onParshaSelect, onPerekSelect, onPasukSelect]);
 
   return (
     <div className="space-y-3 sm:space-y-4 bg-card rounded-lg shadow-md p-3 sm:p-4">
       <div className="flex items-center justify-between gap-2 mb-2" dir="rtl">
-        <div className="flex items-center gap-3">
-          {showBack && (
-            <Button size="sm" onClick={handleBack} className="h-10 px-5 text-sm font-bold bg-accent text-accent-foreground hover:bg-accent/90 border-0">
-              חזרה
-            </Button>
+        <div className="flex items-center gap-2 flex-wrap text-sm sm:text-base font-bold min-w-0">
+          {/* Breadcrumb: חומש / שמות / יתרו / פרק כ"א / ד' */}
+          <button
+            onClick={() => handleBreadcrumbClick("sefer")}
+            className={cn(
+              "hover:text-primary transition-colors",
+              level === "sefer" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
+            )}
+          >
+            חומש
+          </button>
+          {selectedSeferName && (
+            <>
+              <span className="text-muted-foreground/50">/</span>
+              <button
+                onClick={() => handleBreadcrumbClick("parsha")}
+                className={cn(
+                  "hover:text-primary transition-colors",
+                  level === "parsha" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
+                )}
+              >
+                {selectedSeferName}
+              </button>
+            </>
           )}
-          <h2 className="font-bold text-base sm:text-lg">
-            {level === "sefer" && "בחר חומש"}
-            {level === "parsha" && "בחר פרשה"}
-            {level === "perek" && "בחר פרק"}
-            {level === "pasuk" && "בחר פסוק"}
-          </h2>
+          {selectedParshaName && (
+            <>
+              <span className="text-muted-foreground/50">/</span>
+              <button
+                onClick={() => handleBreadcrumbClick("perek")}
+                className={cn(
+                  "hover:text-primary transition-colors",
+                  level === "perek" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
+                )}
+              >
+                {selectedParshaName}
+              </button>
+            </>
+          )}
+          {selectedPerekLabel && (
+            <>
+              <span className="text-muted-foreground/50">/</span>
+              <button
+                onClick={() => handleBreadcrumbClick("pasuk")}
+                className={cn(
+                  "hover:text-primary transition-colors",
+                  level === "pasuk" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
+                )}
+              >
+                פרק {selectedPerekLabel}
+              </button>
+            </>
+          )}
+          {selectedPasukLabel && (
+            <>
+              <span className="text-muted-foreground/50">/</span>
+              <span className="text-primary">{selectedPasukLabel}</span>
+            </>
+          )}
         </div>
       </div>
 
