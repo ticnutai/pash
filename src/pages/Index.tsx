@@ -405,11 +405,14 @@ const Index = () => {
 
   const handleParshaSelect = useCallback((p: number | null) => {
     setSelectedParsha(p);
+    setSelectedPerek(null);
+    setSelectedPasuk(null);
     handleQuickSelectorChange();
   }, [handleQuickSelectorChange]);
 
   const handlePerekSelect = useCallback((p: number | null) => {
     setSelectedPerek(p);
+    setSelectedPasuk(null);
     handleQuickSelectorChange();
   }, [handleQuickSelectorChange]);
 

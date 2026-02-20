@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,31 @@ export const SeferSelector = ({
   onPasukSelect,
 }: SeferSelectorProps) => {
   const [level, setLevel] = useState<SelectionLevel>("sefer");
+  const hasMountedRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    if (selectedParsha === null) {
+      setLevel("parsha");
+      return;
+    }
+
+    if (selectedPerek === null) {
+      setLevel("perek");
+      return;
+    }
+
+    if (selectedPasuk === null) {
+      setLevel("pasuk");
+      return;
+    }
+
+    setLevel("sefer");
+  }, [selectedParsha, selectedPerek, selectedPasuk]);
 
   const handleSeferClick = useCallback((seferId: number) => {
     onSeferSelect(seferId);
