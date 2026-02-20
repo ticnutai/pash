@@ -410,15 +410,26 @@ const Index = () => {
       setSelectedPasuk(null);
       return;
     }
-    
-    // Find the selected pasuk to get its perek
-    const selectedPasukData = flattenedPesukim.find(pasuk => 
-      pasuk.pasuk_num === p && 
-      (selectedParsha === null || pasuk.parsha_id === selectedParsha)
+
+    // First, try to resolve the pasuk inside the currently selected perek
+    const selectedPasukInCurrentPerek = flattenedPesukim.find((pasuk) =>
+      pasuk.pasuk_num === p &&
+      (selectedParsha === null || pasuk.parsha_id === selectedParsha) &&
+      (selectedPerek === null || pasuk.perek === selectedPerek)
     );
-    
-    // Update perek if the pasuk is from a different perek
-    if (selectedPasukData && selectedPasukData.perek !== selectedPerek) {
+
+    // Fallback only when no perek is currently selected
+    const selectedPasukData = selectedPasukInCurrentPerek ?? (
+      selectedPerek === null
+        ? flattenedPesukim.find((pasuk) =>
+            pasuk.pasuk_num === p &&
+            (selectedParsha === null || pasuk.parsha_id === selectedParsha)
+          )
+        : undefined
+    );
+
+    // Only infer perek when perek wasn't chosen explicitly
+    if (selectedPerek === null && selectedPasukData) {
       setSelectedPerek(selectedPasukData.perek);
     }
     
@@ -426,8 +437,9 @@ const Index = () => {
       setSelectedPasuk(p);
       setSinglePasukMode(false);
     } else {
+      const effectivePerek = selectedPerek ?? selectedPasukData?.perek;
       const perekPesukim = flattenedPesukim.filter(pasuk => 
-        pasuk.perek === (selectedPasukData?.perek || selectedPerek) && 
+        pasuk.perek === effectivePerek && 
         (selectedParsha === null || pasuk.parsha_id === selectedParsha)
       );
       const index = perekPesukim.findIndex(pasuk => pasuk.pasuk_num === p);
