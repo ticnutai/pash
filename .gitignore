@@ -28,6 +28,7 @@ dist-ssr
 *.keystore
 signing.properties
 keystore.properties
+google-play-service-account.json
 torah-app-debug.apk
 torah-app-release.apk
 torah-app-release.aab
