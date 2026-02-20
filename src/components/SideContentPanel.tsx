@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Collapsible,
   CollapsibleContent,
@@ -34,6 +35,7 @@ import { Note, PersonalQuestion } from "@/contexts/NotesContext";
 import { Highlight } from "@/contexts/HighlightsContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { NavigateFunction } from "react-router-dom";
+import { useDevice } from "@/contexts/DeviceContext";
 
 type PanelMode = "user" | "pasuk";
 
@@ -56,6 +58,7 @@ export const SideContentPanel = ({
 }: SideContentPanelProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isMobile } = useDevice();
   const { bookmarks, removeBookmark } = useBookmarks();
   const { notes, questions, deleteNote, deleteQuestion } = useNotes();
   const { highlights, removeHighlight } = useHighlights();
@@ -89,73 +92,126 @@ export const SideContentPanel = ({
     return pasukId;
   };
 
-  if (!isOpen) return null;
-
   const totalUserItems = bookmarks.length + notes.length + questions.length + highlights.length;
 
-  return (
-    <>
-      {/* Mobile backdrop overlay */}
-      <div 
-        className="fixed inset-0 bg-black/40 z-30 md:hidden animate-fade-in"
-        onClick={onClose}
-      />
-      <div 
-        dir="rtl"
-        className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] bg-background border-2 border-[#C5A55A]/60 rounded-l-xl shadow-2xl z-40 animate-fade-in flex flex-col overflow-hidden"
-      >
-      {/* Header with mode toggle */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#C5A55A]/30 bg-gradient-to-l from-amber-50/40 to-transparent dark:from-amber-900/10">
-        <div className="flex gap-2">
+  const panelContent = (
+    <div className="flex flex-col h-full" dir="rtl">
+      {/* Header with mode toggle - only for desktop (mobile gets SheetHeader) */}
+      {!isMobile && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-accent/30 bg-gradient-to-l from-amber-50/40 to-transparent dark:from-amber-900/10 flex-shrink-0">
+          <div className="flex gap-2">
+            <Button
+              variant={mode === "pasuk" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onModeChange("pasuk")}
+              className={cn("gap-2 font-semibold", mode === "pasuk" ? "shadow-md" : "border-accent/40 hover:bg-amber-50/50 dark:hover:bg-amber-900/20")}
+            >
+              <BookOpen className={cn("h-4 w-4", mode === "pasuk" ? "text-white" : "text-accent")} />
+              פירושים
+            </Button>
+            <Button
+              variant={mode === "user" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onModeChange("user")}
+              className={cn("gap-2 font-semibold", mode === "user" ? "shadow-md" : "border-accent/40 hover:bg-amber-50/50 dark:hover:bg-amber-900/20")}
+            >
+              <User className={cn("h-4 w-4", mode === "user" ? "text-white" : "text-accent")} />
+              שלי ({totalUserItems})
+            </Button>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Mobile mode tabs inside sheet */}
+      {isMobile && (
+        <div className="flex gap-2 px-4 pt-2 pb-3 border-b border-accent/30 flex-shrink-0">
           <Button
             variant={mode === "pasuk" ? "default" : "outline"}
             size="sm"
             onClick={() => onModeChange("pasuk")}
-            className={cn("gap-2 font-semibold", mode === "pasuk" ? "shadow-md" : "border-[#C5A55A]/40 hover:bg-amber-50/50 dark:hover:bg-amber-900/20")}
+            className={cn("flex-1 gap-2 font-semibold", mode === "pasuk" ? "shadow-md" : "border-accent/40")}
           >
-            <BookOpen className={cn("h-4 w-4", mode === "pasuk" ? "text-white" : "text-[#C5A55A]")} />
+            <BookOpen className="h-4 w-4" />
             פירושים
           </Button>
           <Button
             variant={mode === "user" ? "default" : "outline"}
             size="sm"
             onClick={() => onModeChange("user")}
-            className={cn("gap-2 font-semibold", mode === "user" ? "shadow-md" : "border-[#C5A55A]/40 hover:bg-amber-50/50 dark:hover:bg-amber-900/20")}
+            className={cn("flex-1 gap-2 font-semibold", mode === "user" ? "shadow-md" : "border-accent/40")}
           >
-            <User className={cn("h-4 w-4", mode === "user" ? "text-white" : "text-[#C5A55A]")} />
+            <User className="h-4 w-4" />
             שלי ({totalUserItems})
           </Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full">
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+      )}
 
       {/* Content based on mode */}
-      {mode === "pasuk" ? (
-        <PasukContentView 
-          pasuk={selectedPasuk} 
-          seferId={seferId} 
-        />
-      ) : (
-        <UserContentView
-          user={user}
-          bookmarks={bookmarks}
-          notes={notes}
-          questions={questions}
-          highlights={highlights}
-          expandedSections={expandedSections}
-          toggleSection={toggleSection}
-          navigateToPasuk={navigateToPasuk}
-          formatPasukLocation={formatPasukLocation}
-          removeBookmark={removeBookmark}
-          deleteNote={deleteNote}
-          deleteQuestion={deleteQuestion}
-          removeHighlight={removeHighlight}
-          navigate={navigate}
-        />
-      )}
+      <div className="flex-1 overflow-hidden">
+        {mode === "pasuk" ? (
+          <PasukContentView pasuk={selectedPasuk} seferId={seferId} />
+        ) : (
+          <UserContentView
+            user={user}
+            bookmarks={bookmarks}
+            notes={notes}
+            questions={questions}
+            highlights={highlights}
+            expandedSections={expandedSections}
+            toggleSection={toggleSection}
+            navigateToPasuk={navigateToPasuk}
+            formatPasukLocation={formatPasukLocation}
+            removeBookmark={removeBookmark}
+            deleteNote={deleteNote}
+            deleteQuestion={deleteQuestion}
+            removeHighlight={removeHighlight}
+            navigate={navigate}
+          />
+        )}
+      </div>
     </div>
+  );
+
+  // Mobile: bottom sheet
+  if (isMobile) {
+    return (
+      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent
+          side="bottom"
+          dir="rtl"
+          className="h-[85vh] p-0 border-t-2 border-accent bg-card text-foreground rounded-t-2xl flex flex-col"
+        >
+          <SheetHeader className="px-4 pt-4 pb-0 flex-shrink-0">
+            <SheetTitle className="text-right text-foreground flex items-center justify-end gap-2">
+              <span>{mode === "pasuk" ? "פירושים" : "התוכן שלי"}</span>
+              {mode === "pasuk" ? <BookOpen className="h-5 w-5 text-accent" /> : <User className="h-5 w-5 text-accent" />}
+            </SheetTitle>
+          </SheetHeader>
+          {panelContent}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // Desktop: side panel
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/40 z-30 md:hidden animate-fade-in"
+        onClick={onClose}
+      />
+      <div 
+        dir="rtl"
+        className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] bg-card border-2 border-accent/60 rounded-l-xl shadow-2xl z-40 animate-fade-in flex flex-col overflow-hidden"
+      >
+        {panelContent}
+      </div>
     </>
   );
 };
@@ -170,10 +226,10 @@ const PasukContentView = ({
 }) => {
   if (!pasuk) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 text-center" dir="rtl">
+      <div className="flex-1 flex items-center justify-center p-8 text-center h-full" dir="rtl">
         <div className="text-muted-foreground space-y-3">
-          <div className="mx-auto w-16 h-16 rounded-full bg-[#C5A55A]/10 flex items-center justify-center">
-            <BookOpen className="h-8 w-8 text-[#C5A55A]/60" />
+          <div className="mx-auto w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
+            <BookOpen className="h-8 w-8 text-accent/60" />
           </div>
           <p className="text-lg font-semibold">בחר פסוק</p>
           <p className="text-sm leading-relaxed">לחץ על פסוק בטקסט כדי לראות<br/>את הפירושים והשאלות</p>
@@ -183,10 +239,10 @@ const PasukContentView = ({
   }
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="p-5" dir="rtl">
+    <ScrollArea className="h-full">
+      <div className="p-4 sm:p-5" dir="rtl">
         {/* Selected pasuk header */}
-        <div className="mb-5 p-4 bg-gradient-to-l from-primary/8 to-primary/3 rounded-xl border border-[#C5A55A]/30 shadow-sm">
+        <div className="mb-5 p-4 bg-gradient-to-l from-primary/8 to-primary/3 rounded-xl border border-accent/30 shadow-sm">
           <div className="text-sm text-muted-foreground mb-2 font-medium">
             {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
           </div>
@@ -248,9 +304,9 @@ const UserContentView = ({
 }: UserContentViewProps) => {
   if (!user) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center" dir="rtl">
-        <div className="w-16 h-16 rounded-full bg-[#C5A55A]/10 flex items-center justify-center mb-5">
-          <User className="h-8 w-8 text-[#C5A55A]/60" />
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-full" dir="rtl">
+        <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-5">
+          <User className="h-8 w-8 text-accent/60" />
         </div>
         <p className="text-muted-foreground mb-5 text-sm leading-relaxed">יש להתחבר כדי לצפות בתוכן שלך</p>
         <Button onClick={() => navigate("/auth")} className="shadow-md">התחברות</Button>
@@ -259,11 +315,11 @@ const UserContentView = ({
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className="h-full">
       <div className="p-4 space-y-4" dir="rtl">
         {/* Bookmarks Section */}
         <Collapsible open={expandedSections.bookmarks} onOpenChange={() => toggleSection('bookmarks')}>
-          <Card className="overflow-hidden border-[#C5A55A]/20 shadow-sm">
+          <Card className="overflow-hidden border-accent/20 shadow-sm">
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
                 <div className="flex items-center gap-3">
@@ -282,12 +338,12 @@ const UserContentView = ({
                   <p className="text-sm text-muted-foreground text-center py-3">אין סימניות</p>
                 ) : (
                   bookmarks.map((bookmark) => (
-                    <div key={bookmark.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group hover:bg-muted/70 transition-colors">
+                    <div key={bookmark.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground mb-1">{formatPasukLocation(bookmark.pasukId)}</p>
                         <p className="truncate text-foreground">{bookmark.pasukText?.slice(0, 50)}...</p>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigateToPasuk(bookmark.pasukId)}>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
@@ -305,7 +361,7 @@ const UserContentView = ({
 
         {/* Notes Section */}
         <Collapsible open={expandedSections.notes} onOpenChange={() => toggleSection('notes')}>
-          <Card className="overflow-hidden border-[#C5A55A]/20 shadow-sm">
+          <Card className="overflow-hidden border-accent/20 shadow-sm">
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
                 <div className="flex items-center gap-3">
@@ -324,12 +380,12 @@ const UserContentView = ({
                   <p className="text-sm text-muted-foreground text-center py-3">אין הערות</p>
                 ) : (
                   notes.map((note) => (
-                    <div key={note.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group hover:bg-muted/70 transition-colors">
+                    <div key={note.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground mb-1">{formatPasukLocation(note.pasukId)}</p>
                         <p className="truncate text-foreground">{note.content}</p>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigateToPasuk(note.pasukId)}>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
@@ -347,7 +403,7 @@ const UserContentView = ({
 
         {/* Questions Section */}
         <Collapsible open={expandedSections.questions} onOpenChange={() => toggleSection('questions')}>
-          <Card className="overflow-hidden border-[#C5A55A]/20 shadow-sm">
+          <Card className="overflow-hidden border-accent/20 shadow-sm">
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
                 <div className="flex items-center gap-3">
@@ -366,12 +422,12 @@ const UserContentView = ({
                   <p className="text-sm text-muted-foreground text-center py-3">אין שאלות</p>
                 ) : (
                   questions.map((question) => (
-                    <div key={question.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group hover:bg-muted/70 transition-colors">
+                    <div key={question.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground mb-1">{formatPasukLocation(question.pasukId)}</p>
                         <p className="truncate text-foreground">{question.question}</p>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigateToPasuk(question.pasukId)}>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
@@ -389,7 +445,7 @@ const UserContentView = ({
 
         {/* Highlights Section */}
         <Collapsible open={expandedSections.highlights} onOpenChange={() => toggleSection('highlights')}>
-          <Card className="overflow-hidden border-[#C5A55A]/20 shadow-sm">
+          <Card className="overflow-hidden border-accent/20 shadow-sm">
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
                 <div className="flex items-center gap-3">
@@ -408,19 +464,18 @@ const UserContentView = ({
                   <p className="text-sm text-muted-foreground text-center py-3">אין הדגשות</p>
                 ) : (
                   highlights.map((highlight) => (
-                    <div key={highlight.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group hover:bg-muted/70 transition-colors">
+                    <div key={highlight.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 text-sm group">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5"
+                        style={{ backgroundColor: highlight.color }}
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground mb-1">{formatPasukLocation(highlight.pasukId)}</p>
-                        <p className={cn("truncate rounded-md px-1.5 py-0.5", highlight.color)}>{highlight.text}</p>
+                        <p className="truncate text-foreground">{highlight.text}</p>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => navigateToPasuk(highlight.pasukId)}>
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-destructive hover:bg-destructive/10" onClick={() => removeHighlight(highlight.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-destructive hover:bg-destructive/10" onClick={() => removeHighlight(highlight.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   ))
                 )}
