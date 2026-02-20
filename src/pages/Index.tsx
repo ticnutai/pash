@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
 import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen } from "lucide-react";
-import { MobileTypographySheet } from "@/components/MobileTypographySheet";
+
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { SeferSelector } from "@/components/SeferSelector";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
@@ -529,11 +529,9 @@ const Index = () => {
           onPasukSelect={handlePasukSelect}
         />
 
-        {/* View Mode Toggle, Side Panel Buttons, and Global Minimize - Below Sefarim (Desktop only) */}
+        {/* Side Panel Buttons and Global Minimize - Desktop only */}
         <div className="hidden md:flex justify-start items-center gap-2">
-          <MobileTypographySheet />
           <ViewModeToggle seferId={selectedSefer} />
-          <TextDisplaySettings />
           <Button
             variant="outline"
             size="icon"
@@ -714,7 +712,7 @@ const Index = () => {
                     חומשים
                   </Button>
                 )}
-                <MobileTypographySheet />
+                <TextDisplaySettings />
                 <ViewModeToggle seferId={selectedSefer} />
                 <Button
                   variant="outline"
