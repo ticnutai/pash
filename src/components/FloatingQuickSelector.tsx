@@ -48,6 +48,11 @@ export const FloatingQuickSelector = ({
     return parsha?.perakim || [];
   }, [sefer, selectedParsha]);
 
+  const selectedParshaName = useMemo(() => {
+    if (!sefer || selectedParsha === null) return null;
+    return sefer.parshiot.find(p => p.parsha_id === selectedParsha)?.parsha_name ?? null;
+  }, [sefer, selectedParsha]);
+
   const pesukimWithContent = useMemo(() => {
     if (!sefer || selectedPerek === null) return new Set<number>();
     
@@ -68,6 +73,8 @@ export const FloatingQuickSelector = ({
 
   const handleParshaSelect = (parshaId: number) => {
     onParshaSelect(parshaId);
+    onPerekSelect(null);
+    onPasukSelect(null);
     setCurrentLevel("perek");
   };
 
@@ -162,6 +169,52 @@ export const FloatingQuickSelector = ({
               <Home className="h-4 w-4" />
             </Button>
           )}
+        </div>
+
+        {/* Tabs: Sefer / Parsha / Perek (only after selection) */}
+        <div className="px-3 py-2 border-b bg-card" dir="rtl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReset}
+              className={cn("h-9 px-4 font-bold", selectedButtonClass)}
+              title="איפוס בחירה"
+            >
+              {sefer.sefer_name}
+            </Button>
+
+            {selectedParshaName && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onPerekSelect(null);
+                  onPasukSelect(null);
+                  setCurrentLevel("perek");
+                }}
+                className={cn("h-9 px-4 font-bold", selectedButtonClass)}
+                title="בחירת פרק"
+              >
+                {selectedParshaName}
+              </Button>
+            )}
+
+            {selectedPerek !== null && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onPasukSelect(null);
+                  setCurrentLevel("pasuk");
+                }}
+                className={cn("h-9 px-4 font-bold", selectedButtonClass)}
+                title="בחירת פסוק"
+              >
+                פרק {toHebrewNumber(selectedPerek)}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Content */}
