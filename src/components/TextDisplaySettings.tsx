@@ -44,7 +44,7 @@ export const TextDisplaySettings = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 text-white hover:text-white hover:bg-white/10"
+          className="h-9 w-9 text-foreground hover:text-foreground hover:bg-foreground/10"
           title="הגדרות תצוגת טקסט"
         >
           <Type className="h-4 w-4" />
