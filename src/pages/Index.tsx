@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen } from "lucide-react";
 import { MobileTypographySheet } from "@/components/MobileTypographySheet";
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { SeferSelector } from "@/components/SeferSelector";
@@ -526,10 +526,37 @@ const Index = () => {
           onPasukSelect={handlePasukSelect}
         />
 
-        {/* View Mode Toggle and Global Minimize - Below Sefarim (Desktop only) */}
+        {/* View Mode Toggle, Side Panel Buttons, and Global Minimize - Below Sefarim (Desktop only) */}
         <div className="hidden md:flex justify-start items-center gap-2">
           <MobileTypographySheet />
           <ViewModeToggle seferId={selectedSefer} />
+          <TextDisplaySettings />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              setSidePanelMode("user");
+              setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
+            }}
+            className={sidePanelOpen && sidePanelMode === "user" ? "bg-primary text-primary-foreground" : ""}
+            title="התוכן שלי"
+          >
+            <User className="h-4 w-4" />
+          </Button>
+          {displayMode === "chumash" && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setSidePanelMode("pasuk");
+                setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "pasuk");
+              }}
+              className={sidePanelOpen && sidePanelMode === "pasuk" ? "bg-primary text-primary-foreground" : ""}
+              title="פירושים"
+            >
+              <BookOpen className="h-4 w-4" />
+            </Button>
+          )}
           {filteredPesukim.length > 0 && (
             <MinimizeButton
               variant="global"
@@ -538,6 +565,18 @@ const Index = () => {
             />
           )}
         </div>
+
+        {/* Side Content Panel */}
+        <Suspense fallback={null}>
+          <SideContentPanel
+            isOpen={sidePanelOpen}
+            onClose={() => setSidePanelOpen(false)}
+            mode={sidePanelMode}
+            onModeChange={setSidePanelMode}
+            selectedPasuk={sidePanelPasuk}
+            seferId={selectedSefer}
+          />
+        </Suspense>
 
         {loading ? (
           <SeferSkeleton />
@@ -656,9 +695,43 @@ const Index = () => {
 
             {/* Mobile controls - ABOVE the grid */}
             {isMobile && (
-              <div className="flex items-center gap-2 flex-nowrap">
+              <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
+                {filteredPesukim.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedPasuk(null);
+                      setSelectedPerek(null);
+                      setSelectedParsha(null);
+                      setSinglePasukMode(false);
+                    }}
+                    className="gap-2 flex-shrink-0"
+                  >
+                    <Book className="h-4 w-4" />
+                    חומשים
+                  </Button>
+                )}
                 <MobileTypographySheet />
                 <ViewModeToggle seferId={selectedSefer} />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    setSidePanelMode("user");
+                    setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
+                  }}
+                  className={sidePanelOpen && sidePanelMode === "user" ? "bg-primary text-primary-foreground flex-shrink-0" : "flex-shrink-0"}
+                  title="התוכן שלי"
+                >
+                  <User className="h-4 w-4" />
+                </Button>
+                {filteredPesukim.length > 0 && (
+                  <MinimizeButton
+                    variant="global"
+                    isMinimized={globalMinimize}
+                    onClick={() => setGlobalMinimize(!globalMinimize)}
+                  />
+                )}
               </div>
             )}
 
@@ -737,18 +810,6 @@ const Index = () => {
           totalPesukimInPerek={totalPesukimInPerek}
           selectedPasuk={selectedPasuk}
           onPasukSelect={handlePasukSelect}
-        />
-      </Suspense>
-
-      {/* Side Content Panel (for Chumash view) */}
-      <Suspense fallback={null}>
-        <SideContentPanel
-          isOpen={sidePanelOpen}
-          onClose={() => setSidePanelOpen(false)}
-          mode={sidePanelMode}
-          onModeChange={setSidePanelMode}
-          selectedPasuk={sidePanelPasuk}
-          seferId={selectedSefer}
         />
       </Suspense>
     </div>

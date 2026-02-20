@@ -1,7 +1,7 @@
-import { useState, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote } from "lucide-react";
+import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus } from "lucide-react";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
 import { PasukDisplay } from "@/components/PasukDisplay";
@@ -9,6 +9,7 @@ import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { cn } from "@/lib/utils";
 import { useBookmarks } from "@/contexts/BookmarksContext";
+import { useDisplayMode } from "@/contexts/DisplayModeContext";
 import { Button } from "@/components/ui/button";
 import { NotesDialog } from "@/components/NotesDialog";
 import { ContentEditor } from "@/components/ContentEditor";
@@ -24,10 +25,37 @@ interface CompactPasukViewProps {
 export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
   const [expandedPasukId, setExpandedPasukId] = useState<number | null>(null);
   const [editorPasukId, setEditorPasukId] = useState<string | null>(null);
+  const [displayedCount, setDisplayedCount] = useState(10);
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
   const { isBookmarked, toggleBookmark } = useBookmarks();
+  const { displaySettings } = useDisplayMode();
   const navigate = useNavigate();
+
+  const firstNewPasukRef = useRef<HTMLDivElement>(null);
+  const prevDisplayedCountRef = useRef(displayedCount);
+
+  const displayedPesukim = useMemo(() => pesukim.slice(0, displayedCount), [pesukim, displayedCount]);
+  const hasMore = displayedCount < pesukim.length;
+  const loadMoreAmount = displaySettings.loadMoreCount || 10;
+
+  const loadMore = useCallback(() => {
+    setDisplayedCount(prev => Math.min(prev + loadMoreAmount, pesukim.length));
+  }, [loadMoreAmount, pesukim.length]);
+
+  // Auto-scroll to newly loaded pesukim
+  useEffect(() => {
+    if (displayedCount > prevDisplayedCountRef.current && firstNewPasukRef.current) {
+      setTimeout(() => {
+        firstNewPasukRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        });
+      }, 100);
+    }
+    prevDisplayedCountRef.current = displayedCount;
+  }, [displayedCount]);
 
   const togglePasuk = useCallback((pasukId: number) => {
     setExpandedPasukId(prev => prev === pasukId ? null : pasukId);
@@ -55,12 +83,14 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
       className="flex flex-col animate-fade-in"
       style={{ gap: displayStyles.gap }}
     >
-      {pesukim.map((pasuk) => {
+      {displayedPesukim.map((pasuk, index) => {
         const isExpanded = expandedPasukId === pasuk.id;
+        const isFirstNew = index === prevDisplayedCountRef.current;
         
         return (
           <Card 
-            key={pasuk.id} 
+            key={pasuk.id}
+            ref={isFirstNew ? firstNewPasukRef : null}
             className={cn(
               "overflow-hidden w-full transition-all duration-300 border-r-4 cursor-pointer",
               isExpanded ? "border-r-primary shadow-xl ring-2 ring-primary/50" : "border-r-accent shadow-sm hover:shadow-md"
@@ -216,10 +246,24 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
         </Card>
       )}
 
+      {hasMore && (
+        <div className="flex justify-center py-6 animate-fade-in">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={loadMore}
+            className="gap-2 hover:bg-accent/50 transition-all hover:scale-105"
+          >
+            <Plus className="h-5 w-5" />
+            <span className="font-medium">טען עוד {Math.min(loadMoreAmount, pesukim.length - displayedCount)} פסוקים ({pesukim.length - displayedCount} נותרו)</span>
+          </Button>
+        </div>
+      )}
+
       {editorPasukId && (
         <ContentEditor
           pasukId={editorPasukId}
-          pasukText={pesukim.find(p => `${seferId}-${p.perek}-${p.pasuk_num}` === editorPasukId)?.text || ""}
+          pasukText={displayedPesukim.find(p => `${seferId}-${p.perek}-${p.pasuk_num}` === editorPasukId)?.text || ""}
           open={!!editorPasukId}
           onOpenChange={(open) => !open && setEditorPasukId(null)}
         />

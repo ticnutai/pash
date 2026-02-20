@@ -8,6 +8,7 @@ export type DisplayMode = "full" | "compact" | "luxury" | "minimized" | "chumash
 export interface DisplaySettings {
   mode: DisplayMode;
   pasukCount: number;
+  loadMoreCount: number;
 }
 
 interface DisplayModeContextType {
@@ -19,6 +20,7 @@ interface DisplayModeContextType {
 const defaultSettings: DisplaySettings = {
   mode: "compact",
   pasukCount: 20,
+  loadMoreCount: 10,
 };
 
 const normalizeDisplayMode = (mode: unknown): DisplayMode => {
@@ -68,6 +70,7 @@ export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
   const safeDisplaySettings: DisplaySettings = useMemo(() => ({
     mode: normalizeDisplayMode(displaySettings?.mode),
     pasukCount: displaySettings?.pasukCount || defaultSettings.pasukCount,
+    loadMoreCount: displaySettings?.loadMoreCount || defaultSettings.loadMoreCount,
   }), [displaySettings]);
 
   const value = useMemo(() => ({ displaySettings: safeDisplaySettings, updateDisplaySettings, syncStatus: status }), [safeDisplaySettings, updateDisplaySettings, status]);
