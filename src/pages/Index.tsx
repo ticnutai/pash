@@ -84,7 +84,7 @@ const Index = () => {
     if (weeklyParsha) {
       setSelectedSefer(weeklyParsha.sefer);
       setSelectedParsha(weeklyParsha.parshaId);
-      setSelectedPerek(null); // Will be set by next effect
+      setSelectedPerek(null);
       setSelectedPasuk(null);
       setSinglePasukMode(false);
       weeklyParshaLoadedRef.current = true;
@@ -277,17 +277,6 @@ const Index = () => {
     return flat;
   }, [seferData]);
 
-  // Auto-select first perek when parsha is selected
-  useEffect(() => {
-    if (selectedParsha !== null && selectedPerek === null && flattenedPesukim.length > 0) {
-      const parshaPerakim = flattenedPesukim.filter(p => p.parsha_id === selectedParsha);
-      if (parshaPerakim.length > 0) {
-        const firstPerek = parshaPerakim[0].perek;
-        setSelectedPerek(firstPerek);
-      }
-    }
-  }, [selectedParsha, selectedPerek, flattenedPesukim]);
-
   // Get current parsha name and navigation info
   const currentParshaName = useMemo(() => {
     if (!seferData || selectedParsha === null) return null;
@@ -307,7 +296,7 @@ const Index = () => {
     
     const newParsha = seferData.parshiot[newIndex];
     setSelectedParsha(newParsha.parsha_id);
-    setSelectedPerek(null); // Will be auto-selected by effect
+    setSelectedPerek(null);
     setSelectedPasuk(null);
     setSinglePasukMode(false);
   }, [seferData, selectedParsha]);
