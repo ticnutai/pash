@@ -530,16 +530,24 @@ const Index = () => {
             {/* Quick Selector Sidebar - Hide on mobile when content is showing */}
             {(!isMobile || filteredPesukim.length === 0) && (
               <Suspense fallback={<ComponentLoader />}>
-                <QuickSelector
-                  sefer={seferData}
-                  selectedParsha={selectedParsha}
-                  onParshaSelect={handleParshaSelect}
-                  selectedPerek={selectedPerek}
-                  onPerekSelect={handlePerekSelect}
-                  totalPesukimInPerek={totalPesukimInPerek}
-                  selectedPasuk={selectedPasuk}
-                  onPasukSelect={handlePasukSelect}
-                />
+                <div className="w-full space-y-4">
+                  {!isMobile && currentParshaName && filteredPesukim.length > 0 && (
+                    <div className="h-[56px]" aria-hidden="true" />
+                  )}
+                  {!isMobile && parshaAllPesukim.length > 0 && selectedPasuk !== null && (
+                    <div className="h-[36px]" aria-hidden="true" />
+                  )}
+                  <QuickSelector
+                    sefer={seferData}
+                    selectedParsha={selectedParsha}
+                    onParshaSelect={handleParshaSelect}
+                    selectedPerek={selectedPerek}
+                    onPerekSelect={handlePerekSelect}
+                    totalPesukimInPerek={totalPesukimInPerek}
+                    selectedPasuk={selectedPasuk}
+                    onPasukSelect={handlePasukSelect}
+                  />
+                </div>
               </Suspense>
             )}
 
