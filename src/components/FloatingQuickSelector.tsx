@@ -146,13 +146,13 @@ export const FloatingQuickSelector = ({
           size="icon"
           className={cn(
             "fixed bottom-4 left-4 rounded-full shadow-xl z-50 touch-manipulation",
-            "bg-primary hover:bg-primary/90 text-white active:scale-95 border-2 border-white",
+            "bg-accent hover:bg-accent/90 text-accent-foreground active:scale-95 border-2 border-accent",
             "transition-colors duration-200",
             isMobile ? "h-14 w-14" : "h-11 w-11"
           )}
           aria-label="פתח בחירה מהירה"
         >
-          <Circle className={cn(isMobile ? "h-3.5 w-3.5" : "h-3 w-3", "text-white stroke-[3]")} />
+          <Circle className={cn(isMobile ? "h-3.5 w-3.5" : "h-3 w-3", "text-accent-foreground stroke-[3]")} />
         </Button>
       </PopoverTrigger>
       <PopoverContent
