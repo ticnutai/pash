@@ -18,6 +18,7 @@ interface QuickSelectorProps {
   totalPesukimInPerek?: number;
   selectedPasuk: number | null;
   onPasukSelect: (pasuk: number | null) => void;
+  onResetToSefer?: () => void;
 }
 
 export const QuickSelector = ({
@@ -29,6 +30,7 @@ export const QuickSelector = ({
   totalPesukimInPerek = 0,
   selectedPasuk,
   onPasukSelect,
+  onResetToSefer,
 }: QuickSelectorProps) => {
   const [currentLevel, setCurrentLevel] = useState<SelectionLevel>("parsha");
 
@@ -170,9 +172,9 @@ export const QuickSelector = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleReset}
+            onClick={() => onResetToSefer ? onResetToSefer() : handleReset()}
             className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
-            title="חזרה לבחירת פרשה"
+            title="חזרה לבחירת חומש"
           >
             {sefer.sefer_name}
           </Button>

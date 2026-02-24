@@ -46,6 +46,8 @@ interface SideContentPanelProps {
   onModeChange: (mode: PanelMode) => void;
   selectedPasuk: FlatPasuk | null;
   seferId: number;
+  availablePesukim?: FlatPasuk[];
+  onPasukSelect?: (pasuk: FlatPasuk) => void;
 }
 
 export const SideContentPanel = ({ 
@@ -54,7 +56,9 @@ export const SideContentPanel = ({
   mode, 
   onModeChange,
   selectedPasuk,
-  seferId
+  seferId,
+  availablePesukim = [],
+  onPasukSelect,
 }: SideContentPanelProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -152,7 +156,7 @@ export const SideContentPanel = ({
       {/* Content based on mode */}
       <div className="flex-1 overflow-hidden">
         {mode === "pasuk" ? (
-          <PasukContentView pasuk={selectedPasuk} seferId={seferId} />
+          <PasukContentView pasuk={selectedPasuk} seferId={seferId} availablePesukim={availablePesukim} onPasukSelect={onPasukSelect} />
         ) : (
           <UserContentView
             user={user}
@@ -219,12 +223,16 @@ export const SideContentPanel = ({
 // Pasuk content view component
 const PasukContentView = ({ 
   pasuk, 
-  seferId 
+  seferId,
+  availablePesukim = [],
+  onPasukSelect,
 }: { 
   pasuk: FlatPasuk | null; 
   seferId: number;
+  availablePesukim?: FlatPasuk[];
+  onPasukSelect?: (pasuk: FlatPasuk) => void;
 }) => {
-  if (!pasuk) {
+  if (!pasuk && availablePesukim.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-center h-full" dir="rtl">
         <div className="text-muted-foreground space-y-3">
@@ -241,27 +249,55 @@ const PasukContentView = ({
   return (
     <ScrollArea className="h-full">
       <div className="p-4 sm:p-5" dir="rtl">
-        {/* Selected pasuk header */}
-        <div className="mb-5 p-4 bg-gradient-to-l from-primary/8 to-primary/3 rounded-xl border border-accent/30 shadow-sm">
-          <div className="text-sm text-muted-foreground mb-2 font-medium">
-            {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
+        {/* Pasuk selector chips */}
+        {availablePesukim.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs text-muted-foreground mb-2 font-medium">בחר פסוק:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {availablePesukim.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => onPasukSelect?.(p)}
+                  className={cn(
+                    "h-8 min-w-[2rem] px-2 rounded-lg text-xs font-bold border transition-all",
+                    pasuk?.id === p.id
+                      ? "bg-accent text-accent-foreground border-accent shadow-sm"
+                      : "bg-muted/40 border-border/50 hover:bg-accent/20 hover:border-accent/50"
+                  )}
+                  title={`פסוק ${toHebrewNumber(p.pasuk_num)}`}
+                >
+                  {toHebrewNumber(p.pasuk_num)}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="text-lg font-['Frank_Ruhl_Libre'] leading-relaxed">
-            {pasuk.text}
-          </div>
-        </div>
+        )}
 
-        {/* Pasuk content (titles, questions, commentaries) */}
-        {pasuk.content && pasuk.content.length > 0 ? (
-          <PasukDisplay 
-            pasuk={pasuk} 
-            seferId={seferId}
-            forceMinimized={false}
-          />
-        ) : (
-          <div className="text-center py-10 text-muted-foreground">
-            <p className="text-sm">אין תוכן לפסוק זה</p>
-          </div>
+        {pasuk && (
+          <>
+            {/* Selected pasuk header */}
+            <div className="mb-5 p-4 bg-gradient-to-l from-primary/8 to-primary/3 rounded-xl border border-accent/30 shadow-sm">
+              <div className="text-sm text-muted-foreground mb-2 font-medium">
+                {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
+              </div>
+              <div className="text-lg font-['Frank_Ruhl_Libre'] leading-relaxed">
+                {pasuk.text}
+              </div>
+            </div>
+
+            {/* Pasuk content (titles, questions, commentaries) */}
+            {pasuk.content && pasuk.content.length > 0 ? (
+              <PasukDisplay 
+                pasuk={pasuk} 
+                seferId={seferId}
+                forceMinimized={false}
+              />
+            ) : (
+              <div className="text-center py-10 text-muted-foreground">
+                <p className="text-sm">אין תוכן לפסוק זה</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </ScrollArea>
