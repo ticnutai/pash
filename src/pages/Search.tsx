@@ -20,7 +20,7 @@ export default function Search() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sefer, setSefer] = useState<number | null>(null);
-  const [searchType, setSearchType] = useState<"all" | "question" | "perush" | "pasuk">("all");
+  const [searchType, setSearchType] = useState<"all" | "question" | "perush" | "pasuk">("pasuk");
   const [mefaresh, setMefaresh] = useState("הכל");
   const [activeResults, setActiveResults] = useState<any[]>([]);
   const [aiSuggestion, setAiSuggestion] = useState("");
@@ -70,20 +70,7 @@ export default function Search() {
         <p className="text-muted-foreground text-right">חפש פסוקים, שאלות ופירושים בכל חמשת חומשי התורה</p>
       </div>
 
-      {!isFullyLoaded && (
-        <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-border">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{completedCount}/5 ספרים</span>
-            <span>{Math.round(totalProgress)}%</span>
-          </div>
-          <Progress value={totalProgress} className="h-1.5" />
-          {isReady && completedCount < 5 && (
-            <p className="text-xs text-muted-foreground text-center">
-              ✅ ניתן לחפש עכשיו ב-{completedCount} ספרים שנטענו
-            </p>
-          )}
-        </div>
-      )}
+      {/* Loading banner removed - index builds instantly */}
 
       <Card className="p-6">
         <Tabs defaultValue="exact" className="w-full">

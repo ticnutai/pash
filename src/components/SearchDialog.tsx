@@ -51,7 +51,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [isMaximized, setIsMaximized] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sefer, setSefer] = useState<number | null>(null);
-  const [searchType, setSearchType] = useState<"all" | "question" | "perush" | "pasuk">("all");
+  const [searchType, setSearchType] = useState<"all" | "question" | "perush" | "pasuk">("pasuk");
   const [mefaresh, setMefaresh] = useState("הכל");
   const [activeResults, setActiveResults] = useState<any[]>([]);
   const [aiSuggestion, setAiSuggestion] = useState("");
@@ -120,27 +120,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     setExpandDialog({ open: true, sefer, perek, pasuk, mefaresh });
   };
 
-  // Inline loading indicator (non-blocking)
-  const LoadingBanner = () => {
-    if (isFullyLoaded && workerReady) return null;
-    return (
-      <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-border">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{completedCount}/5 ספרים</span>
-          <span>{Math.round(totalProgress)}%</span>
-        </div>
-        <Progress value={totalProgress} className="h-1.5" />
-        {isReady && !isFullyLoaded && (
-          <p className="text-xs text-muted-foreground text-center">
-            ✅ ניתן לחפש עכשיו ב-{completedCount} ספרים שנטענו
-          </p>
-        )}
-        {completedCount === 5 && !workerReady && (
-          <p className="text-xs text-muted-foreground text-center">בונה אינדקס חיפוש...</p>
-        )}
-      </div>
-    );
-  };
+  // Loading banner removed - index builds instantly with regex
 
   return (
     <>
@@ -168,7 +148,6 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           </DialogHeader>
 
           <div className="overflow-y-auto max-h-[calc(85vh-8rem)]">
-            <LoadingBanner />
 
             <Card className="p-6 mt-2">
               <Tabs defaultValue="exact" className="w-full">
