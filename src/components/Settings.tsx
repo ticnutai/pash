@@ -132,6 +132,7 @@ export const Settings = () => {
     <Dialog>
       <DialogTrigger asChild>
         <Button 
+          data-settings-trigger
           size="icon"
           className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-50 bg-primary hover:bg-primary/90"
         >
