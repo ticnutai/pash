@@ -23,7 +23,20 @@ class SearchIndexDB {
   private initPromise: Promise<void> | null = null;
 
   async init() {
-    if (this.db) return;
+    if (this.db) {
+      try {
+        if (!this.db.objectStoreNames.contains(STORE_NAME)) {
+          this.db.close();
+          this.db = null;
+          this.initPromise = null;
+        } else {
+          return;
+        }
+      } catch {
+        this.db = null;
+        this.initPromise = null;
+      }
+    }
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = new Promise((resolve, reject) => {
@@ -41,30 +54,55 @@ class SearchIndexDB {
     return this.initPromise;
   }
 
+  private reset() {
+    if (this.db) try { this.db.close(); } catch { /* ignore */ }
+    this.db = null;
+    this.initPromise = null;
+  }
+
   async get(key: string): Promise<SearchableItem[] | null> {
     try {
       await this.init();
-      if (!this.db) return null;
+      if (!this.db || !this.db.objectStoreNames.contains(STORE_NAME)) {
+        this.reset();
+        return null;
+      }
       return new Promise((resolve) => {
-        const tx = this.db!.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.get(key);
-        req.onsuccess = () => resolve(req.result ?? null);
-        req.onerror = () => resolve(null);
+        try {
+          const tx = this.db!.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(key);
+          req.onsuccess = () => resolve(req.result ?? null);
+          req.onerror = () => resolve(null);
+        } catch {
+          this.reset();
+          resolve(null);
+        }
       });
-    } catch { return null; }
+    } catch {
+      this.reset();
+      return null;
+    }
   }
 
   async set(key: string, data: SearchableItem[]): Promise<void> {
     try {
       await this.init();
-      if (!this.db) return;
+      if (!this.db || !this.db.objectStoreNames.contains(STORE_NAME)) {
+        this.reset();
+        return;
+      }
       return new Promise((resolve) => {
-        const tx = this.db!.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.put(data, key);
-        req.onsuccess = () => resolve();
-        req.onerror = () => resolve();
+        try {
+          const tx = this.db!.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(data, key);
+          req.onsuccess = () => resolve();
+          req.onerror = () => resolve();
+        } catch {
+          this.reset();
+          resolve();
+        }
       });
     } catch { /* ignore */ }
   }
