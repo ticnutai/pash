@@ -288,23 +288,15 @@ export const Commentaries = () => {
         </Card>
 
         {/* Commentaries Section */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Smart Offline Download Prompt */}
           {showOfflinePrompt && (
-            <Card className="p-4 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      sessionStorage.setItem('torah-offline-prompt-dismissed', '1');
-                      setShowOfflinePrompt(false);
-                    }}
-                    className="text-xs h-7"
-                  >
-                    לא עכשיו
-                  </Button>
+            <Card className="p-3 border-accent/50 bg-accent/5">
+              <div className="flex items-center justify-between gap-2" dir="rtl">
+                <p className="text-sm flex-1">
+                  💡 רוצה גישה מהירה ואופליין? הורד מפרשים לאחסון מקומי
+                </p>
+                <div className="flex items-center gap-2 shrink-0">
                   <Button
                     size="sm"
                     onClick={() => {
@@ -314,36 +306,43 @@ export const Commentaries = () => {
                     className="text-xs h-7"
                   >
                     <Download className="h-3 w-3 ml-1" />
-                    הורד מפרשים
+                    הורד
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      sessionStorage.setItem('torah-offline-prompt-dismissed', '1');
+                      setShowOfflinePrompt(false);
+                    }}
+                    className="text-xs h-7 text-muted-foreground"
+                  >
+                    <X className="h-3 w-3" />
                   </Button>
                 </div>
-                <p className="text-sm text-right">
-                  💡 רוצה גישה מהירה ואופליין לכל המפרשים? הורד אותם לאחסון מקומי
-                </p>
               </div>
             </Card>
           )}
 
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <BookOpen className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">פרשנים נוספים מספריא</h2>
-              <Badge variant="secondary" className="text-sm">
-                {toHebrewNumber(commentaries.length)} פרשנים
-              </Badge>
+          {/* Section Header */}
+          <div className="flex items-center justify-between" dir="rtl">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-bold">פרשנים מספריא</h2>
+              {commentaries.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {toHebrewNumber(commentaries.length)}
+                </Badge>
+              )}
             </div>
             <Button 
               variant={compareMode ? "default" : "outline"}
+              size="sm"
               onClick={toggleCompareMode}
-              className="gap-2"
+              className="gap-1.5 text-sm"
             >
-              <GitCompare className="h-4 w-4" />
-              {compareMode ? "סיים השוואה" : "השווה פרשנים"}
-              {compareMode && selectedForCompare.length > 0 && (
-                <Badge variant="secondary" className="mr-1">
-                  {toHebrewNumber(selectedForCompare.length)}
-                </Badge>
-              )}
+              <GitCompare className="h-3.5 w-3.5" />
+              {compareMode ? "סיים" : "השווה"}
             </Button>
           </div>
 
