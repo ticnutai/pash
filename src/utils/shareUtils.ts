@@ -3,9 +3,21 @@ import { toHebrewNumber } from "@/utils/hebrewNumbers";
 
 const SEFER_NAMES = ["בראשית", "שמות", "ויקרא", "במדבר", "דברים"];
 
+/** Short app link for sharing */
+function buildAppUrl(params: { seferId: number; perek: number; pasuk: number; highlight?: string; mefaresh?: string }): string {
+  const origin = window.location.origin;
+  const qs = new URLSearchParams({
+    sefer: String(params.seferId),
+    perek: String(params.perek),
+    pasuk: String(params.pasuk),
+  });
+  if (params.highlight) qs.set("highlight", params.highlight);
+  if (params.mefaresh) qs.set("mefaresh", params.mefaresh);
+  return `${origin}/?${qs.toString()}`;
+}
+
 /**
- * Build a share URL that goes through the OG edge function for rich previews.
- * Social crawlers will see OG tags; real users get redirected to the app.
+ * Build OG share URL (for social media previews only).
  */
 export function buildOgShareUrl(params: {
   seferId: number;
@@ -15,10 +27,7 @@ export function buildOgShareUrl(params: {
   mefaresh?: string;
 }): string {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl) {
-    // Fallback to direct app link
-    return `${window.location.origin}/?sefer=${params.seferId}&perek=${params.perek}&pasuk=${params.pasuk}`;
-  }
+  if (!supabaseUrl) return buildAppUrl(params);
   const qs = new URLSearchParams({
     sefer: String(params.seferId),
     perek: String(params.perek),
@@ -52,42 +61,23 @@ interface SharePasukOptions {
 }
 
 /**
- * Format commentary text for WhatsApp/social sharing with bold markers and proper line breaks.
+ * Format commentary text for sharing - concise version with short link.
  */
 export function formatShareText({ mefaresh, text, seferId, perek, pasuk }: ShareCommentaryOptions): string {
   const seferName = SEFER_NAMES[seferId - 1] || "";
   const location = `${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}`;
-  
-  // WhatsApp uses *bold* formatting
-  return `*${mefaresh}*\n📖 ${location}\n\n${text}\n\n---\nמתוך אפליקציית חמישה חומשי תורה`;
+  const link = buildAppUrl({ seferId, perek, pasuk });
+  return `*${mefaresh}*\n📖 ${location}\n\n${text}\n\n🔗 ${link}`;
 }
 
 /**
- * Format full pasuk with all commentaries for sharing.
+ * Format pasuk for sharing - SHORT version: just pasuk text + link, no commentaries.
  */
-export function formatPasukShareText({ seferId, perek, pasukNum, pasukText, content }: SharePasukOptions): string {
+export function formatPasukShareText({ seferId, perek, pasukNum, pasukText }: SharePasukOptions): string {
   const seferName = SEFER_NAMES[seferId - 1] || "";
   const location = `${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasukNum)}`;
-  
-  let text = `📖 *${location}*\n\n`;
-  text += `${pasukText}\n`;
-
-  for (const item of content) {
-    if (item.title) {
-      text += `\n*${item.title}*\n`;
-    }
-    for (const q of item.questions) {
-      text += `\n❓ ${q.text}\n`;
-      for (const p of q.perushim) {
-        text += `\n💬 *${p.mefaresh}:* ${p.text}\n`;
-      }
-    }
-  }
-
-  const link = buildOgShareUrl({ seferId, perek, pasuk: pasukNum });
-
-  text += `\n---\nמתוך אפליקציית חמישה חומשי תורה\n🔗 ${link}`;
-  return text;
+  const link = buildAppUrl({ seferId, perek, pasuk: pasukNum });
+  return `📖 *${location}*\n\n${pasukText}\n\n🔗 ${link}`;
 }
 
 /**
@@ -111,16 +101,16 @@ export function sharePasukEmail(options: SharePasukOptions) {
 }
 
 /**
- * Generate a direct link to a specific pasuk and share/copy it.
+ * Generate a direct link to a specific pasuk and share it.
+ * Uses native share (WhatsApp, email, etc.) on mobile, clipboard on desktop.
  */
 export function sharePasukLink(seferId: number, perek: number, pasukNum: number) {
-  const url = buildOgShareUrl({ seferId, perek, pasuk: pasukNum });
+  const seferName = SEFER_NAMES[seferId - 1] || "";
+  const title = `${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasukNum)}`;
+  const url = buildAppUrl({ seferId, perek, pasuk: pasukNum });
   
   if (navigator.share) {
-    navigator.share({
-      title: `${SEFER_NAMES[seferId - 1]} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasukNum)}`,
-      url,
-    }).catch(() => {});
+    navigator.share({ title, text: title, url }).catch(() => {});
   } else {
     navigator.clipboard.writeText(url);
     toast.success("הקישור הועתק ללוח");
@@ -134,6 +124,7 @@ export function copyCommentary(text: string) {
   navigator.clipboard.writeText(text);
   toast.success("הפירוש הועתק ללוח");
 }
+
 export async function shareCommentary(options: ShareCommentaryOptions) {
   const shareText = formatShareText(options);
   
@@ -144,7 +135,7 @@ export async function shareCommentary(options: ShareCommentaryOptions) {
         text: shareText,
       });
     } catch {
-      // User cancelled sharing - that's fine
+      // User cancelled
     }
   } else {
     navigator.clipboard.writeText(shareText);
