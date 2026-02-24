@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { SearchableItem } from './useSearchIndex';
 
 interface SearchFilters {
@@ -7,90 +7,103 @@ interface SearchFilters {
   mefaresh: string;
 }
 
+const removeNiqqud = (text: string) => text.replace(/[\u0591-\u05C7]/g, '');
+
 export const useSearchWorker = () => {
-  const workerRef = useRef<Worker | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const itemsMapRef = useRef<Map<string, SearchableItem>>(new Map());
-
-  useEffect(() => {
-    workerRef.current = new Worker(
-      new URL('../workers/search.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
-
-    workerRef.current.onmessage = (e: MessageEvent) => {
-      const { type } = e.data;
-      
-      if (type === 'INDEX_READY') {
-        setIsReady(true);
-      } else if (type === 'SEARCH_RESULTS') {
-        setIsSearching(false);
-      } else if (type === 'ERROR') {
-        setIsSearching(false);
-        console.error('Worker error:', e.data.error);
-      }
-    };
-
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, []);
+  const itemsRef = useRef<SearchableItem[]>([]);
+  const normalizedTextsRef = useRef<string[]>([]);
 
   const initializeIndex = useCallback((items: SearchableItem[]) => {
-    if (!workerRef.current) return;
-    
-    // Build lookup map for originalItem restoration after search
-    const map = new Map<string, SearchableItem>();
-    for (const item of items) {
-      map.set(item.id, item);
-    }
-    itemsMapRef.current = map;
-    
-    // Strip originalItem to reduce payload size — worker only needs search fields
-    const lightItems = items.map(({ originalItem, ...rest }) => rest);
-    
-    workerRef.current.postMessage({
-      type: 'INIT_INDEX',
-      payload: { items: lightItems }
-    });
+    itemsRef.current = items;
+    // Pre-compute normalized texts
+    normalizedTextsRef.current = items.map(item => removeNiqqud(item.text));
+    setIsReady(true);
   }, []);
 
   const search = useCallback(
     (query: string, filters: SearchFilters): Promise<any[]> => {
-      return new Promise((resolve, reject) => {
-        if (!workerRef.current || !isReady) {
-          reject(new Error('Worker not ready'));
+      return new Promise((resolve) => {
+        if (!isReady || itemsRef.current.length === 0) {
+          resolve([]);
           return;
         }
 
         setIsSearching(true);
 
-        const handleMessage = (e: MessageEvent) => {
-          const { type, results, error } = e.data;
-          
-          if (type === 'SEARCH_RESULTS') {
-            workerRef.current?.removeEventListener('message', handleMessage);
-            // Restore originalItem from the map
-            const enriched = results.map((r: any) => ({
-              ...r,
-              item: {
-                ...r.item,
-                originalItem: itemsMapRef.current.get(r.item.id)?.originalItem
-              }
-            }));
-            resolve(enriched);
-          } else if (type === 'ERROR') {
-            workerRef.current?.removeEventListener('message', handleMessage);
-            reject(new Error(error));
+        // Use requestAnimationFrame to not block UI
+        requestAnimationFrame(() => {
+          const normalizedQuery = removeNiqqud(query.trim());
+          if (!normalizedQuery) {
+            setIsSearching(false);
+            resolve([]);
+            return;
           }
-        };
 
-        workerRef.current.addEventListener('message', handleMessage);
+          const escaped = normalizedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          let regex: RegExp;
+          try {
+            regex = new RegExp(escaped, 'gi');
+          } catch {
+            setIsSearching(false);
+            resolve([]);
+            return;
+          }
 
-        workerRef.current.postMessage({
-          type: 'SEARCH',
-          payload: { query, filters }
+          const items = itemsRef.current;
+          const normalizedTexts = normalizedTextsRef.current;
+          const results: Array<{ item: SearchableItem; score: number; matches: any[] }> = [];
+          const MAX_RESULTS = 200;
+
+          for (let i = 0; i < items.length && results.length < MAX_RESULTS; i++) {
+            const item = items[i];
+
+            // Apply filters early
+            if (filters) {
+              if (filters.sefer && item.sefer !== filters.sefer) continue;
+              if (filters.searchType !== 'all' && item.type !== filters.searchType) continue;
+              if (filters.mefaresh !== 'הכל' && item.mefaresh !== filters.mefaresh) continue;
+            }
+
+            const normalizedText = normalizedTexts[i];
+            regex.lastIndex = 0;
+            const textMatch = regex.exec(normalizedText);
+
+            let mefareshMatch = false;
+            let questionMatch = false;
+            if (!textMatch) {
+              if (item.mefaresh) {
+                regex.lastIndex = 0;
+                mefareshMatch = regex.test(removeNiqqud(item.mefaresh));
+              }
+              if (!mefareshMatch && item.questionText) {
+                regex.lastIndex = 0;
+                questionMatch = regex.test(removeNiqqud(item.questionText));
+              }
+            }
+
+            if (textMatch || mefareshMatch || questionMatch) {
+              const matches: any[] = [];
+              if (textMatch) {
+                matches.push({
+                  key: 'text',
+                  indices: [[textMatch.index, textMatch.index + textMatch[0].length - 1]]
+                });
+              }
+              results.push({ item, score: textMatch ? 0.1 : 0.5, matches });
+            }
+          }
+
+          results.sort((a, b) => {
+            if (a.score !== b.score) return a.score - b.score;
+            if (a.item.sefer !== b.item.sefer) return a.item.sefer - b.item.sefer;
+            if (a.item.perek !== b.item.perek) return a.item.perek - b.item.perek;
+            return a.item.pasuk_num - b.item.pasuk_num;
+          });
+
+          setIsSearching(false);
+          resolve(results);
         });
       });
     },

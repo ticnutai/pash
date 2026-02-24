@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Expand } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SearchableItem } from "@/hooks/useSearchIndex";
-import type { IFuseOptions } from "fuse.js";
+
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { normalizeMefareshName } from "@/utils/names";
 import { fixText } from "@/utils/fixData";
