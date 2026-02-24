@@ -162,6 +162,15 @@ export const FloatingActionButton = ({
     if (searchQuery.trim()) {
       setExpanded(false);
       setSearchOpen(true);
+      // Pass query via a brief delay so dialog mounts first
+      setTimeout(() => {
+        const input = document.querySelector('[data-search-dialog-input]') as HTMLInputElement;
+        if (input) {
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          nativeInputValueSetter?.call(input, searchQuery.trim());
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, 200);
     }
   }, [searchQuery]);
 
@@ -221,10 +230,6 @@ export const FloatingActionButton = ({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSearchSubmit();
-                  }}
-                  onClick={() => {
-                    setExpanded(false);
-                    setSearchOpen(true);
                   }}
                   placeholder="חיפוש בתורה..."
                   className="h-9 text-sm pr-9 rounded-xl bg-background/80"

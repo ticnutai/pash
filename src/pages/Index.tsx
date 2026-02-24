@@ -716,50 +716,7 @@ const Index = () => {
           <SeferSkeleton />
         ) : (
           <>
-            {/* Navigation bar - parsha & pasuk - ABOVE the main content in ALL views */}
-            {currentParshaName && filteredPesukim.length > 0 && (
-              <div className="w-full flex items-center justify-between gap-2 py-2 px-1" dir="rtl">
-                {/* Right side (RTL): Parsha navigation */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigateToParsha('prev')}
-                    disabled={!canNavigatePrev}
-                    className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
-                    title="פרשה קודמת"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    <span className="text-base sm:text-lg font-semibold text-primary whitespace-nowrap">
-                      {currentParshaName}
-                    </span>
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigateToParsha('next')}
-                    disabled={!canNavigateNext}
-                    className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
-                    title="פרשה הבאה"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                {/* Left side (RTL): Pasuk navigation */}
-                {parshaAllPesukim.length > 0 && (
-                  <PasukSimpleNavigator
-                    pesukim={parshaAllPesukim}
-                    currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
-                    onNavigate={handlePasukSelect}
-                  />
-                )}
-              </div>
-            )}
+            {/* Navigation bar moved inside the grid below */}
 
             {/* Reading progress bar - ABOVE the grid */}
             {parshaAllPesukim.length > 0 && selectedPasuk !== null && (
@@ -832,6 +789,50 @@ const Index = () => {
 
               {/* Main Content - Verse cards */}
               <div className="space-y-4 w-full min-w-0 overflow-hidden" style={{ maxWidth: "100%" }}>
+                {/* Parsha & Pasuk navigation bar - inside the content column */}
+                {currentParshaName && filteredPesukim.length > 0 && (
+                  <div className="flex items-center justify-between gap-2 py-1.5" dir="rtl">
+                    {/* Right side (RTL): Parsha navigation */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigateToParsha('prev')}
+                        disabled={!canNavigatePrev}
+                        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+                        title="פרשה קודמת"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        <span className="text-base sm:text-lg font-semibold text-primary whitespace-nowrap">
+                          {currentParshaName}
+                        </span>
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigateToParsha('next')}
+                        disabled={!canNavigateNext}
+                        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+                        title="פרשה הבאה"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </Button>
+                    </div>
+
+                    {/* Left side (RTL): Pasuk navigation */}
+                    {parshaAllPesukim.length > 0 && (
+                      <PasukSimpleNavigator
+                        pesukim={parshaAllPesukim}
+                        currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
+                        onNavigate={handlePasukSelect}
+                      />
+                    )}
+                  </div>
+                )}
                 {filteredPesukim.length === 0 ? (
                   <Card className="p-12 text-center animate-fade-in">
                     <p className="text-lg text-muted-foreground mb-2">

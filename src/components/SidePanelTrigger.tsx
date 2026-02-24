@@ -44,9 +44,9 @@ export const SidePanelTrigger = ({ isOpen, onClick }: SidePanelTriggerProps) => 
       onClick={onClick}
       className={cn(
         "fixed left-0 z-[35] flex items-center justify-center",
-        "w-6 h-12 rounded-r-lg",
-        "bg-accent/90 text-accent-foreground shadow-md border border-l-0 border-accent/50",
-        "hover:bg-accent hover:w-7 transition-all duration-200",
+        "w-3.5 h-10 rounded-r-md",
+        "bg-accent/80 text-accent-foreground shadow-sm border border-l-0 border-accent/40",
+        "hover:bg-accent hover:w-5 transition-all duration-200",
         "backdrop-blur-sm"
       )}
       style={{
@@ -56,9 +56,9 @@ export const SidePanelTrigger = ({ isOpen, onClick }: SidePanelTriggerProps) => 
       aria-label={isOpen ? "סגור פאנל" : "פתח פאנל צידי"}
     >
       {isOpen ? (
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-3 w-3" />
       ) : (
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-3 w-3" />
       )}
     </button>
   );
