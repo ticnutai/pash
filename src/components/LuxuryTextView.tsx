@@ -201,7 +201,7 @@ const PasukRow = ({
           <Mail className="h-3.5 w-3.5" />
         </button>
         <button
-          onClick={() => sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num)}
+          onClick={() => sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num, formatTorahText(pasuk.text))}
           className="p-1 rounded text-muted-foreground hover:text-accent transition-colors"
           title="שתף קישור"
         >

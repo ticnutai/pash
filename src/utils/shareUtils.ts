@@ -104,16 +104,19 @@ export function sharePasukEmail(options: SharePasukOptions) {
  * Generate a direct link to a specific pasuk and share it.
  * Uses native share (WhatsApp, email, etc.) on mobile, clipboard on desktop.
  */
-export function sharePasukLink(seferId: number, perek: number, pasukNum: number) {
+export function sharePasukLink(seferId: number, perek: number, pasukNum: number, pasukText?: string) {
   const seferName = SEFER_NAMES[seferId - 1] || "";
-  const title = `${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasukNum)}`;
+  const location = `${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasukNum)}`;
   const url = buildAppUrl({ seferId, perek, pasuk: pasukNum });
+  const shareBody = pasukText
+    ? `📖 *${location}*\n\n${pasukText}\n\n🔗 ${url}`
+    : `📖 *${location}*\n\n🔗 ${url}`;
   
   if (navigator.share) {
-    navigator.share({ title, text: title, url }).catch(() => {});
+    navigator.share({ title: location, text: shareBody, url }).catch(() => {});
   } else {
-    navigator.clipboard.writeText(url);
-    toast.success("הקישור הועתק ללוח");
+    // Desktop fallback – open WhatsApp with the text
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareBody)}`, '_blank');
   }
 }
 

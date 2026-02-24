@@ -182,7 +182,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
-                        sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num);
+                        sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num, formatTorahText(pasuk.text));
                       }}
                       className="h-8 w-8 hover:bg-accent/50 transition-colors"
                       title="שתף קישור לפסוק"

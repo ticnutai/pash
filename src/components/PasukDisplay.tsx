@@ -296,7 +296,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                         size={displayStyles.isMobile ? "icon" : "sm"}
                         onClick={(e) => {
                           e.stopPropagation();
-                          sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num);
+                          sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num, formattedPasukText);
                         }}
                         className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
                         title="שתף קישור לפסוק"
