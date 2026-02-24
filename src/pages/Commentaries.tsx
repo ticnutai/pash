@@ -492,10 +492,10 @@ const CommentarySection = ({ commentary, seferId, perek, pasuk, isFavorite, onTo
                 href={getMefareshSefariaUrl(seferId, perek, pasuk, commentary.mefaresh)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:text-primary/80 transition-colors"
+                className="text-muted-foreground hover:text-primary transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-3 w-3" />
               </a>
             </div>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
