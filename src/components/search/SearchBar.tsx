@@ -17,7 +17,7 @@ export const SearchBar = ({ value, onChange, onSearch, placeholder = "חפש פ�
   };
 
   return (
-    <div className="flex gap-2 w-full">
+    <div className="flex gap-2 w-full" dir="rtl">
       <div className="relative flex-1">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input

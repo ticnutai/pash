@@ -30,8 +30,8 @@ export const SearchFilters = ({
   onMefareshChange
 }: SearchFiltersProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div className="space-y-2">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4" dir="rtl">
+      <div className="space-y-2 text-right">
         <Label>ספר</Label>
         <Select
           value={sefer?.toString() || "all"}
@@ -49,7 +49,7 @@ export const SearchFilters = ({
         </Select>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 text-right">
         <Label>סוג</Label>
         <Select value={searchType} onValueChange={onSearchTypeChange}>
           <SelectTrigger>
@@ -64,7 +64,7 @@ export const SearchFilters = ({
         </Select>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 text-right">
         <Label>מפרש</Label>
         <Select value={mefaresh} onValueChange={onMefareshChange}>
           <SelectTrigger>
