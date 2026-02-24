@@ -189,6 +189,7 @@ const Index = () => {
     const seferParam = searchParams.get('sefer');
     const perekParam = searchParams.get('perek');
     const pasukParam = searchParams.get('pasuk');
+    const highlightParam = searchParams.get('highlight');
 
     if (seferParam) {
       const sefer = parseInt(seferParam);
@@ -203,6 +204,35 @@ const Index = () => {
       setSelectedPerek(perek);
       setSelectedPasuk(pasuk);
       setSinglePasukMode(true);
+    }
+
+    // Highlight shared text fragment after content loads
+    if (highlightParam) {
+      const attemptHighlight = (retries = 0) => {
+        if (retries > 10) return;
+        setTimeout(() => {
+          // Find and highlight the text in the page
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          let node: Text | null;
+          while ((node = walker.nextNode() as Text | null)) {
+            const idx = node.textContent?.indexOf(highlightParam) ?? -1;
+            if (idx >= 0 && node.parentElement && !node.parentElement.closest('mark.shared-highlight')) {
+              const range = document.createRange();
+              range.setStart(node, idx);
+              range.setEnd(node, idx + highlightParam.length);
+              const mark = document.createElement('mark');
+              mark.className = 'shared-highlight bg-primary/30 text-foreground rounded px-0.5 animate-pulse';
+              range.surroundContents(mark);
+              mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Remove animation after 3s
+              setTimeout(() => mark.classList.remove('animate-pulse'), 3000);
+              return;
+            }
+          }
+          attemptHighlight(retries + 1);
+        }, 500);
+      };
+      attemptHighlight();
     }
   }, [searchParams]);
 

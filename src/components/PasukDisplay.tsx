@@ -50,6 +50,7 @@ import { useDisplayMode, DisplayMode } from "@/contexts/DisplayModeContext";
 import { ContentEditor } from "@/components/ContentEditor";
 import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { AddContentButton } from "@/components/AddContentButton";
+import { TextSelectionShare } from "@/components/TextSelectionShare";
 import { useContent } from "@/contexts/ContentContext";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import { useBookmarks } from "@/contexts/BookmarksContext";
@@ -437,6 +438,9 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                     key={question.id} 
                     question={question} 
                     showAnswers={true}
+                    seferId={seferId}
+                    perek={pasuk.perek}
+                    pasukNum={pasuk.pasuk_num}
                     onAddAnswer={(questionId) => {
                       setEditorContext({ 
                         type: "answer", 
@@ -624,6 +628,9 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
 const QuestionSection = memo(({ 
   question, 
   showAnswers = true,
+  seferId,
+  perek,
+  pasukNum,
   onAddAnswer,
   onEditQuestion,
   onDeleteQuestion,
@@ -635,6 +642,9 @@ const QuestionSection = memo(({
 }: { 
   question: any; 
   showAnswers?: boolean;
+  seferId: number;
+  perek: number;
+  pasukNum: number;
   onAddAnswer?: (questionId: number) => void;
   onEditQuestion?: (id: number, text: string) => void;
   onDeleteQuestion?: (id: number) => void;
@@ -736,6 +746,9 @@ const QuestionSection = memo(({
               key={perush.id} 
               perush={perush} 
               parentOpen={isOpen}
+              seferId={seferId}
+              perek={perek}
+              pasukNum={pasukNum}
               onAddAnswer={onAddAnswer ? () => onAddAnswer(parseInt(question.id)) : undefined}
               onEditAnswer={onEditAnswer}
               onDeleteAnswer={onDeleteAnswer}
@@ -751,6 +764,9 @@ const QuestionSection = memo(({
 const AnswerSection = memo(({ 
   perush, 
   parentOpen,
+  seferId,
+  perek,
+  pasukNum,
   onAddAnswer,
   onEditAnswer,
   onDeleteAnswer,
@@ -758,6 +774,9 @@ const AnswerSection = memo(({
 }: { 
   perush: any; 
   parentOpen?: boolean;
+  seferId: number;
+  perek: number;
+  pasukNum: number;
   onAddAnswer?: () => void;
   onEditAnswer?: (id: number, text: string, mefaresh: string) => void;
   onDeleteAnswer?: (id: number) => void;
@@ -816,31 +835,38 @@ const AnswerSection = memo(({
         <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
       </div>
       
-      <div 
-        className="bg-card rounded-md border-r-2 border-accent w-full overflow-hidden"
-        style={{
-          padding: displayStyles.isMobile ? "0.75rem" : "1rem",
-          maxWidth: "100%",
-        }}
+      <TextSelectionShare
+        seferId={seferId}
+        perek={perek}
+        pasukNum={pasukNum}
+        mefaresh={normalizeMefareshName(perush.mefaresh)}
       >
-        <ClickableText
-          text={fixText(perush.text)}
-          pasukId={`${perush.id}-answer`}
-          fontFamily={settings.commentaryFont}
-          fontSize={`${settings.commentarySize}px`}
-          color={settings.commentaryColor}
-          fontWeight={settings.commentaryBold ? 'bold' : 'normal'}
-          className="leading-relaxed w-full block"
+        <div 
+          className="bg-card rounded-md border-r-2 border-accent w-full overflow-hidden"
           style={{
-            wordWrap: "break-word",
-            overflowWrap: "break-word",
-            whiteSpace: "normal",
-            lineHeight: settings.commentaryLineHeight === 'normal' ? '1.6' : settings.commentaryLineHeight === 'relaxed' ? '1.9' : '2.2',
-            maxWidth: settings.commentaryMaxWidth === 'narrow' ? '600px' : settings.commentaryMaxWidth === 'medium' ? '800px' : settings.commentaryMaxWidth === 'wide' ? '1000px' : '100%',
-            margin: '0 auto',
+            padding: displayStyles.isMobile ? "0.75rem" : "1rem",
+            maxWidth: "100%",
           }}
-        />
-      </div>
+        >
+          <ClickableText
+            text={fixText(perush.text)}
+            pasukId={`${perush.id}-answer`}
+            fontFamily={settings.commentaryFont}
+            fontSize={`${settings.commentarySize}px`}
+            color={settings.commentaryColor}
+            fontWeight={settings.commentaryBold ? 'bold' : 'normal'}
+            className="leading-relaxed w-full block"
+            style={{
+              wordWrap: "break-word",
+              overflowWrap: "break-word",
+              whiteSpace: "normal",
+              lineHeight: settings.commentaryLineHeight === 'normal' ? '1.6' : settings.commentaryLineHeight === 'relaxed' ? '1.9' : '2.2',
+              maxWidth: settings.commentaryMaxWidth === 'narrow' ? '600px' : settings.commentaryMaxWidth === 'medium' ? '800px' : settings.commentaryMaxWidth === 'wide' ? '1000px' : '100%',
+              margin: '0 auto',
+            }}
+          />
+        </div>
+      </TextSelectionShare>
     </div>
   );
 });
