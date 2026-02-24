@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { useEffect } from "react";
 
 export default function Search() {
-  const { searchableItems, books, isReady, completedCount, totalProgress } = useSearchDataLoader(true);
+  const { searchableItems, books, isReady, isFullyLoaded, completedCount, totalProgress } = useSearchDataLoader(true);
   const { initializeIndex, search: workerSearch, isReady: workerReady } = useSearchWorker();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,10 +31,10 @@ export default function Search() {
   });
 
   useEffect(() => {
-    if (searchableItems.length > 0 && !workerReady) {
+    if (searchableItems.length > 0) {
       initializeIndex(searchableItems);
     }
-  }, [searchableItems, workerReady, initializeIndex]);
+  }, [searchableItems, initializeIndex]);
 
   const handleExactSearch = useCallback(async () => {
     if (!searchQuery.trim()) { toast.error("נא להזין שאילתת חיפוש"); return; }
@@ -70,13 +70,18 @@ export default function Search() {
         <p className="text-muted-foreground text-right">חפש פסוקים, שאלות ופירושים בכל חמשת חומשי התורה</p>
       </div>
 
-      {!isReady && (
+      {!isFullyLoaded && (
         <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-border">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{completedCount}/5 ספרים</span>
             <span>{Math.round(totalProgress)}%</span>
           </div>
           <Progress value={totalProgress} className="h-1.5" />
+          {isReady && completedCount < 5 && (
+            <p className="text-xs text-muted-foreground text-center">
+              ✅ ניתן לחפש עכשיו ב-{completedCount} ספרים שנטענו
+            </p>
+          )}
         </div>
       )}
 

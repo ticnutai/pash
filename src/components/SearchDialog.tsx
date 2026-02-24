@@ -45,7 +45,7 @@ interface SearchDialogProps {
 
 export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   // Load data only when dialog opens, with parallel loading + IndexedDB cache
-  const { searchableItems, books, isReady, completedCount, totalProgress } = useSearchDataLoader(open);
+  const { searchableItems, books, isReady, isFullyLoaded, completedCount, totalProgress } = useSearchDataLoader(open);
 
   const { initializeIndex, search: workerSearch, isReady: workerReady, isSearching } = useSearchWorker();
   const [isMaximized, setIsMaximized] = useState(false);
@@ -62,12 +62,12 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     open: false, sefer: 1, perek: 1, pasuk: 1, mefaresh: ""
   });
 
-  // Initialize worker when searchable items are ready
+  // Re-initialize worker whenever searchable items change (incremental loading)
   useEffect(() => {
-    if (searchableItems.length > 0 && !workerReady) {
+    if (searchableItems.length > 0) {
       initializeIndex(searchableItems);
     }
-  }, [searchableItems, workerReady, initializeIndex]);
+  }, [searchableItems, initializeIndex]);
 
   const handleExactSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
@@ -122,7 +122,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
   // Inline loading indicator (non-blocking)
   const LoadingBanner = () => {
-    if (isReady && workerReady) return null;
+    if (isFullyLoaded && workerReady) return null;
     return (
       <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-border">
         <div className="flex justify-between text-xs text-muted-foreground">
@@ -130,6 +130,11 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           <span>{Math.round(totalProgress)}%</span>
         </div>
         <Progress value={totalProgress} className="h-1.5" />
+        {isReady && !isFullyLoaded && (
+          <p className="text-xs text-muted-foreground text-center">
+            ✅ ניתן לחפש עכשיו ב-{completedCount} ספרים שנטענו
+          </p>
+        )}
         {completedCount === 5 && !workerReady && (
           <p className="text-xs text-muted-foreground text-center">בונה אינדקס חיפוש...</p>
         )}
