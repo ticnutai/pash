@@ -65,7 +65,7 @@ const Index = () => {
   const [singlePasukMode, setSinglePasukMode] = useState(false);
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const weeklyParshaLoadedRef = useRef(false);
+  const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
   const [autoWeeklyParsha, setAutoWeeklyParsha] = useState(() => {
     try {
       const saved = localStorage.getItem('autoWeeklyParsha');
@@ -119,7 +119,7 @@ const Index = () => {
       setSelectedPerek(null);
       setSelectedPasuk(null);
       setSinglePasukMode(false);
-      weeklyParshaLoadedRef.current = true;
+      weeklyParshaLoadedRef.current = weeklyParsha.sefer;
       setInitialLoadDone(true);
 
       // Check if user was reading something different and offer to continue
@@ -209,72 +209,67 @@ const Index = () => {
   
   // Load sefer on demand (lazy loading) with non-blocking parsing
   useEffect(() => {
+    let cancelled = false;
+    
     const loadSefer = async () => {
       // Check cache first
       if (seferCache.has(selectedSefer)) {
-        setSeferData(seferCache.get(selectedSefer)!);
-        setLoading(false);
+        if (!cancelled) {
+          setSeferData(seferCache.get(selectedSefer)!);
+          setLoading(false);
+        }
         return;
       }
 
       setLoading(true);
       setLoadingProgress(0);
       try {
-        const seferNames: Record<number, string> = {
-          1: "בראשית",
-          2: "שמות", 
-          3: "ויקרא",
-          4: "במדבר",
-          5: "דברים"
-        };
+        setLoadingProgress(30);
         
-        // Use lazy loading helper for better code splitting
-        (async () => {
-          try {
-            setLoadingProgress(30);
-            
-            // Load sefer using dynamic import (better code splitting)
-            const sefer = await lazyLoadSefer(selectedSefer);
-            setLoadingProgress(60);
-            
-            // Yield to main thread to prevent blocking
-            await yieldToMain();
-            
-            setLoadingProgress(80);
-            
-            // Cache the loaded sefer
-            seferCache.set(selectedSefer, sefer);
-            setSeferData(sefer);
-            
-            // Only reset selections if this isn't the weekly parsha initial load
-            if (!weeklyParshaLoadedRef.current) {
-              setSelectedParsha(null);
-              setSelectedPerek(null);
-              setSelectedPasuk(null);
-            } else {
-              // After first load with weekly parsha, reset the flag
-              weeklyParshaLoadedRef.current = false;
-            }
-            
-            setLoadingProgress(100);
-            setLoading(false);
-            
-            // Preload next sefer in background for smooth navigation
-            preloadNextSefer(selectedSefer);
-          } catch (err) {
-            console.error("Error loading sefer:", err);
-            toast.error("שגיאה בטעינת החומש");
-            setLoading(false);
-          }
-        })();
-      } catch (error) {
-        console.error("Error loading data:", error);
-        toast.error("שגיאה בטעינת החומש");
+        // Load sefer using dynamic import (better code splitting)
+        const sefer = await lazyLoadSefer(selectedSefer);
+        if (cancelled) return;
+        
+        setLoadingProgress(60);
+        
+        // Yield to main thread to prevent blocking
+        await yieldToMain();
+        if (cancelled) return;
+        
+        setLoadingProgress(80);
+        
+        // Cache the loaded sefer
+        seferCache.set(selectedSefer, sefer);
+        setSeferData(sefer);
+        
+        // Only reset selections if this isn't the weekly parsha initial load for THIS sefer
+        if (weeklyParshaLoadedRef.current === selectedSefer) {
+          // This is the sefer loaded by weekly parsha - keep selections
+          weeklyParshaLoadedRef.current = false;
+        } else if (!weeklyParshaLoadedRef.current) {
+          setSelectedParsha(null);
+          setSelectedPerek(null);
+          setSelectedPasuk(null);
+        }
+        // If weeklyParshaLoadedRef points to a different sefer, don't reset
+        
+        setLoadingProgress(100);
         setLoading(false);
+        
+        // Preload next sefer in background for smooth navigation
+        preloadNextSefer(selectedSefer);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Error loading sefer:", err);
+          toast.error("שגיאה בטעינת החומש");
+          setLoading(false);
+        }
       }
     };
 
     loadSefer();
+    
+    return () => { cancelled = true; };
   }, [selectedSefer, seferCache]);
   // Flatten pesukim from nested structure with batching to prevent blocking
   const flattenedPesukim = useMemo(() => {
