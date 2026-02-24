@@ -11,7 +11,7 @@ import { PasukLineActions } from "@/components/PasukLineActions";
 import { NotesDialog } from "@/components/NotesDialog";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
-import { getAvailableCommentaries, getPasukSefariaUrl, getMefareshSefariaUrl } from "@/utils/sefariaCommentaries";
+import { getAvailableCommentariesProgressive, prefetchNeighboringVerses, getPasukSefariaUrl, getMefareshSefariaUrl } from "@/utils/sefariaCommentaries";
 import { SefariaCommentary, AVAILABLE_COMMENTARIES } from "@/types/sefaria";
 import { torahDB } from "@/utils/torahDB";
 import type { Sefer } from "@/types/torah";
@@ -92,10 +92,13 @@ export const Commentaries = () => {
   const pasukId = `${numSeferId}-${numPerek}-${numPasuk}`;
 
   useEffect(() => {
+    const abortController = new AbortController();
+
     const loadData = async () => {
       if (!seferId || !perek || !pasuk) return;
 
       setLoading(true);
+      setCommentaries([]);
 
       // Load the pasuk text from the original data
       let loadedSeferName = "";
@@ -130,20 +133,34 @@ export const Commentaries = () => {
         console.error("Error loading pasuk text:", error);
       }
 
-      // Load Sefaria commentaries
+      // Load Sefaria commentaries — PROGRESSIVE: UI updates as each arrives
       try {
-        const sefariaCommentaries = await getAvailableCommentaries(numSeferId, numPerek, numPasuk);
-        setCommentaries(sefariaCommentaries);
+        await getAvailableCommentariesProgressive(
+          numSeferId, numPerek, numPasuk,
+          (partialResults) => {
+            if (!abortController.signal.aborted) {
+              setCommentaries(partialResults);
+              // Remove loading spinner after first result
+              setLoading(false);
+            }
+          },
+          abortController.signal
+        );
         setError(null);
+        setLoading(false);
         // Save to history
         saveToHistory(numSeferId, numPerek, numPasuk, loadedSeferName);
+
+        // Prefetch neighboring verses in background
+        prefetchNeighboringVerses(numSeferId, numPerek, numPasuk);
       } catch (err) {
-        console.error("Error loading commentaries:", err);
-        setError("שגיאה בטעינת הפרשנים");
-        setCommentaries([]);
+        if (!abortController.signal.aborted) {
+          console.error("Error loading commentaries:", err);
+          setError("שגיאה בטעינת הפרשנים");
+          setCommentaries([]);
+          setLoading(false);
+        }
       }
-      
-      setLoading(false);
 
       // Scroll to selected mefaresh if provided
       if (selectedMefaresh) {
@@ -159,6 +176,7 @@ export const Commentaries = () => {
     };
 
     loadData();
+    return () => abortController.abort();
   }, [seferId, perek, pasuk, numSeferId, numPerek, numPasuk, selectedMefaresh, saveToHistory]);
 
   // Smart offline prompt — show once per session if commentaries were loaded via API
