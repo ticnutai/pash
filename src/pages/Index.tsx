@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } fro
 import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
+import { cn } from "@/lib/utils";
 import { SeferSelector } from "@/components/SeferSelector";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { UserMenu } from "@/components/UserMenu";
@@ -467,7 +468,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background pb-20 overflow-x-hidden">
       {/* Header - Fully Responsive */}
       <header className="sticky top-0 z-50 bg-gradient-to-l from-primary via-primary to-sidebar-background shadow-lg">
-        <div className="w-full px-3 sm:px-4 py-3 sm:py-6 bg-blue-950 sm:rounded-3xl">
+        <div className="w-full px-3 sm:px-4 py-3 sm:py-6 bg-sidebar-background sm:rounded-3xl">
           {/* Mobile Layout - Stack vertically */}
           <div className="flex flex-col gap-2 md:hidden">
             {/* Top row: Title and Book icon */}
@@ -539,10 +540,10 @@ const Index = () => {
               setSidePanelMode("user");
               setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
             }}
-            className={sidePanelOpen && sidePanelMode === "user" ? "bg-[#C5A55A]/15 border-[#C5A55A] text-[#C5A55A] ring-1 ring-[#C5A55A]/30" : ""}
-            title="התוכן שלי"
-          >
-            <User className={`h-4 w-4 ${sidePanelOpen && sidePanelMode === "user" ? "text-[#C5A55A]" : ""}`} />
+                    className={cn("", sidePanelOpen && sidePanelMode === "user" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
+                    title="התוכן שלי"
+                  >
+                    <User className={cn("h-4 w-4", sidePanelOpen && sidePanelMode === "user" && "text-accent")} />
           </Button>
           {displayMode === "chumash" && (
             <Button
@@ -552,10 +553,10 @@ const Index = () => {
                 setSidePanelMode("pasuk");
                 setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "pasuk");
               }}
-              className={sidePanelOpen && sidePanelMode === "pasuk" ? "bg-[#C5A55A]/15 border-[#C5A55A] text-[#C5A55A] ring-1 ring-[#C5A55A]/30" : ""}
-              title="פירושים"
-            >
-              <BookOpen className={`h-4 w-4 ${sidePanelOpen && sidePanelMode === "pasuk" ? "text-[#C5A55A]" : ""}`} />
+                    className={cn("", sidePanelOpen && sidePanelMode === "pasuk" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
+                    title="פירושים"
+                  >
+                    <BookOpen className={cn("h-4 w-4", sidePanelOpen && sidePanelMode === "pasuk" && "text-accent")} />
             </Button>
           )}
           {filteredPesukim.length > 0 && (
@@ -696,17 +697,18 @@ const Index = () => {
 
             {/* Mobile controls - ABOVE the grid */}
             {isMobile && (
-              <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {filteredPesukim.length > 0 && (
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => {
                       setSelectedPasuk(null);
                       setSelectedPerek(null);
                       setSelectedParsha(null);
                       setSinglePasukMode(false);
                     }}
-                    className="gap-2 flex-shrink-0"
+                    className="gap-1.5 h-9"
                   >
                     <Book className="h-4 w-4" />
                     חומשים
@@ -721,7 +723,7 @@ const Index = () => {
                     setSidePanelMode("user");
                     setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
                   }}
-                  className={sidePanelOpen && sidePanelMode === "user" ? "bg-[#C5A55A]/15 border-[#C5A55A] text-[#C5A55A] ring-1 ring-[#C5A55A]/30 flex-shrink-0" : "flex-shrink-0"}
+                  className={cn("h-9 w-9", sidePanelOpen && sidePanelMode === "user" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
                   title="התוכן שלי"
                 >
                   <User className="h-4 w-4" />

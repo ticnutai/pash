@@ -139,7 +139,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           className={cn(
-            "transition-all duration-300",
+            "transition-all duration-300 w-[95vw] sm:w-auto overflow-hidden",
             isMaximized ? "max-w-[95vw] h-[95vh]" : "max-w-4xl max-h-[85vh]"
           )}
         >
