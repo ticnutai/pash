@@ -36,14 +36,29 @@ export default function Search() {
     }
   }, [searchableItems, initializeIndex]);
 
-  const handleExactSearch = useCallback(async () => {
-    if (!searchQuery.trim()) { toast.error("נא להזין שאילתת חיפוש"); return; }
-    if (!workerReady) { toast.error("מנוע החיפוש עדיין טוען..."); return; }
+  const runSearch = useCallback(async (query: string) => {
+    if (!query.trim() || !workerReady) return;
     try {
-      const results = await workerSearch(searchQuery, { sefer, searchType, mefaresh });
+      const results = await workerSearch(query, { sefer, searchType, mefaresh });
       setActiveResults(results);
     } catch { toast.error("שגיאה בחיפוש"); }
-  }, [searchQuery, workerSearch, workerReady, sefer, searchType, mefaresh]);
+  }, [workerSearch, workerReady, sefer, searchType, mefaresh]);
+
+  const handleExactSearch = useCallback(() => {
+    if (!searchQuery.trim()) { toast.error("נא להזין שאילתת חיפוש"); return; }
+    if (!workerReady) { toast.error("מנוע החיפוש עדיין טוען..."); return; }
+    runSearch(searchQuery);
+  }, [searchQuery, workerReady, runSearch]);
+
+  // Auto-search as user types
+  useEffect(() => {
+    if (searchQuery.trim().length < 2 || !workerReady) {
+      if (!searchQuery.trim()) setActiveResults([]);
+      return;
+    }
+    const timer = setTimeout(() => runSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, runSearch, workerReady]);
 
   const handleSmartSearch = useCallback(async () => {
     if (!searchQuery.trim()) { toast.error("נא להזין שאילתת חיפוש"); return; }

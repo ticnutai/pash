@@ -69,25 +69,35 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     }
   }, [searchableItems, initializeIndex]);
 
-  const handleExactSearch = useCallback(async () => {
-    if (!searchQuery.trim()) {
-      toast.error("נא להזין שאילתת חיפוש");
-      return;
-    }
-    if (!workerReady) {
-      toast.error("מנוע החיפוש עדיין טוען...");
-      return;
-    }
+  const runSearch = useCallback(async (query: string, saveHistory = false) => {
+    if (!query.trim() || !workerReady) return;
     try {
-      const results = await workerSearch(searchQuery, { sefer, searchType, mefaresh });
+      const results = await workerSearch(query, { sefer, searchType, mefaresh });
       setActiveResults(results);
-      addToSearchHistory(searchQuery);
-      setSearchHistoryItems(getSearchHistory());
+      if (saveHistory) {
+        addToSearchHistory(query);
+        setSearchHistoryItems(getSearchHistory());
+      }
     } catch (error) {
       console.error("Search error:", error);
-      toast.error("שגיאה בחיפוש");
     }
-  }, [searchQuery, workerSearch, workerReady, sefer, searchType, mefaresh]);
+  }, [workerSearch, workerReady, sefer, searchType, mefaresh]);
+
+  const handleExactSearch = useCallback(() => {
+    if (!searchQuery.trim()) { toast.error("נא להזין שאילתת חיפוש"); return; }
+    if (!workerReady) { toast.error("מנוע החיפוש עדיין טוען..."); return; }
+    runSearch(searchQuery, true);
+  }, [searchQuery, workerReady, runSearch]);
+
+  // Auto-search as user types (debounced)
+  useEffect(() => {
+    if (searchQuery.trim().length < 2 || !workerReady) {
+      if (!searchQuery.trim()) setActiveResults([]);
+      return;
+    }
+    const timer = setTimeout(() => runSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, runSearch, workerReady]);
 
   const handleSmartSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
