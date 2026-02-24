@@ -39,6 +39,7 @@ const SideContentPanel = lazy(() => import("@/components/SideContentPanel").then
 // Navigation components (loaded after initial render)
 const QuickSelector = lazy(() => import("@/components/QuickSelector").then(m => ({ default: m.QuickSelector })));
 const FloatingQuickSelector = lazy(() => import("@/components/FloatingQuickSelector").then(m => ({ default: m.FloatingQuickSelector })));
+const FloatingActionButton = lazy(() => import("@/components/FloatingActionButton").then(m => ({ default: m.FloatingActionButton })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 
 const ComponentLoader = () => (
@@ -491,6 +492,23 @@ const Index = () => {
     });
   }, []);
 
+  // Handle navigation from search results
+  const handleSearchNavigate = useCallback((seferId: number, perek: number, pasuk: number) => {
+    setSelectedSefer(seferId);
+    const cached = seferCache.get(seferId);
+    if (cached) {
+      for (const parsha of cached.parshiot) {
+        if (parsha.perakim.some(p => p.perek_num === perek)) {
+          setSelectedParsha(parsha.parsha_id);
+          break;
+        }
+      }
+    }
+    setSelectedPerek(perek);
+    setSelectedPasuk(pasuk);
+    setSinglePasukMode(false);
+  }, [seferCache]);
+
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       {/* Header - Fully Responsive */}
@@ -519,7 +537,7 @@ const Index = () => {
               </Button>
               <SyncIndicator status={syncStatus} />
               <TextDisplaySettings />
-              <GlobalSearchTrigger />
+              <GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} />
               <UserMenu />
             </div>
           </div>
@@ -539,7 +557,7 @@ const Index = () => {
               <SyncIndicator status={syncStatus} />
               {process.env.NODE_ENV === 'development' && <DevicePreview />}
               <TextDisplaySettings />
-              <GlobalSearchTrigger />
+              <GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} />
               <UserMenu />
             </div>
             <div className="flex items-center gap-3 order-2 lg:order-none flex-1 lg:flex-initial justify-center">
@@ -847,17 +865,10 @@ const Index = () => {
         )}
       </div>
 
-      {/* Floating Quick Selector */}
+      {/* Floating Draggable Action Button (Search + Nav) */}
       <Suspense fallback={null}>
-        <FloatingQuickSelector
-          sefer={seferData}
-          selectedParsha={selectedParsha}
-          onParshaSelect={handleParshaSelect}
-          selectedPerek={selectedPerek}
-          onPerekSelect={handlePerekSelect}
-          totalPesukimInPerek={totalPesukimInPerek}
-          selectedPasuk={selectedPasuk}
-          onPasukSelect={handlePasukSelect}
+        <FloatingActionButton
+          onNavigateToPasuk={handleSearchNavigate}
         />
       </Suspense>
     </div>

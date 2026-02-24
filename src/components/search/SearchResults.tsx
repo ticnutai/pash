@@ -16,13 +16,18 @@ interface SearchResultsProps {
     score?: number;
   }>;
   onExpandCommentary?: (sefer: number, perek: number, pasuk: number, mefaresh: string) => void;
+  onNavigate?: (sefer: number, perek: number, pasuk: number) => void;
 }
 
-export const SearchResults = ({ results, onExpandCommentary }: SearchResultsProps) => {
+export const SearchResults = ({ results, onExpandCommentary, onNavigate }: SearchResultsProps) => {
   const navigate = useNavigate();
 
   const handleOpenPasuk = (sefer: number, perek: number, pasuk: number) => {
-    navigate(`/?sefer=${sefer}&perek=${perek}&pasuk=${pasuk}`);
+    if (onNavigate) {
+      onNavigate(sefer, perek, pasuk);
+    } else {
+      navigate(`/?sefer=${sefer}&perek=${perek}&pasuk=${pasuk}`);
+    }
   };
 
   const highlightMatch = (text: string, matches?: readonly any[]) => {
@@ -47,11 +52,7 @@ export const SearchResults = ({ results, onExpandCommentary }: SearchResultsProp
   };
 
   if (results.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        לא נמצאו תוצאות
-      </div>
-    );
+    return null;
   }
 
   return (

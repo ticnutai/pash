@@ -114,7 +114,7 @@ export function getCurrentWeeklyParsha(il: boolean = true): WeeklyParsha | null 
     ) as ParshaEvent | undefined;
     
     if (!parshaEvent) {
-      console.warn('No parsha found for current week. Events:', events.map(e => e.render('en')));
+      console.warn('No parsha found for current week');
       return null;
     }
     
@@ -123,8 +123,6 @@ export function getCurrentWeeklyParsha(il: boolean = true): WeeklyParsha | null 
     
     // Hebcal sometimes prefixes with "Parashat ", normalize it to match our mapping keys
     const parshaName = parshaNameRaw.replace(/^Parashat\s+/, "");
-    
-    
     
     // Check if it's a combined parsha first
     let parshaInfo = COMBINED_PARSHIYOT[parshaName];

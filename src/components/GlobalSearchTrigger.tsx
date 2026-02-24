@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button";
 import { SearchCheck } from "lucide-react";
 import { SearchDialog } from "@/components/SearchDialog";
 
-export function GlobalSearchTrigger() {
+interface GlobalSearchTriggerProps {
+  onNavigateToPasuk?: (sefer: number, perek: number, pasuk: number) => void;
+}
+
+export function GlobalSearchTrigger({ onNavigateToPasuk }: GlobalSearchTriggerProps) {
   const [open, setOpen] = useState(false);
 
   // Listen for Ctrl+K / Cmd+K to open search
@@ -32,7 +36,7 @@ export function GlobalSearchTrigger() {
         <SearchCheck className="h-4 w-4" />
       </Button>
 
-      <SearchDialog open={open} onOpenChange={setOpen} />
+      <SearchDialog open={open} onOpenChange={setOpen} onNavigateToPasuk={onNavigateToPasuk} />
     </>
   );
 }
