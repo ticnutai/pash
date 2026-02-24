@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link2, Share2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { buildOgShareUrl } from "@/utils/shareUtils";
 
 interface TextSelectionShareProps {
   children: React.ReactNode;
@@ -84,15 +85,13 @@ export function TextSelectionShare({
   }, [hideTooltip]);
 
   const buildShareUrl = useCallback(() => {
-    const baseUrl = window.location.origin;
-    const params = new URLSearchParams({
-      sefer: String(seferId),
-      perek: String(perek),
-      pasuk: String(pasukNum),
+    return buildOgShareUrl({
+      seferId,
+      perek,
+      pasuk: pasukNum,
       highlight: selectedText,
+      mefaresh,
     });
-    if (mefaresh) params.set("mefaresh", mefaresh);
-    return `${baseUrl}/?${params.toString()}`;
   }, [seferId, perek, pasukNum, selectedText, mefaresh]);
 
   const handleCopyLink = useCallback(() => {
