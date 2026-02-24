@@ -137,12 +137,13 @@ export const FloatingActionButton = ({
         {/* Main FAB - Draggable */}
         <div
           className={cn(
-            "rounded-full shadow-xl cursor-grab active:cursor-grabbing touch-manipulation select-none",
+            "rounded-full shadow-xl cursor-grab active:cursor-grabbing select-none",
             "bg-accent text-accent-foreground border-2 border-accent flex items-center justify-center",
             "transition-transform duration-150",
             isDragging && "scale-110 opacity-80",
             isMobile ? "h-14 w-14" : "h-11 w-11"
           )}
+          style={{ touchAction: "none" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}

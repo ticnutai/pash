@@ -58,7 +58,10 @@ export function formatPasukShareText({ seferId, perek, pasukNum, pasukText, cont
     }
   }
 
-  text += `\n---\nמתוך אפליקציית חמישה חומשי תורה`;
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const link = `${baseUrl}/?sefer=${seferId}&perek=${perek}&pasuk=${pasukNum}`;
+
+  text += `\n---\nמתוך אפליקציית חמישה חומשי תורה\n🔗 ${link}`;
   return text;
 }
 
@@ -83,16 +86,30 @@ export function sharePasukEmail(options: SharePasukOptions) {
 }
 
 /**
+ * Generate a direct link to a specific pasuk and share/copy it.
+ */
+export function sharePasukLink(seferId: number, perek: number, pasukNum: number) {
+  const baseUrl = window.location.origin;
+  const url = `${baseUrl}/?sefer=${seferId}&perek=${perek}&pasuk=${pasukNum}`;
+  
+  if (navigator.share) {
+    navigator.share({
+      title: `${SEFER_NAMES[seferId - 1]} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasukNum)}`,
+      url,
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url);
+    toast.success("הקישור הועתק ללוח");
+  }
+}
+
+/**
  * Copy commentary text to clipboard.
  */
 export function copyCommentary(text: string) {
   navigator.clipboard.writeText(text);
   toast.success("הפירוש הועתק ללוח");
 }
-
-/**
- * Share commentary using native share API or fallback to clipboard.
- */
 export async function shareCommentary(options: ShareCommentaryOptions) {
   const shareText = formatShareText(options);
   

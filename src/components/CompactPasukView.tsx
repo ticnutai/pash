@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus, Share2, Mail } from "lucide-react";
+import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus, Share2, Mail, Link2 } from "lucide-react";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
 import { PasukDisplay } from "@/components/PasukDisplay";
@@ -13,7 +13,7 @@ import { useDisplayMode } from "@/contexts/DisplayModeContext";
 import { Button } from "@/components/ui/button";
 import { NotesDialog } from "@/components/NotesDialog";
 import { ContentEditor } from "@/components/ContentEditor";
-import { sharePasukWhatsApp, sharePasukEmail } from "@/utils/shareUtils";
+import { sharePasukWhatsApp, sharePasukEmail, sharePasukLink } from "@/utils/shareUtils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -180,7 +180,17 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={(e) => handleCommentaries(e, pasuk)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num);
+                      }}
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
+                      title="שתף קישור לפסוק"
+                    >
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+
+                    <Button
                       className="h-8 w-8 hover:bg-accent/50 transition-colors"
                       title="פרשנים נוספים"
                     >
