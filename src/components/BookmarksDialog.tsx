@@ -60,7 +60,7 @@ export const BookmarksDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" data-bookmarks-trigger>
           <span>הסימניות שלי</span>
           <BookmarkCheck className="h-4 w-4" />
           {bookmarks.length > 0 && (

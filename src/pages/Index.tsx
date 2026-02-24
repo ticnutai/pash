@@ -925,6 +925,9 @@ const Index = () => {
       <Suspense fallback={null}>
         <FloatingActionButton
           onNavigateToPasuk={handleSearchNavigate}
+          currentSefer={selectedSefer}
+          currentPerek={selectedPerek}
+          currentPasuk={selectedPasuk}
         />
       </Suspense>
     </div>
