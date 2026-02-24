@@ -22,9 +22,19 @@ export const FloatingActionButton = ({
   const [position, setPosition] = useState(() => {
     try {
       const saved = localStorage.getItem('fab_position');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Validate position is on screen
+        if (typeof window !== 'undefined') {
+          const maxX = window.innerWidth - 60;
+          const maxY = window.innerHeight - 60;
+          return { x: Math.min(Math.max(0, parsed.x), maxX), y: Math.min(Math.max(0, parsed.y), maxY) };
+        }
+        return parsed;
+      }
     } catch {}
-    return { x: 16, y: typeof window !== 'undefined' ? window.innerHeight - 80 : 700 };
+    // Default: bottom-left corner, above any bottom bars
+    return { x: 16, y: typeof window !== 'undefined' ? window.innerHeight - 120 : 600 };
   });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
@@ -94,9 +104,9 @@ export const FloatingActionButton = ({
     <>
       <div
         ref={fabRef}
-        className="fixed z-50"
-        style={{ left: position.x, top: position.y }}
-      >
+        className="fixed z-[60]"
+        style={{ left: position.x, top: position.y }}>
+
         {/* Expanded action buttons */}
         {expanded && (
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in">
