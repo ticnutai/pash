@@ -135,7 +135,9 @@ export function useSearchDataLoader(enabled: boolean) {
     SEFER_NAMES.map(name => ({ name, status: 'pending' as BookStatus, progress: 0 }))
   );
   const [isReady, setIsReady] = useState(false);
+  const [isFullyLoaded, setIsFullyLoaded] = useState(false);
   const loadedRef = useRef(false);
+  const itemsAccumulator = useRef<SearchableItem[]>([]);
 
   useEffect(() => {
     if (!enabled || loadedRef.current) return;
@@ -148,32 +150,35 @@ export function useSearchDataLoader(enabled: boolean) {
         setSearchableItems(cached);
         setBooks(prev => prev.map(b => ({ ...b, status: 'completed', progress: 100 })));
         setIsReady(true);
+        setIsFullyLoaded(true);
         return;
       }
 
-      // 2. Load ALL books in parallel
+      // 2. Load ALL books in parallel, but update searchableItems incrementally
       setBooks(prev => prev.map(b => ({ ...b, status: 'loading', progress: 10 })));
+      itemsAccumulator.current = [];
 
       const results = await Promise.allSettled(
-        SEFR_FILES.map((file, i) => 
+        SEFR_FILES.map((file, i) =>
           loadSingleBook(file, i).then(items => {
+            // Update book status
             setBooks(prev => {
               const updated = [...prev];
               updated[i] = { ...updated[i], status: 'completed', progress: 100 };
               return updated;
             });
+
+            // Accumulate and publish items incrementally
+            itemsAccumulator.current = [...itemsAccumulator.current, ...items];
+            setSearchableItems([...itemsAccumulator.current]);
+
+            // Mark ready as soon as first book loads
+            setIsReady(true);
+
             return { index: i, items };
           })
         )
       );
-
-      // 3. Merge all results
-      const allItems: SearchableItem[] = [];
-      for (const result of results) {
-        if (result.status === 'fulfilled') {
-          allItems.push(...result.value.items);
-        }
-      }
 
       // Mark failed books
       results.forEach((result, i) => {
@@ -186,11 +191,10 @@ export function useSearchDataLoader(enabled: boolean) {
         }
       });
 
-      setSearchableItems(allItems);
-      setIsReady(true);
+      setIsFullyLoaded(true);
 
-      // 4. Cache in background
-      searchDB.set(CACHE_KEY, allItems).catch(() => {});
+      // Cache in background
+      searchDB.set(CACHE_KEY, itemsAccumulator.current).catch(() => {});
     };
 
     load();
@@ -203,6 +207,7 @@ export function useSearchDataLoader(enabled: boolean) {
     searchableItems,
     books,
     isReady,
+    isFullyLoaded,
     completedCount,
     totalProgress
   };
