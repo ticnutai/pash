@@ -62,13 +62,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     open: false, sefer: 1, perek: 1, pasuk: 1, mefaresh: ""
   });
 
-  // Re-initialize worker whenever searchable items change (debounced for incremental loading)
+  // Initialize index whenever searchable items change (instant with regex-based search)
   useEffect(() => {
     if (searchableItems.length > 0) {
-      const timer = setTimeout(() => {
-        initializeIndex(searchableItems);
-      }, 300);
-      return () => clearTimeout(timer);
+      initializeIndex(searchableItems);
     }
   }, [searchableItems, initializeIndex]);
 
