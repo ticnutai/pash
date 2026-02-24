@@ -8,6 +8,7 @@ import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { UserMenu } from "@/components/UserMenu";
 import { SyncIndicator } from "@/components/SyncIndicator";
 import { GlobalSearchTrigger } from "@/components/GlobalSearchTrigger";
+import { InlineSearch } from "@/components/InlineSearch";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { DevicePreview } from "@/components/DevicePreview";
 import { MinimizeButton } from "@/components/MinimizeButton";
@@ -597,6 +598,10 @@ const Index = () => {
               <GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} />
               <UserMenu />
             </div>
+            {/* Inline quick search */}
+            <div className="px-2">
+              <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
+            </div>
           </div>
 
           {/* Desktop/Tablet Layout - Original horizontal layout */}
@@ -618,6 +623,7 @@ const Index = () => {
               <UserMenu />
             </div>
             <div className="flex items-center gap-3 order-2 lg:order-none flex-1 lg:flex-initial justify-center">
+              <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
               <h1 className="text-2xl lg:text-3xl font-bold text-primary-foreground text-center leading-tight">
                 חמישה חומשי תורה - שאלות ופירושים
               </h1>
