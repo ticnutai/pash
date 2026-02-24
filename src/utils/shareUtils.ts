@@ -3,6 +3,32 @@ import { toHebrewNumber } from "@/utils/hebrewNumbers";
 
 const SEFER_NAMES = ["בראשית", "שמות", "ויקרא", "במדבר", "דברים"];
 
+/**
+ * Build a share URL that goes through the OG edge function for rich previews.
+ * Social crawlers will see OG tags; real users get redirected to the app.
+ */
+export function buildOgShareUrl(params: {
+  seferId: number;
+  perek: number;
+  pasuk: number;
+  highlight?: string;
+  mefaresh?: string;
+}): string {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) {
+    // Fallback to direct app link
+    return `${window.location.origin}/?sefer=${params.seferId}&perek=${params.perek}&pasuk=${params.pasuk}`;
+  }
+  const qs = new URLSearchParams({
+    sefer: String(params.seferId),
+    perek: String(params.perek),
+    pasuk: String(params.pasuk),
+  });
+  if (params.highlight) qs.set("highlight", params.highlight);
+  if (params.mefaresh) qs.set("mefaresh", params.mefaresh);
+  return `${supabaseUrl}/functions/v1/og-share?${qs.toString()}`;
+}
+
 interface ShareCommentaryOptions {
   mefaresh: string;
   text: string;
@@ -58,8 +84,7 @@ export function formatPasukShareText({ seferId, perek, pasukNum, pasukText, cont
     }
   }
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const link = `${baseUrl}/?sefer=${seferId}&perek=${perek}&pasuk=${pasukNum}`;
+  const link = buildOgShareUrl({ seferId, perek, pasuk: pasukNum });
 
   text += `\n---\nמתוך אפליקציית חמישה חומשי תורה\n🔗 ${link}`;
   return text;
@@ -89,8 +114,7 @@ export function sharePasukEmail(options: SharePasukOptions) {
  * Generate a direct link to a specific pasuk and share/copy it.
  */
 export function sharePasukLink(seferId: number, perek: number, pasukNum: number) {
-  const baseUrl = window.location.origin;
-  const url = `${baseUrl}/?sefer=${seferId}&perek=${perek}&pasuk=${pasukNum}`;
+  const url = buildOgShareUrl({ seferId, perek, pasuk: pasukNum });
   
   if (navigator.share) {
     navigator.share({
