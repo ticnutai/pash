@@ -208,7 +208,7 @@ export const SideContentPanel = ({
       />
       <div 
         dir="rtl"
-        className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] bg-card border-2 border-accent/60 rounded-l-xl shadow-2xl z-40 animate-fade-in flex flex-col overflow-hidden"
+        className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] bg-card border border-accent/30 rounded-2xl shadow-2xl z-40 animate-fade-in flex flex-col overflow-hidden ml-1"
       >
         {panelContent}
       </div>
