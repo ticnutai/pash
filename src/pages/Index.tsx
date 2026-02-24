@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, CalendarCheck, CalendarOff } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
@@ -66,6 +66,12 @@ const Index = () => {
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const weeklyParshaLoadedRef = useRef(false);
+  const [autoWeeklyParsha, setAutoWeeklyParsha] = useState(() => {
+    try {
+      const saved = localStorage.getItem('autoWeeklyParsha');
+      return saved === null ? true : saved === 'true';
+    } catch { return true; }
+  });
   
   // Side content panel state (for Chumash view)
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
@@ -83,6 +89,23 @@ const Index = () => {
     
     const hasUrlParams = searchParams.get('sefer') || searchParams.get('perek') || searchParams.get('pasuk');
     if (hasUrlParams) {
+      setInitialLoadDone(true);
+      return;
+    }
+
+    // If auto weekly parsha is disabled, load saved state instead
+    if (!autoWeeklyParsha) {
+      const savedState = localStorage.getItem('lastReadingState');
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState);
+          if (state.selectedSefer) setSelectedSefer(state.selectedSefer);
+          if (state.selectedParsha) setSelectedParsha(state.selectedParsha);
+          if (state.selectedPerek) setSelectedPerek(state.selectedPerek);
+          if (state.selectedPasuk) setSelectedPasuk(state.selectedPasuk);
+          if (state.singlePasukMode !== undefined) setSinglePasukMode(state.singlePasukMode);
+        } catch { /* ignore */ }
+      }
       setInitialLoadDone(true);
       return;
     }
@@ -144,7 +167,7 @@ const Index = () => {
       }
     }
     setInitialLoadDone(true);
-  }, [searchParams, initialLoadDone]);
+  }, [searchParams, initialLoadDone, autoWeeklyParsha]);
 
   // Save reading state to localStorage whenever it changes
   useEffect(() => {
@@ -464,6 +487,15 @@ const Index = () => {
     setSidePanelOpen(true);
   }, []);
 
+  const toggleAutoWeeklyParsha = useCallback(() => {
+    setAutoWeeklyParsha(prev => {
+      const next = !prev;
+      localStorage.setItem('autoWeeklyParsha', String(next));
+      toast(next ? "פרשת השבוע תיטען אוטומטית" : "פרשת השבוע לא תיטען אוטומטית", { duration: 3000 });
+      return next;
+    });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       {/* Header - Fully Responsive */}
@@ -481,6 +513,15 @@ const Index = () => {
             
             {/* Bottom row: Action buttons - single line */}
             <div className="flex items-center justify-center gap-1.5 px-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleAutoWeeklyParsha}
+                className={cn("h-8 w-8", autoWeeklyParsha ? "text-accent" : "text-muted-foreground")}
+                title={autoWeeklyParsha ? "פרשת השבוע נטענת אוטומטית — לחץ לביטול" : "פרשת השבוע לא נטענת אוטומטית — לחץ להפעלה"}
+              >
+                {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
+              </Button>
               <SyncIndicator status={syncStatus} />
               <TextDisplaySettings />
               <GlobalSearchTrigger />
@@ -491,6 +532,15 @@ const Index = () => {
           {/* Desktop/Tablet Layout - Original horizontal layout */}
           <div className="hidden md:flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 order-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleAutoWeeklyParsha}
+                className={cn("h-9 w-9", autoWeeklyParsha ? "text-accent" : "text-muted-foreground")}
+                title={autoWeeklyParsha ? "פרשת השבוע נטענת אוטומטית — לחץ לביטול" : "פרשת השבוע לא נטענת אוטומטית — לחץ להפעלה"}
+              >
+                {autoWeeklyParsha ? <CalendarCheck className="h-5 w-5" /> : <CalendarOff className="h-5 w-5" />}
+              </Button>
               <SyncIndicator status={syncStatus} />
               {process.env.NODE_ENV === 'development' && <DevicePreview />}
               <TextDisplaySettings />
