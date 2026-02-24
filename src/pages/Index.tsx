@@ -27,6 +27,7 @@ import { yieldToMain } from "@/utils/asyncHelpers";
 import { lazyLoadSefer, preloadNextSefer } from "@/utils/lazyLoadSefer";
 import { usePinchZoom } from "@/hooks/usePinchZoom";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { SidePanelTrigger } from "@/components/SidePanelTrigger";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
@@ -686,6 +687,18 @@ const Index = () => {
             />
           )}
         </div>
+
+        {/* Persistent Side Panel Trigger Arrow */}
+        <SidePanelTrigger
+          isOpen={sidePanelOpen}
+          onClick={() => {
+            if (sidePanelOpen) {
+              setSidePanelOpen(false);
+            } else {
+              setSidePanelOpen(true);
+            }
+          }}
+        />
 
         {/* Side Content Panel */}
         <Suspense fallback={null}>

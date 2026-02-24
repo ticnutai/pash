@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useDevice } from "@/contexts/DeviceContext";
 import { SearchDialog } from "@/components/SearchDialog";
 import { sharePasukLink } from "@/utils/shareUtils";
+import { Input } from "@/components/ui/input";
 
 interface FloatingActionButtonProps {
   onNavigateToPasuk?: (sefer: number, perek: number, pasuk: number) => void;
@@ -14,12 +15,12 @@ interface FloatingActionButtonProps {
 }
 
 const FAB_ACTIONS = [
-  { id: "search", icon: Search, label: "חיפוש", color: "bg-primary text-primary-foreground" },
-  { id: "nav", icon: Navigation, label: "ניווט מהיר", color: "bg-secondary text-secondary-foreground" },
-  { id: "bookmarks", icon: Bookmark, label: "סימניות", color: "bg-accent text-accent-foreground" },
-  { id: "notes", icon: StickyNote, label: "הערות", color: "bg-muted text-muted-foreground" },
-  { id: "share", icon: Share2, label: "שתף פסוק", color: "bg-primary text-primary-foreground" },
-  { id: "settings", icon: Settings, label: "הגדרות", color: "bg-secondary text-secondary-foreground" },
+  { id: "search", icon: Search, label: "חיפוש" },
+  { id: "nav", icon: Navigation, label: "ניווט מהיר" },
+  { id: "bookmarks", icon: Bookmark, label: "סימניות" },
+  { id: "notes", icon: StickyNote, label: "הערות" },
+  { id: "share", icon: Share2, label: "שתף פסוק" },
+  { id: "settings", icon: Settings, label: "הגדרות" },
 ] as const;
 
 export const FloatingActionButton = ({
@@ -33,6 +34,8 @@ export const FloatingActionButton = ({
   const [expanded, setExpanded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Dragging state
   const [position, setPosition] = useState(() => {
@@ -88,6 +91,15 @@ export const FloatingActionButton = ({
     }
   }, [isDragging, position]);
 
+  // Focus search input when expanded
+  useEffect(() => {
+    if (expanded) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    } else {
+      setSearchQuery("");
+    }
+  }, [expanded]);
+
   // Close expanded menu when clicking outside
   useEffect(() => {
     if (!expanded) return;
@@ -125,14 +137,12 @@ export const FloatingActionButton = ({
         setBookmarksOpen(true);
         break;
       case "notes":
-        // Scroll to top to access notes in the current pasuk
         window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       case "share":
         if (currentSefer && currentPerek && currentPasuk) {
           sharePasukLink(currentSefer, currentPerek, currentPasuk);
         } else {
-          // Share app link
           if (navigator.share) {
             navigator.share({ title: "חמישה חומשי תורה", url: window.location.origin }).catch(() => {});
           } else {
@@ -142,20 +152,23 @@ export const FloatingActionButton = ({
         }
         break;
       case "settings":
-        // Click the settings button that's already rendered
         const settingsBtn = document.querySelector('[data-settings-trigger]') as HTMLElement;
         if (settingsBtn) settingsBtn.click();
         break;
     }
   }, [onOpenQuickNav, currentSefer, currentPerek, currentPasuk]);
 
+  const handleSearchSubmit = useCallback(() => {
+    if (searchQuery.trim()) {
+      setExpanded(false);
+      setSearchOpen(true);
+    }
+  }, [searchQuery]);
+
   // Determine menu expansion direction based on position
   const isNearBottom = position.y > window.innerHeight / 2;
-  const isNearRight = position.x > window.innerWidth / 2;
 
-  const btnSize = isMobile ? "h-11 w-11" : "h-9 w-9";
   const mainSize = isMobile ? "h-14 w-14" : "h-11 w-11";
-  const iconSize = isMobile ? "h-4.5 w-4.5" : "h-4 w-4";
 
   return (
     <>
@@ -164,36 +177,59 @@ export const FloatingActionButton = ({
         className="fixed z-[60]"
         style={{ left: position.x, top: position.y }}
       >
-        {/* Expanded action buttons - arc layout */}
+        {/* Expanded panel: icons row + search input */}
         {expanded && (
-          <div className="absolute animate-fade-in" style={{
-            [isNearBottom ? 'bottom' : 'top']: isMobile ? '60px' : '48px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-          }}>
+          <div 
+            className="absolute animate-fade-in"
+            style={{
+              [isNearBottom ? 'bottom' : 'top']: isMobile ? '60px' : '48px',
+              right: 0,
+            }}
+          >
             <div className={cn(
-              "flex flex-wrap items-center justify-center gap-2 p-2 rounded-2xl",
-              "bg-popover/95 backdrop-blur-sm border border-border shadow-2xl",
-              "max-w-[200px]"
+              "flex flex-col items-stretch gap-2 p-2.5 rounded-2xl",
+              "bg-popover/95 backdrop-blur-md border border-border shadow-2xl",
+              "w-[220px]"
             )}>
-              {FAB_ACTIONS.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={() => handleAction(action.id)}
-                    className={cn(
-                      "rounded-full shadow-md flex items-center justify-center transition-all duration-200",
-                      "hover:scale-110 active:scale-95",
-                      btnSize,
-                      action.color
-                    )}
-                    title={action.label}
-                  >
-                    <Icon className={iconSize} />
-                  </button>
-                );
-              })}
+              {/* Action icons row */}
+              <div className="flex items-center justify-center gap-1.5">
+                {FAB_ACTIONS.filter(a => a.id !== "search").map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={() => handleAction(action.id)}
+                      className={cn(
+                        "rounded-full flex items-center justify-center transition-all duration-200",
+                        "hover:scale-110 active:scale-95",
+                        "h-9 w-9 bg-muted/60 text-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                      title={action.label}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search input */}
+              <div className="relative" dir="rtl">
+                <Input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSearchSubmit();
+                  }}
+                  onClick={() => {
+                    setExpanded(false);
+                    setSearchOpen(true);
+                  }}
+                  placeholder="חיפוש בתורה..."
+                  className="h-9 text-sm pr-9 rounded-xl bg-background/80"
+                />
+                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
             </div>
           </div>
         )}
