@@ -183,7 +183,8 @@ export const FloatingActionButton = ({
             className="absolute animate-fade-in"
             style={{
               [isNearBottom ? 'bottom' : 'top']: isMobile ? '60px' : '48px',
-              right: 0,
+              // Keep menu inside viewport: if FAB is near left edge, open to the right; otherwise open to the left
+              ...(position.x < 230 ? { left: 0 } : { right: 0 }),
             }}
           >
             <div className={cn(
