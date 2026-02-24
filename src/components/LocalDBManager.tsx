@@ -365,6 +365,9 @@ export const LocalDBManager = () => {
       {/* Commentary View History */}
       <CommentaryHistory />
 
+      {/* Search Cache */}
+      <SearchCacheSection />
+
       {/* User Data Section */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-2">
@@ -493,50 +496,42 @@ const CommentaryHistory = () => {
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Search index cache */}
-      <Collapsible>
-        <div className="flex items-center justify-between">
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="p-0 h-auto">
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-          </CollapsibleTrigger>
-          <h4 className="font-semibold text-sm flex items-center gap-2">
-            מטמון חיפוש
-            <Search className="h-4 w-4 text-primary" />
-          </h4>
-        </div>
-        <CollapsibleContent className="mt-2">
-          <p className="text-xs text-muted-foreground text-right mb-2">
-            אינדקס החיפוש נשמר במכשיר לטעינה מהירה. ניקוי יגרום לבנייה מחדש בפעם הבאה שתפתח חיפוש.
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-2 text-destructive hover:text-destructive"
-            onClick={async () => {
-              try {
-                const req = indexedDB.open('torah_search_db', 2);
-                req.onsuccess = () => {
-                  const db = req.result;
-                  const tx = db.transaction('search_index', 'readwrite');
-                  tx.objectStore('search_index').clear();
-                  tx.oncomplete = () => {
-                    db.close();
-                    toast.success("מטמון החיפוש נוקה בהצלחה");
-                  };
-                };
-                req.onerror = () => toast.error("שגיאה בניקוי מטמון החיפוש");
-              } catch {
-                toast.error("שגיאה בניקוי מטמון החיפוש");
-              }
-            }}
-          >
-            <Trash2 className="h-3 w-3" />
-            נקה מטמון חיפוש
-          </Button>
-        </CollapsibleContent>
-      </Collapsible>
     </Card>
   );
 };
+
+/**
+ * SearchCacheSection — standalone section for clearing search index cache
+ */
+const SearchCacheSection = () => (
+  <Card className="p-4">
+    <div className="flex items-center justify-between mb-2">
+      <div />
+      <h4 className="font-semibold text-sm flex items-center gap-2">
+        מטמון חיפוש
+        <Search className="h-4 w-4 text-primary" />
+      </h4>
+    </div>
+    <p className="text-xs text-muted-foreground text-right mb-3">
+      אינדקס החיפוש נשמר במכשיר לטעינה מהירה. ניקוי יגרום לבנייה מחדש בפעם הבאה שתפתח חיפוש.
+    </p>
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full gap-2 text-destructive hover:text-destructive"
+      onClick={async () => {
+        try {
+          // Delete the entire database - simplest and most reliable approach
+          const deleteReq = indexedDB.deleteDatabase('torah_search_db');
+          deleteReq.onsuccess = () => toast.success("מטמון החיפוש נוקה בהצלחה");
+          deleteReq.onerror = () => toast.error("שגיאה בניקוי מטמון החיפוש");
+        } catch {
+          toast.error("שגיאה בניקוי מטמון החיפוש");
+        }
+      }}
+    >
+      <Trash2 className="h-3 w-3" />
+      נקה מטמון חיפוש
+    </Button>
+  </Card>
+);
