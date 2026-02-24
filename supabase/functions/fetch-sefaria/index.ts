@@ -31,6 +31,8 @@ serve(async (req) => {
       ref = `Alshich on ${book} ${chapter}:${verse}`;
     } else if (commentaryName === "Malbim") {
       ref = `Malbim on ${book} ${chapter}:${verse}`;
+    } else if (commentaryName === "Chizkuni") {
+      ref = `Chizkuni, ${book} ${chapter}:${verse}`;
     } else {
       ref = `${commentaryName.replace(/_/g, ' ')} on ${book} ${chapter}:${verse}`;
     }
