@@ -96,11 +96,9 @@ export function getCurrentWeeklyParsha(il: boolean = true): WeeklyParsha | null 
     const today = new Date();
     const hdate = new HDate(today);
     
-    // Get the upcoming Shabbat
-    // If today is Shabbat, get next week's Shabbat instead
+    // Get the upcoming Shabbat (or current day if it's Shabbat)
     const dayOfWeek = hdate.getDay();
-    const isSaturday = dayOfWeek === 6;
-    const saturday = isSaturday ? hdate.next().onOrAfter(6) : hdate.onOrAfter(6);
+    const saturday = dayOfWeek === 6 ? hdate : hdate.onOrAfter(6);
     
     // Get events for that Shabbat
     const events = HebrewCalendar.calendar({

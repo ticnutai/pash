@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus, Share2, Mail } from "lucide-react";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
 import { PasukDisplay } from "@/components/PasukDisplay";
@@ -13,6 +13,7 @@ import { useDisplayMode } from "@/contexts/DisplayModeContext";
 import { Button } from "@/components/ui/button";
 import { NotesDialog } from "@/components/NotesDialog";
 import { ContentEditor } from "@/components/ContentEditor";
+import { sharePasukWhatsApp, sharePasukEmail } from "@/utils/shareUtils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -135,14 +136,52 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                 </div>
 
                 {/* Left Side - Action Buttons */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Always Visible Icons (green box) */}
-                  <div className="flex items-center gap-1.5 pointer-events-auto">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                  {/* Always Visible Icons */}
+                  <div className="flex items-center gap-1 pointer-events-auto">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sharePasukWhatsApp({
+                          seferId,
+                          perek: pasuk.perek,
+                          pasukNum: pasuk.pasuk_num,
+                          pasukText: formatTorahText(pasuk.text),
+                          content: pasuk.content || [],
+                        });
+                      }}
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
+                      title="שתף בוואטסאפ"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sharePasukEmail({
+                          seferId,
+                          perek: pasuk.perek,
+                          pasukNum: pasuk.pasuk_num,
+                          pasukText: formatTorahText(pasuk.text),
+                          content: pasuk.content || [],
+                        });
+                      }}
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
+                      title="שתף במייל"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </Button>
+
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={(e) => handleCommentaries(e, pasuk)}
-                      className="h-9 w-9 hover:bg-accent/50 transition-colors"
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
                       title="פרשנים נוספים"
                     >
                       <BookOpen className="h-4 w-4" />
@@ -159,7 +198,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                       variant="ghost"
                       size="icon"
                       onClick={(e) => handleBookmark(e, pasuk)}
-                      className="h-9 w-9 hover:bg-accent/50 transition-colors"
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
                       title={isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? "הסר סימניה" : "הוסף סימניה"}
                     >
                       {isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? (

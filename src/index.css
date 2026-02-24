@@ -56,10 +56,8 @@ All colors MUST be HSL.
     --torah-cream: 40 60% 88%;
     --torah-parchment: 40 20% 97%;
     
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(220 60% 20%), hsl(220 50% 30%));
-    --gradient-gold: linear-gradient(135deg, hsl(45 90% 55%), hsl(45 80% 65%));
-    --gradient-subtle: linear-gradient(180deg, hsl(40 20% 97%), hsl(40 25% 95%));
+    /* Backgrounds */
+    --gradient-subtle: hsl(40 25% 95%);
     
     /* Shadows */
     --shadow-soft: 0 2px 8px hsla(220, 60%, 20%, 0.08);

@@ -6,8 +6,9 @@ import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useDevice } from "@/contexts/DeviceContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
+import { sharePasukWhatsApp, sharePasukEmail } from "@/utils/shareUtils";
 import { Button } from "@/components/ui/button";
-import { Bookmark, BookmarkCheck, Settings2, X, ChevronDown } from "lucide-react";
+import { Bookmark, BookmarkCheck, Settings2, X, ChevronDown, Share2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
@@ -134,12 +135,14 @@ const PasukRow = ({
   fontSize,
   isBookmarked,
   onToggleBookmark,
+  seferId,
 }: {
   pasuk: FlatPasuk;
   numColor: string;
   fontSize: number;
   isBookmarked: boolean;
   onToggleBookmark: (pasuk: FlatPasuk) => void;
+  seferId: number;
 }) => {
   const [hover, setHover] = useState(false);
 
@@ -150,22 +153,54 @@ const PasukRow = ({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      {/* Bookmark button */}
-      <button
-        onClick={() => onToggleBookmark(pasuk)}
+      {/* Action buttons */}
+      <span
         className={cn(
-          "absolute -right-8 top-0 transition-all duration-200 p-1 rounded",
-          hover || isBookmarked ? "opacity-100" : "opacity-0",
-          isBookmarked ? "text-accent" : "text-muted-foreground hover:text-accent"
+          "absolute -right-10 top-0 flex items-center gap-0.5 transition-all duration-200",
+          hover || isBookmarked ? "opacity-100" : "sm:opacity-0 opacity-100"
         )}
-        title={isBookmarked ? "הסר סימניה" : "הוסף סימניה"}
       >
-        {isBookmarked ? (
-          <BookmarkCheck className="h-4 w-4 fill-current" />
-        ) : (
-          <Bookmark className="h-4 w-4" />
-        )}
-      </button>
+        <button
+          onClick={() => onToggleBookmark(pasuk)}
+          className={cn(
+            "p-1 rounded transition-colors",
+            isBookmarked ? "text-accent" : "text-muted-foreground hover:text-accent"
+          )}
+          title={isBookmarked ? "הסר סימניה" : "הוסף סימניה"}
+        >
+          {isBookmarked ? (
+            <BookmarkCheck className="h-3.5 w-3.5 fill-current" />
+          ) : (
+            <Bookmark className="h-3.5 w-3.5" />
+          )}
+        </button>
+        <button
+          onClick={() => sharePasukWhatsApp({
+            seferId,
+            perek: pasuk.perek,
+            pasukNum: pasuk.pasuk_num,
+            pasukText: formatTorahText(pasuk.text),
+            content: pasuk.content || [],
+          })}
+          className="p-1 rounded text-muted-foreground hover:text-accent transition-colors"
+          title="שתף"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => sharePasukEmail({
+            seferId,
+            perek: pasuk.perek,
+            pasukNum: pasuk.pasuk_num,
+            pasukText: formatTorahText(pasuk.text),
+            content: pasuk.content || [],
+          })}
+          className="p-1 rounded text-muted-foreground hover:text-accent transition-colors"
+          title="שתף במייל"
+        >
+          <Mail className="h-3.5 w-3.5" />
+        </button>
+      </span>
 
       {/* Pasuk number */}
       <span
@@ -418,6 +453,7 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
                         fontSize={effectiveSize}
                         isBookmarked={isBookmarked(pasukId)}
                         onToggleBookmark={handleToggleBookmark}
+                        seferId={pasuk.sefer}
                       />
                     );
                   })}
@@ -453,6 +489,7 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
                         fontSize={effectiveSize}
                         isBookmarked={isBookmarked(pasukId)}
                         onToggleBookmark={handleToggleBookmark}
+                        seferId={pasuk.sefer}
                       />
                     );
                   })}
