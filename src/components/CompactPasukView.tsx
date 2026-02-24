@@ -115,7 +115,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
               )}
             >
               {/* Header - Single Row Layout */}
-              <div className="flex items-center justify-between gap-4 mb-3 pointer-events-none" dir="rtl">
+              <div className="flex items-center justify-between gap-2 sm:gap-4 mb-3 pointer-events-none" dir="rtl">
                 {/* Right Side - Pasuk Number + Metadata (horizontal) */}
                 <div className="flex items-center gap-3">
                   {/* Pasuk Number in Circle */}
@@ -129,7 +129,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                   </div>
                   
                   {/* Metadata - Horizontal Display */}
-                  <div className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                  <div className="text-xs sm:text-sm text-muted-foreground font-medium truncate max-w-[50vw] sm:max-w-none">
                     {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
                   </div>
                 </div>
@@ -170,8 +170,8 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                     </Button>
                   </div>
 
-                  {/* Hover-Only Icons (red box) */}
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
+                  {/* Hover-Only Icons - always visible on mobile for touch access */}
+                  <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
                     <Button
                       variant="ghost"
                       size="icon"
