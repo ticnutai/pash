@@ -715,6 +715,11 @@ const Index = () => {
             onModeChange={setSidePanelMode}
             selectedPasuk={sidePanelPasuk}
             seferId={selectedSefer}
+            availablePesukim={displayedPesukim}
+            onPasukSelect={(pasuk) => {
+              setSidePanelPasuk(pasuk);
+              setChumashSelectedPasukId(pasuk.id);
+            }}
           />
         </Suspense>
 
@@ -789,6 +794,13 @@ const Index = () => {
                     totalPesukimInPerek={totalPesukimInPerek}
                     selectedPasuk={selectedPasuk}
                     onPasukSelect={handlePasukSelect}
+                    onResetToSefer={() => {
+                      setSelectedParsha(null);
+                      setSelectedPerek(null);
+                      setSelectedPasuk(null);
+                      setSinglePasukMode(false);
+                      setCurrentPasukIndex(0);
+                    }}
                   />
                 </Suspense>
               )}
