@@ -42,9 +42,10 @@ function clearSearchHistory() {
 interface SearchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onNavigateToPasuk?: (sefer: number, perek: number, pasuk: number) => void;
 }
 
-export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
+export function SearchDialog({ open, onOpenChange, onNavigateToPasuk }: SearchDialogProps) {
   // Load data only when dialog opens, with parallel loading + IndexedDB cache
   const { searchableItems, books, isReady, isFullyLoaded, completedCount, totalProgress } = useSearchDataLoader(open);
 
@@ -55,6 +56,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [searchType, setSearchType] = useState<"all" | "question" | "perush" | "pasuk">("pasuk");
   const [mefaresh, setMefaresh] = useState("הכל");
   const [useWildcard, setUseWildcard] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [activeResults, setActiveResults] = useState<any[]>([]);
   const [aiSuggestion, setAiSuggestion] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -76,6 +78,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     try {
       const results = await workerSearch(query, { sefer, searchType, mefaresh, useWildcard });
       setActiveResults(results);
+      setHasSearched(true);
       if (saveHistory) {
         addToSearchHistory(query);
         setSearchHistoryItems(getSearchHistory());
@@ -94,7 +97,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   // Auto-search as user types (debounced)
   useEffect(() => {
     if (searchQuery.trim().length < 2 || !workerReady) {
-      if (!searchQuery.trim()) setActiveResults([]);
+      if (!searchQuery.trim()) {
+        setActiveResults([]);
+        setHasSearched(false);
+      }
       return;
     }
     const timer = setTimeout(() => runSearch(searchQuery), 300);
@@ -211,12 +217,18 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                     onSeferChange={setSefer} onSearchTypeChange={setSearchType} onMefareshChange={setMefaresh} />
 
                   <div className="pt-4">
-                    {activeResults.length > 0 && (
+                    {hasSearched && activeResults.length > 0 && (
                       <div className="mb-4 text-sm text-muted-foreground text-right">
                         נמצאו {activeResults.length} תוצאות
                       </div>
                     )}
-                    <SearchResults results={activeResults} onExpandCommentary={handleExpandCommentary} />
+                    {hasSearched && activeResults.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        לא נמצאו תוצאות
+                      </div>
+                    )}
+                    <SearchResults results={activeResults} onExpandCommentary={handleExpandCommentary}
+                      onNavigate={onNavigateToPasuk ? (s, p, v) => { onOpenChange(false); onNavigateToPasuk(s, p, v); } : undefined} />
                   </div>
                 </TabsContent>
 
@@ -247,7 +259,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                         נמצאו {activeResults.length} תוצאות
                       </div>
                     )}
-                    <SearchResults results={activeResults} onExpandCommentary={handleExpandCommentary} />
+                    <SearchResults results={activeResults} onExpandCommentary={handleExpandCommentary}
+                      onNavigate={onNavigateToPasuk ? (s, p, v) => { onOpenChange(false); onNavigateToPasuk(s, p, v); } : undefined} />
                   </div>
                 </TabsContent>
               </Tabs>
