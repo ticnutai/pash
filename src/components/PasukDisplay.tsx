@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, memo } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -63,6 +64,7 @@ interface PasukDisplayProps {
 }
 
 const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderActions = false }: PasukDisplayProps) => {
+  const navigate = useNavigate();
   const { settings } = useFontAndColorSettings();
   const { displaySettings } = useDisplayMode();
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
@@ -248,7 +250,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                         size={displayStyles.isMobile ? "icon" : "sm"}
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`, '_blank');
+                          navigate(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`);
                         }}
                         className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
                         title="פרשנים נוספים מספריא (נפתח בטאב חדש)"
