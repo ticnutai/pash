@@ -5,6 +5,7 @@ interface SearchFilters {
   sefer: number | null;
   searchType: 'all' | 'question' | 'perush' | 'pasuk';
   mefaresh: string;
+  useWildcard?: boolean;
 }
 
 const removeNiqqud = (text: string) => text.replace(/[\u0591-\u05C7]/g, '');
@@ -41,10 +42,16 @@ export const useSearchWorker = () => {
             return;
           }
 
-          const escaped = normalizedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          let pattern: string;
+          if (filters?.useWildcard && normalizedQuery.includes('*')) {
+            // Replace * with .* for wildcard matching, escape the rest
+            pattern = normalizedQuery.split('*').map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*');
+          } else {
+            pattern = normalizedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          }
           let regex: RegExp;
           try {
-            regex = new RegExp(escaped, 'gi');
+            regex = new RegExp(pattern, 'gi');
           } catch {
             setIsSearching(false);
             resolve([]);

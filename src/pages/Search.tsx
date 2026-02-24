@@ -1,18 +1,19 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Toggle } from "@/components/ui/toggle";
 import { SearchBar } from "@/components/search/SearchBar";
 import { SearchFilters } from "@/components/search/SearchFilters";
 import { SearchResults } from "@/components/search/SearchResults";
 import { CommentaryExpandDialog } from "@/components/CommentaryExpandDialog";
 import { useSearchWorker } from "@/hooks/useSearchWorker";
 import { useSearchDataLoader } from "@/hooks/useSearchDataLoader";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Asterisk } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { useEffect } from "react";
+
 
 export default function Search() {
   const { searchableItems, books, isReady, isFullyLoaded, completedCount, totalProgress } = useSearchDataLoader(true);
@@ -22,6 +23,7 @@ export default function Search() {
   const [sefer, setSefer] = useState<number | null>(null);
   const [searchType, setSearchType] = useState<"all" | "question" | "perush" | "pasuk">("pasuk");
   const [mefaresh, setMefaresh] = useState("הכל");
+  const [useWildcard, setUseWildcard] = useState(false);
   const [activeResults, setActiveResults] = useState<any[]>([]);
   const [aiSuggestion, setAiSuggestion] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -39,10 +41,10 @@ export default function Search() {
   const runSearch = useCallback(async (query: string) => {
     if (!query.trim() || !workerReady) return;
     try {
-      const results = await workerSearch(query, { sefer, searchType, mefaresh });
+      const results = await workerSearch(query, { sefer, searchType, mefaresh, useWildcard });
       setActiveResults(results);
     } catch { toast.error("שגיאה בחיפוש"); }
-  }, [workerSearch, workerReady, sefer, searchType, mefaresh]);
+  }, [workerSearch, workerReady, sefer, searchType, mefaresh, useWildcard]);
 
   const handleExactSearch = useCallback(() => {
     if (!searchQuery.trim()) { toast.error("נא להזין שאילתת חיפוש"); return; }
@@ -97,7 +99,18 @@ export default function Search() {
           </TabsList>
 
           <TabsContent value="exact" className="space-y-4 mt-4">
-            <SearchBar value={searchQuery} onChange={setSearchQuery} onSearch={handleExactSearch} />
+            <div className="flex items-center gap-2">
+              <SearchBar value={searchQuery} onChange={setSearchQuery} onSearch={handleExactSearch} />
+              <Toggle
+                pressed={useWildcard}
+                onPressedChange={setUseWildcard}
+                size="sm"
+                className="shrink-0 h-10 px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                title="חיפוש עם כוכביות (למשל: בר*שית)"
+              >
+                <Asterisk className="h-4 w-4" />
+              </Toggle>
+            </div>
             <SearchFilters sefer={sefer} searchType={searchType} mefaresh={mefaresh}
               onSeferChange={setSefer} onSearchTypeChange={setSearchType} onMefareshChange={setMefaresh} />
             <div className="pt-4">
