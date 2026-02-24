@@ -465,9 +465,9 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background pb-20 overflow-x-hidden">
+    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       {/* Header - Fully Responsive */}
-      <header className="sticky top-0 z-50 bg-gradient-to-l from-primary via-primary to-sidebar-background shadow-lg">
+      <header className="sticky top-0 z-50 bg-sidebar-background shadow-lg">
         <div className="w-full px-3 sm:px-4 py-3 sm:py-6 bg-sidebar-background sm:rounded-3xl">
           {/* Mobile Layout - Stack vertically */}
           <div className="flex flex-col gap-2 md:hidden">

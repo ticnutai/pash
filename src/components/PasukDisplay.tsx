@@ -217,7 +217,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
         }}
       >
         <CardHeader 
-          className="bg-gradient-to-l from-secondary/30 to-card relative group"
+          className="bg-secondary/30 relative group"
           style={{ padding: displayStyles.isMobile ? "0.75rem" : undefined }}
         >
           <div className="absolute top-2 left-2 z-10 flex gap-1">
