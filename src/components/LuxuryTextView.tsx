@@ -6,9 +6,9 @@ import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useDevice } from "@/contexts/DeviceContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
-import { sharePasukWhatsApp, sharePasukEmail } from "@/utils/shareUtils";
+import { sharePasukWhatsApp, sharePasukEmail, sharePasukLink } from "@/utils/shareUtils";
 import { Button } from "@/components/ui/button";
-import { Bookmark, BookmarkCheck, Settings2, X, ChevronDown, Share2, Mail } from "lucide-react";
+import { Bookmark, BookmarkCheck, Settings2, X, ChevronDown, Share2, Mail, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
@@ -200,8 +200,14 @@ const PasukRow = ({
         >
           <Mail className="h-3.5 w-3.5" />
         </button>
+        <button
+          onClick={() => sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num)}
+          className="p-1 rounded text-muted-foreground hover:text-accent transition-colors"
+          title="שתף קישור"
+        >
+          <Link2 className="h-3.5 w-3.5" />
+        </button>
       </span>
-
       {/* Pasuk number */}
       <span
         className="select-none"

@@ -9,7 +9,8 @@ import {
   Pencil,
   Trash2,
   Share2,
-  Mail
+  Mail,
+  Link2
 } from "lucide-react";
 import { FlatPasuk } from "@/types/torah";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -40,7 +41,7 @@ import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { normalizeMefareshName } from "@/utils/names";
 import { fixText } from "@/utils/fixData";
 import { formatTorahText } from "@/utils/textUtils";
-import { sharePasukWhatsApp, sharePasukEmail } from "@/utils/shareUtils";
+import { sharePasukWhatsApp, sharePasukEmail, sharePasukLink } from "@/utils/shareUtils";
 import { ClickableText } from "@/components/ClickableText";
 import { PasukLineActions } from "@/components/PasukLineActions";
 import { NotesDialog } from "@/components/NotesDialog";
@@ -288,6 +289,18 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                         title="שתף במייל"
                       >
                         <Mail className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size={displayStyles.isMobile ? "icon" : "sm"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num);
+                        }}
+                        className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
+                        title="שתף קישור לפסוק"
+                      >
+                        <Link2 className="h-4 w-4" />
                       </Button>
                     </div>
                     <Badge variant="outline" className={`font-bold flex-shrink-0 ${displayStyles.isMobile ? "text-xs" : ""}`}>
