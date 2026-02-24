@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Toggle } from "@/components/ui/toggle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { SearchResults } from "@/components/search/SearchResults";
 import { CommentaryExpandDialog } from "@/components/CommentaryExpandDialog";
 import { useSearchWorker } from "@/hooks/useSearchWorker";
 import { useSearchDataLoader } from "@/hooks/useSearchDataLoader";
-import { Loader2, Sparkles, Maximize2, Minimize2, Clock } from "lucide-react";
+import { Loader2, Sparkles, Maximize2, Minimize2, Clock, Asterisk } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -53,6 +54,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [sefer, setSefer] = useState<number | null>(null);
   const [searchType, setSearchType] = useState<"all" | "question" | "perush" | "pasuk">("pasuk");
   const [mefaresh, setMefaresh] = useState("הכל");
+  const [useWildcard, setUseWildcard] = useState(false);
   const [activeResults, setActiveResults] = useState<any[]>([]);
   const [aiSuggestion, setAiSuggestion] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -72,7 +74,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const runSearch = useCallback(async (query: string, saveHistory = false) => {
     if (!query.trim() || !workerReady) return;
     try {
-      const results = await workerSearch(query, { sefer, searchType, mefaresh });
+      const results = await workerSearch(query, { sefer, searchType, mefaresh, useWildcard });
       setActiveResults(results);
       if (saveHistory) {
         addToSearchHistory(query);
@@ -81,7 +83,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     } catch (error) {
       console.error("Search error:", error);
     }
-  }, [workerSearch, workerReady, sefer, searchType, mefaresh]);
+  }, [workerSearch, workerReady, sefer, searchType, mefaresh, useWildcard]);
 
   const handleExactSearch = useCallback(() => {
     if (!searchQuery.trim()) { toast.error("נא להזין שאילתת חיפוש"); return; }
@@ -170,7 +172,18 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                 </TabsList>
 
                 <TabsContent value="exact" className="space-y-4 mt-4">
-                  <SearchBar value={searchQuery} onChange={setSearchQuery} onSearch={handleExactSearch} />
+                  <div className="flex items-center gap-2">
+                    <SearchBar value={searchQuery} onChange={setSearchQuery} onSearch={handleExactSearch} />
+                    <Toggle
+                      pressed={useWildcard}
+                      onPressedChange={setUseWildcard}
+                      size="sm"
+                      className="shrink-0 h-10 px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                      title="חיפוש עם כוכביות (למשל: בר*שית)"
+                    >
+                      <Asterisk className="h-4 w-4" />
+                    </Toggle>
+                  </div>
 
                   {searchHistoryItems.length > 0 && !searchQuery && activeResults.length === 0 && (
                     <div className="space-y-2">
