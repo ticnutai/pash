@@ -499,8 +499,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       {/* Header - Fully Responsive */}
-      <header className="sticky top-0 z-50 bg-sidebar-background shadow-lg">
-        <div className="w-full px-3 sm:px-4 py-3 sm:py-6 bg-sidebar-background sm:rounded-3xl">
+      <header className="sticky top-0 z-50 bg-sidebar shadow-lg">
+        <div className="w-full px-3 sm:px-4 py-3 sm:py-6 bg-sidebar sm:rounded-3xl">
           {/* Mobile Layout - Stack vertically */}
           <div className="flex flex-col gap-2 md:hidden">
             {/* Top row: Title and Book icon */}
