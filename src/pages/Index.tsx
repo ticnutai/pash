@@ -67,6 +67,7 @@ const Index = () => {
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
+  const pendingSearchNav = useRef<{ perek: number; pasuk: number } | null>(null); // pending navigation from search
   const [autoWeeklyParsha, setAutoWeeklyParsha] = useState(() => {
     try {
       const saved = localStorage.getItem('autoWeeklyParsha');
@@ -243,8 +244,21 @@ const Index = () => {
         seferCache.set(selectedSefer, sefer);
         setSeferData(sefer);
         
-        // Only reset selections if this isn't the weekly parsha initial load for THIS sefer
-        if (weeklyParshaLoadedRef.current === selectedSefer) {
+        // Check if there's a pending search navigation for this sefer
+        if (pendingSearchNav.current) {
+          const nav = pendingSearchNav.current;
+          pendingSearchNav.current = null;
+          for (const parsha of sefer.parshiot) {
+            if (parsha.perakim.some(p => p.perek_num === nav.perek)) {
+              setSelectedParsha(parsha.parsha_id);
+              break;
+            }
+          }
+          setSelectedPerek(nav.perek);
+          setSelectedPasuk(nav.pasuk);
+          setSinglePasukMode(false);
+          setCurrentPasukIndex(0);
+        } else if (weeklyParshaLoadedRef.current === selectedSefer) {
           // This is the sefer loaded by weekly parsha - keep selections
           weeklyParshaLoadedRef.current = false;
         } else if (!weeklyParshaLoadedRef.current) {
@@ -494,20 +508,32 @@ const Index = () => {
 
   // Handle navigation from search results
   const handleSearchNavigate = useCallback((seferId: number, perek: number, pasuk: number) => {
-    setSelectedSefer(seferId);
-    const cached = seferCache.get(seferId);
-    if (cached) {
-      for (const parsha of cached.parshiot) {
+    // Store pending navigation so loadSefer effect won't reset selections
+    pendingSearchNav.current = { perek, pasuk };
+    
+    const applyNav = (data: Sefer) => {
+      for (const parsha of data.parshiot) {
         if (parsha.perakim.some(p => p.perek_num === perek)) {
           setSelectedParsha(parsha.parsha_id);
           break;
         }
       }
+      setSelectedPerek(perek);
+      setSelectedPasuk(pasuk);
+      setSinglePasukMode(false);
+      setCurrentPasukIndex(0);
+    };
+
+    if (seferId === selectedSefer && seferData) {
+      // Same sefer - apply immediately
+      applyNav(seferData);
+      pendingSearchNav.current = null;
+    } else {
+      // Different sefer - set sefer and let loadSefer handle the rest
+      setSeferData(null);
+      setSelectedSefer(seferId);
     }
-    setSelectedPerek(perek);
-    setSelectedPasuk(pasuk);
-    setSinglePasukMode(false);
-  }, [seferCache]);
+  }, [seferCache, selectedSefer, seferData]);
 
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
