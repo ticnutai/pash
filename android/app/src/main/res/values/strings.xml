@@ -4,4 +4,9 @@
     <string name="title_activity_main">חמישה חומשי תורה</string>
     <string name="package_name">com.torahapp.pash</string>
     <string name="custom_url_scheme">com.torahapp.pash</string>
+    <!-- Widget -->
+    <string name="widget_label">פסוק היום</string>
+    <string name="widget_title">✡ פסוק היום</string>
+    <string name="widget_open">פתח אפליקציה</string>
+    <string name="widget_description">מציג פסוק יומי מחמשת חומשי התורה</string>
 </resources>

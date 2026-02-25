@@ -1,5 +1,7 @@
 import { toast } from "sonner";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
+import { FlatPasuk } from "@/types/torah";
+import { formatTorahText } from "@/utils/textUtils";
 
 const SEFER_NAMES = ["בראשית", "שמות", "ויקרא", "במדבר", "דברים"];
 
@@ -144,4 +146,96 @@ export async function shareCommentary(options: ShareCommentaryOptions) {
     navigator.clipboard.writeText(shareText);
     toast.success("הפירוש הועתק לשיתוף");
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Multi-pasuk sharing with full commentary content
+// ─────────────────────────────────────────────────────────────
+
+export type ShareLevel = "text-only" | "text-titles" | "full";
+
+/**
+ * Format a single pasuk with the requested level of detail.
+ */
+function formatOnePasuk(pasuk: FlatPasuk, level: ShareLevel): string {
+  const seferName = SEFER_NAMES[pasuk.sefer - 1] || "";
+  const location = `${seferName} פרק ${toHebrewNumber(pasuk.perek)} פסוק ${toHebrewNumber(pasuk.pasuk_num)}`;
+  const pasukText = formatTorahText(pasuk.text);
+  const content = pasuk.content || [];
+
+  let out = `📖 *${location}*\n${pasukText}`;
+
+  if (level === "text-only" || content.length === 0) return out;
+
+  for (const block of content) {
+    out += `\n\n📌 *${block.title}*`;
+
+    if (level === "text-titles") continue;               // "full" continues below
+
+    for (const question of block.questions) {
+      out += `\n\n❓ ${question.text}`;
+      for (const perush of question.perushim) {
+        const mefareshDisplay = perush.mefaresh;
+        out += `\n💬 *${mefareshDisplay}:* ${perush.text}`;
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Format multiple pesukim into a single shareable string.
+ */
+export function formatMultiPasukShareText(
+  pesukim: FlatPasuk[],
+  level: ShareLevel = "full"
+): string {
+  const divider = "\n\n" + "─".repeat(30) + "\n\n";
+  const sections = pesukim.map((p) => formatOnePasuk(p, level));
+  return sections.join(divider) + "\n\n---\nמתוך אפליקציית חמישה חומשי תורה";
+}
+
+/**
+ * Share multiple pesukim via native share or clipboard.
+ */
+export async function shareMultiplePesukim(
+  pesukim: FlatPasuk[],
+  level: ShareLevel = "full"
+) {
+  if (pesukim.length === 0) return;
+  const text = formatMultiPasukShareText(pesukim, level);
+  const title =
+    pesukim.length === 1
+      ? `${SEFER_NAMES[pesukim[0].sefer - 1]} ${toHebrewNumber(pesukim[0].perek)}:${toHebrewNumber(pesukim[0].pasuk_num)}`
+      : `${pesukim.length} פסוקים נבחרים`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text });
+    } catch {
+      // cancelled
+    }
+  } else {
+    await navigator.clipboard.writeText(text);
+    toast.success("הפסוקים הועתקו ללוח");
+  }
+}
+
+/**
+ * Export multiple pesukim as a downloadable .txt file.
+ */
+export function exportMultiPasukAsFile(
+  pesukim: FlatPasuk[],
+  level: ShareLevel = "full"
+) {
+  const text = formatMultiPasukShareText(pesukim, level);
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `תורה_${new Date().toISOString().slice(0, 10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("הקובץ הוכן להורדה");
 }

@@ -22,6 +22,7 @@ const Auth = lazy(() => import("./pages/Auth").then(m => ({ default: m.Auth })))
 const Commentaries = lazy(() => import("./pages/Commentaries").then(m => ({ default: m.Commentaries })));
 const UserProfile = lazy(() => import("./pages/UserProfile").then(m => ({ default: m.UserProfile })));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const LayoutEditor = lazy(() => import("./pages/LayoutEditor").then(m => ({ default: m.LayoutEditor })));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -53,6 +54,7 @@ const App = () => (
                               <Route path="/profile" element={<UserProfile />} />
                               <Route path="/commentaries/:seferId/:perek/:pasuk" element={<Commentaries />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                              <Route path="/layout-editor" element={<LayoutEditor />} />
                               <Route path="*" element={<NotFound />} />
                             </Routes>
                           </Suspense>

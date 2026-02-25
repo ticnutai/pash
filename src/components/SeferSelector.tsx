@@ -40,10 +40,17 @@ export const SeferSelector = ({
 }: SeferSelectorProps) => {
   const [level, setLevel] = useState<SelectionLevel>("sefer");
   const hasMountedRef = useRef(false);
+  // Skip the first post-mount effect run — that's the parent's initial state
+  // restore (weekly parsha / localStorage). We always want to open at "sefer" level.
+  const isFirstParentUpdateRef = useRef(true);
 
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
+      return;
+    }
+    if (isFirstParentUpdateRef.current) {
+      isFirstParentUpdateRef.current = false;
       return;
     }
 

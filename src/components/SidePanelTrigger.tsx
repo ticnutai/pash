@@ -42,6 +42,7 @@ export const SidePanelTrigger = ({ isOpen, onClick }: SidePanelTriggerProps) => 
   return (
     <button
       onClick={onClick}
+      data-layout="side-panel-trigger" data-layout-label="◀ חץ פאנל צד"
       className={cn(
         "fixed left-0 z-[35] flex items-center justify-center",
         "w-3.5 h-10 rounded-r-md",

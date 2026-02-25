@@ -48,6 +48,7 @@ interface SideContentPanelProps {
   seferId: number;
   availablePesukim?: FlatPasuk[];
   onPasukSelect?: (pasuk: FlatPasuk) => void;
+  inGrid?: boolean;
 }
 
 export const SideContentPanel = ({ 
@@ -59,6 +60,7 @@ export const SideContentPanel = ({
   seferId,
   availablePesukim = [],
   onPasukSelect,
+  inGrid = false
 }: SideContentPanelProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -200,7 +202,22 @@ export const SideContentPanel = ({
     );
   }
 
-  // Desktop: side panel
+  // Desktop: in-grid panel (overlaid on left margin, same height as verse cards & quick selector)
+  if (inGrid) {
+    if (!isOpen) return null;
+    return (
+      <div 
+        dir="rtl"
+        data-layout="side-panel" data-layout-label="📋 פאנל תוכן צדי"
+        className="bg-card border border-accent/30 rounded-2xl shadow-2xl flex flex-col overflow-y-auto z-40 animate-fade-in sticky top-0 self-start"
+        style={{ minHeight: 'calc(100vh - 200px)' }}
+      >
+        {panelContent}
+      </div>
+    );
+  }
+
+  // Desktop: side panel (legacy fixed position)
   if (!isOpen) return null;
 
   return (
@@ -212,7 +229,8 @@ export const SideContentPanel = ({
       />
       <div 
         dir="rtl"
-        className="fixed left-0 top-[140px] md:top-[160px] w-80 md:w-96 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] bg-card border border-accent/30 rounded-2xl shadow-2xl z-40 animate-fade-in flex flex-col overflow-hidden ml-1"
+        data-layout="side-panel" data-layout-label="📋 פאנל תוכן צדי"
+        className="fixed left-0 top-[460px] md:top-[470px] w-80 md:w-96 max-h-[calc(100vh-470px)] bg-card border border-accent/30 rounded-2xl shadow-2xl z-40 animate-fade-in flex flex-col overflow-y-auto ml-1"
       >
         {panelContent}
       </div>

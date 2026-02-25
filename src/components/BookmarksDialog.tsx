@@ -70,7 +70,7 @@ export const BookmarksDialog = () => {
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto text-right">
+      <DialogContent data-layout="dialog-bookmarks" data-layout-label="📦 דיאלוג: סימניות" className="max-w-3xl max-h-[80vh] overflow-y-auto text-right">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 justify-end text-2xl">
             <span>הסימניות שלי</span>

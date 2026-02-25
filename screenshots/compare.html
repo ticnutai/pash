@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>השוואת פריסה — אחד לאחד</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+    header { padding: 14px 20px; background: #1e293b; border-bottom: 1px solid #334155;
+      display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 16px; font-weight: 700; }
+    header span { font-size: 12px; color: #64748b; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 100%; }
+    .pane { position: relative; }
+    .pane label {
+      position: absolute; top: 10px; right: 10px; z-index: 10;
+      background: rgba(0,0,0,0.7); color: #fff; font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 4px; pointer-events: none;
+    }
+    .pane img { width: 100%; display: block; }
+
+    /* overlay diff toggle */
+    .diff-wrap { position: relative; overflow: hidden; cursor: crosshair; }
+    .diff-wrap img.overlay {
+      position: absolute; top: 0; left: 0; width: 100%; opacity: 0.5;
+      mix-blend-mode: difference; pointer-events: none;
+    }
+
+    .controls { padding: 12px 20px; display: flex; gap: 12px; align-items: center;
+      background: #1e293b; border-bottom: 1px solid #334155; flex-wrap: wrap; }
+    .controls label { font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .controls input[type=range] { width: 140px; }
+    a { color: #60a5fa; text-decoration: none; font-size: 12px; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🔍 השוואת פריסה — עמוד אמיתי מול Layout Editor</h1>
+    <span>צולם ב-24.2.2026, 19:15:35</span>
+  </header>
+
+  <div class="controls">
+    <label>
+      <input type="checkbox" id="toggleOverlay" onchange="toggleOv(this)">
+      הצג שכבת-על (blend-difference)
+    </label>
+    <label>
+      שקיפות שכבה: <input type="range" min="0" max="100" value="50" id="opRange"
+        oninput="document.querySelector('.overlay').style.opacity = this.value/100">
+    </label>
+    <a href="real-index.png" target="_blank">פתח צילום אמיתי ↗</a>
+    <a href="layout-editor.png" target="_blank">פתח צילום editor ↗</a>
+  </div>
+
+  <div class="grid">
+    <div class="pane diff-wrap" id="realPane">
+      <label>עמוד הבית (אמיתי)</label>
+      <img src="real-index.png" alt="real" />
+      <img class="overlay" src="layout-editor.png" alt="overlay" style="display:none;opacity:0.5" />
+    </div>
+    <div class="pane">
+      <label>Layout Editor</label>
+      <img src="layout-editor.png" alt="editor" />
+    </div>
+  </div>
+
+  <script>
+    function toggleOv(cb) {
+      document.querySelector('.overlay').style.display = cb.checked ? 'block' : 'none';
+    }
+  </script>
+</body>
+</html>

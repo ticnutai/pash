@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,8 @@ import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "@/components/ColorPicker";
 import { BookmarksDialog } from "@/components/BookmarksDialog";
 import { getCalendarPreference, setCalendarPreference } from "@/utils/parshaUtils";
+import { useNotifications } from "@/hooks/useNotifications";
+import { Input } from "@/components/ui/input";
 import { getRememberedCredentials, getAutoLoginEnabled, setAutoLoginEnabled, clearRememberedCredentials } from "@/pages/Auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut } from "lucide-react";
@@ -122,6 +124,7 @@ export const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { settings, updateSettings } = useFontAndColorSettings();
   const [isIsrael, setIsIsrael] = useState(getCalendarPreference());
+  const { settings: notifSettings, updateSettings: updateNotif, permission, requestPermission, sendTestNotification, supported: notifSupported } = useNotifications();
 
   const handleCalendarChange = (checked: boolean) => {
     setIsIsrael(checked);
@@ -133,13 +136,14 @@ export const Settings = () => {
       <DialogTrigger asChild>
         <Button 
           data-settings-trigger
+          data-layout="floating-settings" data-layout-label="⚙️ הגדרות צפות"
           size="icon"
           className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-50 bg-primary hover:bg-primary/90"
         >
           <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] sm:max-w-[650px] max-h-[85vh] overflow-y-auto text-right">
+      <DialogContent data-layout="dialog-settings" data-layout-label="📦 דיאלוג: הגדרות" className="w-[95vw] sm:max-w-[650px] max-h-[85vh] overflow-y-auto text-right">
         <DialogHeader>
           <DialogTitle className="text-right text-xl sm:text-2xl flex items-center justify-end gap-2">
             <span>הגדרות</span>
@@ -148,11 +152,16 @@ export const Settings = () => {
         </DialogHeader>
 
         <Tabs defaultValue="calendar" className="w-full" dir="rtl">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 mb-4 sm:mb-6 gap-0.5 sm:gap-1">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 mb-4 sm:mb-6 gap-0.5 sm:gap-1">
             <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2">
               <span className="hidden sm:inline">לוח</span>
               <span className="sm:hidden">לוח</span>
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2">
+              <span className="hidden sm:inline">תזכורות</span>
+              <span className="sm:hidden">שעון</span>
+              <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
             </TabsTrigger>
             <TabsTrigger value="themes" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2">
               <span className="hidden sm:inline">ערכות נושא</span>
@@ -226,6 +235,116 @@ export const Settings = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* ── NOTIFICATION SETTINGS ─────────────────────────────── */}
+
+          <TabsContent value="notifications" className="space-y-4">
+            <Card className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-lg mb-1 flex items-center gap-2 justify-end">
+                    <span>תזכורת לימוד יומית</span>
+                    <Bell className="h-5 w-5 text-primary" />
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-right">
+                    קבל תראות בדפדפן כדי להזכיר לעצמך ללמוד תורה מדי יום
+                  </p>
+                </div>
+
+                <Separator />
+
+                {!notifSupported && (
+                  <div className="p-4 bg-destructive/10 rounded-lg text-right text-sm text-destructive">
+                    הדפדפן שלך אינו תומך בהתראות. זמין בעת שימוש באפליקציה המותקנת (PWA).
+                  </div>
+                )}
+
+                {notifSupported && (
+                  <div className="space-y-4">
+                    {/* Permission */}
+                    {permission !== "granted" && (
+                      <div className="p-4 bg-accent/20 rounded-lg text-right space-y-2">
+                        <p className="text-sm font-medium">יש לאשר גישה להתראות</p>
+                        <Button size="sm" onClick={requestPermission}>
+                          <Bell className="h-4 w-4 ml-2" />
+                          אפשר התראות
+                        </Button>
+                        {permission === "denied" && (
+                          <p className="text-xs text-destructive">הגישה נדחתה בהגדרות הדפדפן</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Enable toggle */}
+                    <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                      <Switch
+                        id="notif-toggle"
+                        checked={notifSettings.enabled}
+                        disabled={permission !== "granted"}
+                        onCheckedChange={(v) => updateNotif({ enabled: v })}
+                      />
+                      <div className="flex-1 text-right mr-3">
+                        <Label htmlFor="notif-toggle" className="text-base font-semibold cursor-pointer">
+                          התראות יומית
+                        </Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {notifSettings.enabled ? "פעיל" : "כבוי"}
+                        </p>
+                      </div>
+                      {notifSettings.enabled ? (
+                        <Bell className="h-5 w-5 text-primary ml-2" />
+                      ) : (
+                        <BellOff className="h-5 w-5 text-muted-foreground ml-2" />
+                      )}
+                    </div>
+
+                    {/* Time picker */}
+                    <div className="p-4 rounded-lg border space-y-3 text-right">
+                      <Label className="font-semibold">שעת התזכורת</Label>
+                      <div className="flex items-center gap-2 justify-end">
+                        <span className="text-sm text-muted-foreground">:דקות</span>
+                        <Input
+                          type="number"
+                          min={0} max={59}
+                          value={notifSettings.minute}
+                          onChange={(e) => updateNotif({ minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
+                          className="w-16 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">:שעה</span>
+                        <Input
+                          type="number"
+                          min={0} max={23}
+                          value={notifSettings.hour}
+                          onChange={(e) => updateNotif({ hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
+                          className="w-16 text-center"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Custom message */}
+                    <div className="p-4 rounded-lg border space-y-2 text-right">
+                      <Label className="font-semibold">הודעת התזכורת</Label>
+                      <Input
+                        value={notifSettings.message}
+                        onChange={(e) => updateNotif({ message: e.target.value })}
+                        className="text-right"
+                        dir="rtl"
+                        placeholder="זמן ללמוד תורה!"
+                      />
+                    </div>
+
+                    {/* Test button */}
+                    {permission === "granted" && (
+                      <Button variant="outline" size="sm" className="w-full gap-2" onClick={sendTestNotification}>
+                        <Bell className="h-4 w-4" />
+                        שלח התראה לדוגמא
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           </TabsContent>

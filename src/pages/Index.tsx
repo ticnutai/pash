@@ -24,11 +24,15 @@ import { useSearchParams } from "react-router-dom";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { getCurrentWeeklyParsha, getCalendarPreference } from "@/utils/parshaUtils";
 import { SeferSkeleton } from "@/components/SeferSkeleton";
+import { SelectionProvider } from "@/contexts/SelectionContext";
+import { MultiShareBar } from "@/components/MultiShareBar";
+import { SelectionModeButton } from "@/components/SelectionModeButton";
 import { yieldToMain } from "@/utils/asyncHelpers";
 import { lazyLoadSefer, preloadNextSefer } from "@/utils/lazyLoadSefer";
 import { usePinchZoom } from "@/hooks/usePinchZoom";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { SidePanelTrigger } from "@/components/SidePanelTrigger";
+import { LayoutOverlay } from "@/components/LayoutOverlay";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
@@ -70,6 +74,7 @@ const Index = () => {
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
   const pendingSearchNav = useRef<{ perek: number; pasuk: number } | null>(null); // pending navigation from search
+  const gridRef = useRef<HTMLDivElement>(null);
   const [autoWeeklyParsha, setAutoWeeklyParsha] = useState(() => {
     try {
       const saved = localStorage.getItem('autoWeeklyParsha');
@@ -568,10 +573,11 @@ const Index = () => {
   }, [seferCache, selectedSefer, seferData]);
 
   return (
+    <SelectionProvider>
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       {/* Header - Fully Responsive */}
-      <header className="sticky top-0 z-50 bg-sidebar shadow-lg">
-        <div className="w-full px-3 sm:px-4 py-3 sm:py-6 bg-sidebar sm:rounded-3xl">
+      <header data-layout="header" data-layout-label="הדר ראשי" className="sticky top-0 z-50 bg-sidebar shadow-lg">
+        <div className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-sidebar sm:rounded-3xl">
           {/* Mobile Layout - Stack vertically */}
           <div className="flex flex-col gap-2 md:hidden">
             {/* Top row: Title and Book icon */}
@@ -583,7 +589,8 @@ const Index = () => {
             </div>
             
             {/* Bottom row: Action buttons - single line */}
-            <div className="flex items-center justify-center gap-1.5 px-2">
+            <div data-layout="header-actions-mobile" data-layout-label="כפתורי כותרת (מובייל)" className="flex items-center justify-center gap-1.5 px-2">
+              <span data-layout="btn-calendar" data-layout-label="📅 לוח שנה">
               <Button
                 variant="ghost"
                 size="icon"
@@ -593,10 +600,12 @@ const Index = () => {
               >
                 {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
               </Button>
-              <SyncIndicator status={syncStatus} />
-              <TextDisplaySettings />
-              <GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} />
-              <UserMenu />
+              </span>
+              <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
+              <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
+              <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
+              <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+              <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
             </div>
             {/* Inline quick search */}
             <div className="px-2">
@@ -605,8 +614,9 @@ const Index = () => {
           </div>
 
           {/* Desktop/Tablet Layout - Original horizontal layout */}
-          <div className="hidden md:flex items-center justify-between flex-wrap gap-2">
+          <div data-layout="header-actions-desktop" data-layout-label="כפתורי כותרת (דסקטופ)" className="hidden md:flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 order-1">
+              <span data-layout="btn-calendar" data-layout-label="📅 לוח שנה">
               <Button
                 variant="ghost"
                 size="icon"
@@ -616,11 +626,13 @@ const Index = () => {
               >
                 {autoWeeklyParsha ? <CalendarCheck className="h-5 w-5" /> : <CalendarOff className="h-5 w-5" />}
               </Button>
-              <SyncIndicator status={syncStatus} />
+              </span>
+              <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
               {process.env.NODE_ENV === 'development' && <DevicePreview />}
-              <TextDisplaySettings />
-              <GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} />
-              <UserMenu />
+              <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
+              <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
+              <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+              <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
             </div>
             <div className="flex items-center gap-3 order-2 lg:order-none flex-1 lg:flex-initial justify-center">
               <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
@@ -639,11 +651,14 @@ const Index = () => {
         <Settings />
       </Suspense>
 
+      {/* Layout editor overlay — Ctrl+Shift+L or floating button */}
+      <LayoutOverlay />
+
       <div 
-        className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6 transition-[padding] duration-300 ease-in-out"
-        style={{ paddingLeft: sidePanelOpen && !isMobile ? '25rem' : undefined }}
+        className="container mx-auto px-3 sm:px-4 py-1 sm:py-2 space-y-1 sm:space-y-2 transition-[padding] duration-300 ease-in-out"
       >
         {/* Sefer / Parsha / Perek / Pasuk Selector */}
+        <div data-layout="sefer-selector" data-layout-label="בורר חומש / פרשה / פסוק">
         <SeferSelector 
           sefer={seferData}
           selectedSefer={selectedSefer} 
@@ -655,42 +670,97 @@ const Index = () => {
           selectedPasuk={selectedPasuk}
           onPasukSelect={handlePasukSelect}
         />
+        </div>
 
-        {/* Side Panel Buttons and Global Minimize - Desktop only */}
-        <div className="hidden md:flex justify-start items-center gap-2">
-          <ViewModeToggle seferId={selectedSefer} />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => {
-              setSidePanelMode("user");
-              setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
-            }}
-                    className={cn("", sidePanelOpen && sidePanelMode === "user" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
-                    title="התוכן שלי"
-                  >
-                    <User className={cn("h-4 w-4", sidePanelOpen && sidePanelMode === "user" && "text-accent")} />
-          </Button>
-          {displayMode === "chumash" && (
+        {/* Side Panel Buttons + Parsha/Pasuk Nav - Desktop only, SAME ROW */}
+        <div data-layout="desktop-controls" data-layout-label="שורת כלים" className="hidden md:flex justify-between items-center gap-2">
+          {/* Left side: toolbar buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span data-layout="btn-view-mode" data-layout-label="👁️ מצב תצוגה"><ViewModeToggle seferId={selectedSefer} /></span>
+            <span data-layout="btn-user-content" data-layout-label="📂 התוכן שלי">
             <Button
               variant="outline"
               size="icon"
               onClick={() => {
-                setSidePanelMode("pasuk");
-                setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "pasuk");
+                setSidePanelMode("user");
+                setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
               }}
-                    className={cn("", sidePanelOpen && sidePanelMode === "pasuk" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
-                    title="פירושים"
-                  >
-                    <BookOpen className={cn("h-4 w-4", sidePanelOpen && sidePanelMode === "pasuk" && "text-accent")} />
+                      className={cn("", sidePanelOpen && sidePanelMode === "user" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
+                      title="התוכן שלי"
+                    >
+                      <User className={cn("h-4 w-4", sidePanelOpen && sidePanelMode === "user" && "text-accent")} />
             </Button>
-          )}
-          {filteredPesukim.length > 0 && (
-            <MinimizeButton
-              variant="global"
-              isMinimized={globalMinimize}
-              onClick={() => setGlobalMinimize(!globalMinimize)}
-            />
+            </span>
+            {displayMode === "chumash" && (
+              <span data-layout="btn-commentary" data-layout-label="📖 פירושים">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setSidePanelMode("pasuk");
+                  setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "pasuk");
+                }}
+                      className={cn("", sidePanelOpen && sidePanelMode === "pasuk" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
+                      title="פירושים"
+                    >
+                      <BookOpen className={cn("h-4 w-4", sidePanelOpen && sidePanelMode === "pasuk" && "text-accent")} />
+              </Button>
+              </span>
+            )}
+            {filteredPesukim.length > 0 && (
+              <span data-layout="btn-minimize" data-layout-label="➖ מזער הכל">
+              <MinimizeButton
+                variant="global"
+                isMinimized={globalMinimize}
+                onClick={() => setGlobalMinimize(!globalMinimize)}
+              />
+              </span>
+            )}
+          </div>
+
+          {/* Right side (RTL center): Parsha & Pasuk navigation */}
+          {currentParshaName && filteredPesukim.length > 0 && (
+            <div data-layout="parsha-pasuk-nav" data-layout-label="ניווט פרשה ופסוקים" className="flex items-center justify-center gap-6 flex-1" dir="rtl">
+              {/* Parsha navigation */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateToParsha('prev')}
+                  disabled={!canNavigatePrev}
+                  className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+                  title="פרשה קודמת"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                  <span className="text-base sm:text-lg font-semibold text-primary whitespace-nowrap">
+                    {currentParshaName}
+                  </span>
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateToParsha('next')}
+                  disabled={!canNavigateNext}
+                  className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+                  title="פרשה הבאה"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Pasuk navigation */}
+              {parshaAllPesukim.length > 0 && (
+                <PasukSimpleNavigator
+                  pesukim={parshaAllPesukim}
+                  currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
+                  onNavigate={handlePasukSelect}
+                />
+              )}
+            </div>
           )}
         </div>
 
@@ -706,41 +776,30 @@ const Index = () => {
           }}
         />
 
-        {/* Side Content Panel */}
-        <Suspense fallback={null}>
-          <SideContentPanel
-            isOpen={sidePanelOpen}
-            onClose={() => setSidePanelOpen(false)}
-            mode={sidePanelMode}
-            onModeChange={setSidePanelMode}
-            selectedPasuk={sidePanelPasuk}
-            seferId={selectedSefer}
-            availablePesukim={displayedPesukim}
-            onPasukSelect={(pasuk) => {
-              setSidePanelPasuk(pasuk);
-              setChumashSelectedPasukId(pasuk.id);
-            }}
-          />
-        </Suspense>
+        {/* Side Content Panel - moved into the grid below */}
 
         {loading ? (
           <SeferSkeleton />
         ) : (
           <>
-            {/* Navigation bar moved inside the grid below */}
+            {/* Navigation bar moved above the grid */}
 
             {/* Reading progress bar - ABOVE the grid */}
             {parshaAllPesukim.length > 0 && selectedPasuk !== null && (
+              <div data-layout="reading-progress" data-layout-label="📊 התקדמות קריאה">
               <ReadingProgress
                 totalPesukim={parshaAllPesukim.length}
                 currentPasukIndex={parshaAllPesukim.findIndex(p => p.pasuk_num === selectedPasuk && p.perek === selectedPerek)}
                 parshaName={currentParshaName}
               />
+              </div>
             )}
+
+            {/* Parsha/Pasuk nav moved into content column */}
 
             {/* Mobile controls - ABOVE the grid */}
             {isMobile && (
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div data-layout="mobile-controls" data-layout-label="בקרות מובייל" className="flex items-center gap-1.5 flex-wrap">
                 {filteredPesukim.length > 0 && (
                   <Button
                     variant="outline"
@@ -781,9 +840,16 @@ const Index = () => {
               </div>
             )}
 
-            <div className="grid lg:grid-cols-[320px_1fr] gap-6 w-full max-w-full overflow-hidden items-start">
+            <div className="relative" ref={gridRef}>
+            <div className={cn(
+              "grid gap-2 w-full max-w-full overflow-hidden items-start",
+              sidePanelOpen && !isMobile
+                ? "lg:grid-cols-[320px_1fr_320px]"
+                : "lg:grid-cols-[320px_1fr]"
+            )}>
               {/* Quick Selector Sidebar - Hide on mobile when content is showing */}
               {(!isMobile || filteredPesukim.length === 0) && (
+                <div data-layout="quick-selector" data-layout-label="בחירה מהירה (סרגל צד)">
                 <Suspense fallback={<ComponentLoader />}>
                   <QuickSelector
                     sefer={seferData}
@@ -803,56 +869,13 @@ const Index = () => {
                     }}
                   />
                 </Suspense>
+                </div>
               )}
 
               {/* Main Content - Verse cards */}
-              <div className="space-y-4 w-full min-w-0 overflow-hidden" style={{ maxWidth: "100%" }}>
-                {/* Parsha & Pasuk navigation bar - inside the content column */}
-                {currentParshaName && filteredPesukim.length > 0 && (
-                  <div className="flex items-center justify-between gap-2 py-1.5" dir="rtl">
-                    {/* Right side (RTL): Parsha navigation */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigateToParsha('prev')}
-                        disabled={!canNavigatePrev}
-                        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
-                        title="פרשה קודמת"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </Button>
-                      <div className="flex items-center gap-1.5">
-                        <div className="h-2 w-2 rounded-full bg-primary" />
-                        <span className="text-base sm:text-lg font-semibold text-primary whitespace-nowrap">
-                          {currentParshaName}
-                        </span>
-                        <div className="h-2 w-2 rounded-full bg-primary" />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigateToParsha('next')}
-                        disabled={!canNavigateNext}
-                        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
-                        title="פרשה הבאה"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </Button>
-                    </div>
-
-                    {/* Left side (RTL): Pasuk navigation */}
-                    {parshaAllPesukim.length > 0 && (
-                      <PasukSimpleNavigator
-                        pesukim={parshaAllPesukim}
-                        currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
-                        onNavigate={handlePasukSelect}
-                      />
-                    )}
-                  </div>
-                )}
+              <div className="w-full min-w-0 overflow-hidden order-first lg:order-none" style={{ maxWidth: "100%" }}>
                 {filteredPesukim.length === 0 ? (
-                  <Card className="p-12 text-center animate-fade-in">
+                  <Card data-layout="verse-cards" data-layout-label="כרטיסי פסוקים" className="p-12 text-center animate-fade-in">
                     <p className="text-lg text-muted-foreground mb-2">
                       {selectedPasuk !== null && selectedPerek !== null
                         ? `אין תוכן זמין לפסוק ${toHebrewNumber(selectedPasuk)} בפרק ${toHebrewNumber(selectedPerek)}`
@@ -870,7 +893,7 @@ const Index = () => {
                   </Card>
                 ) : (
                   <Suspense fallback={<ComponentLoader />}>
-                    <div className="animate-fade-in"
+                    <div data-layout="verse-cards" data-layout-label="כרטיסי פסוקים" className="animate-fade-in"
                       key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
                     >
                       {displayMode === "luxury" ? (
@@ -891,7 +914,47 @@ const Index = () => {
                   </Suspense>
                 )}
               </div>
+
+              {/* Side Content Panel - overlaid on left, aligned to grid top */}
+              {!isMobile && (
+                <Suspense fallback={null}>
+                  <SideContentPanel
+                    isOpen={sidePanelOpen}
+                    onClose={() => setSidePanelOpen(false)}
+                    mode={sidePanelMode}
+                    onModeChange={setSidePanelMode}
+                    selectedPasuk={sidePanelPasuk}
+                    seferId={selectedSefer}
+                    availablePesukim={displayedPesukim}
+                    onPasukSelect={(pasuk) => {
+                      setSidePanelPasuk(pasuk);
+                      setChumashSelectedPasukId(pasuk.id);
+                    }}
+                    inGrid={true}
+                  />
+                </Suspense>
+              )}
             </div>
+            </div>
+
+            {/* Side Content Panel - mobile (sheet) */}
+            {isMobile && (
+              <Suspense fallback={null}>
+                <SideContentPanel
+                  isOpen={sidePanelOpen}
+                  onClose={() => setSidePanelOpen(false)}
+                  mode={sidePanelMode}
+                  onModeChange={setSidePanelMode}
+                  selectedPasuk={sidePanelPasuk}
+                  seferId={selectedSefer}
+                  availablePesukim={displayedPesukim}
+                  onPasukSelect={(pasuk) => {
+                    setSidePanelPasuk(pasuk);
+                    setChumashSelectedPasukId(pasuk.id);
+                  }}
+                />
+              </Suspense>
+            )}
           </>
         )}
       </div>
@@ -905,7 +968,12 @@ const Index = () => {
           currentPasuk={selectedPasuk}
         />
       </Suspense>
+
+      {/* Floating multi-select share bar */}
+      <MultiShareBar />
+
     </div>
+    </SelectionProvider>
   );
 };
 export default Index;

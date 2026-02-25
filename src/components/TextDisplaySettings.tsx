@@ -52,6 +52,7 @@ export const TextDisplaySettings = () => {
       </DialogTrigger>
       <DialogContent
         dir="rtl"
+        data-layout="dialog-text-display" data-layout-label="📦 דיאלוג: הגדרות תצוגה"
         className="max-w-md w-[calc(100%-2rem)] border-2 border-accent bg-card text-foreground"
       >
         <DialogHeader>

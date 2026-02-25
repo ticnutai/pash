@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StickyNote, Plus, Trash2, Edit2, HelpCircle, CheckCircle } from "lucide-react";
+import { StickyNote, Plus, Trash2, Edit2, HelpCircle, CheckCircle, Share2, Download, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -46,6 +46,65 @@ export const NotesDialog = ({ pasukId, pasukText, open: externalOpen, onOpenChan
 
   const notes = getNotesForPasuk(pasukId);
   const questions = getQuestionsForPasuk(pasukId);
+
+  // ── Export helpers ──────────────────────────────────────────
+  const buildExportText = () => {
+    const lines: string[] = [
+      `📖 ${pasukText}`,
+      `───────────────────`,
+    ];
+    if (notes.length > 0) {
+      lines.push(`📝 הערות (${notes.length}):`);
+      notes.forEach((n, i) => lines.push(`${i + 1}. ${n.content}`));
+    }
+    if (questions.length > 0) {
+      lines.push(``);
+      lines.push(`❓ שאלות (${questions.length}):`);
+      questions.forEach((q, i) => {
+        lines.push(`${i + 1}. ${q.question}`);
+        if (q.answer) lines.push(`   ✔ ${q.answer}`);
+      });
+    }
+    lines.push(``);
+    lines.push(`מתוך אפליקציית חמישה חומשי תורה`);
+    return lines.join(`\n`);
+  };
+
+  const handleExportCopy = async () => {
+    const text = buildExportText();
+    await navigator.clipboard.writeText(text);
+    toast.success("ההערות הועתקו ללוח");
+  };
+
+  const handleExportShare = async () => {
+    const text = buildExportText();
+    if (navigator.share) {
+      try { await navigator.share({ title: "הערות תורה", text }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast.success("ההערות הועתקו ללוח");
+    }
+  };
+
+  const handleExportEmail = () => {
+    const text = buildExportText();
+    const subject = encodeURIComponent("הערות מחמישה חומשי תורה");
+    const body = encodeURIComponent(text);
+    window.open(`mailto:?subject=${subject}&body=${body}`);
+  };
+
+  const handleExportFile = () => {
+    const text = buildExportText();
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `הערות_תורה_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("הקובץ הוכן להורדה");
+  };
+  // ────────────────────────────────────────────────────────────
 
   const handleAddNote = () => {
     if (!noteContent.trim()) return;
@@ -95,14 +154,32 @@ export const NotesDialog = ({ pasukId, pasukText, open: externalOpen, onOpenChan
         </Button>
       </DialogTrigger>
       <DialogContent 
+        data-layout="dialog-notes" data-layout-label="📦 דיאלוג: הערות"
         className="max-w-2xl max-h-[600px] overflow-y-auto text-right"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 justify-end">
-            <span>הערות ושאלות אישיות</span>
-            <StickyNote className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2 justify-between">
+            <div className="flex items-center gap-1">
+              {(notes.length > 0 || questions.length > 0) && (
+                <>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="שיתוף" onClick={handleExportShare}>
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="שליחה במייל" onClick={handleExportEmail}>
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="שמור קובץ" onClick={handleExportFile}>
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span>הערות ושאלות אישיות</span>
+              <StickyNote className="h-5 w-5" />
+            </div>
           </DialogTitle>
           <DialogDescription className="text-right">
             <span className="hebrew-text text-sm">{pasukText}</span>

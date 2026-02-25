@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus, Share2, Mail, Link2 } from "lucide-react";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
@@ -10,6 +11,7 @@ import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext"
 import { cn } from "@/lib/utils";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useDisplayMode } from "@/contexts/DisplayModeContext";
+import { useSelection } from "@/contexts/SelectionContext";
 import { Button } from "@/components/ui/button";
 import { NotesDialog } from "@/components/NotesDialog";
 import { ContentEditor } from "@/components/ContentEditor";
@@ -31,6 +33,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
   const { settings } = useFontAndColorSettings();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { displaySettings } = useDisplayMode();
+  const { selectionMode, isSelected, toggleSelect, enableSelectionMode } = useSelection();
   const navigate = useNavigate();
 
   const firstNewPasukRef = useRef<HTMLDivElement>(null);
@@ -87,6 +90,18 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
       {displayedPesukim.map((pasuk, index) => {
         const isExpanded = expandedPasukId === pasuk.id;
         const isFirstNew = index === prevDisplayedCountRef.current;
+        const selected = isSelected(pasuk.id);
+
+        // Long press handlers for this card
+        let lpTimer: ReturnType<typeof setTimeout> | null = null;
+        const onPointerDown = () => {
+          if (selectionMode) return;
+          lpTimer = setTimeout(() => {
+            enableSelectionMode();
+            toggleSelect(pasuk);
+          }, 600);
+        };
+        const onPointerUp = () => { if (lpTimer) clearTimeout(lpTimer); };
         
         return (
           <Card 
@@ -94,7 +109,11 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
             ref={isFirstNew ? firstNewPasukRef : null}
             className={cn(
               "overflow-hidden w-full transition-all duration-300 border-r-4 cursor-pointer",
-              isExpanded ? "border-r-primary shadow-xl ring-2 ring-primary/50" : "border-r-accent shadow-sm hover:shadow-md"
+              selected
+                ? "border-r-primary shadow-xl ring-2 ring-primary/50 bg-primary/5"
+                : isExpanded
+                  ? "border-r-primary shadow-xl ring-2 ring-primary/50"
+                  : "border-r-accent shadow-sm hover:shadow-md"
             )}
             style={{
               maxWidth: displayStyles.maxWidth,
@@ -104,7 +123,14 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
               minHeight: isExpanded ? 'auto' : '100px',
               contain: 'layout style',
             }}
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
+            onPointerLeave={onPointerUp}
             onClick={() => {
+              if (selectionMode) {
+                toggleSelect(pasuk);
+                return;
+              }
               togglePasuk(pasuk.id);
             }}
           >
@@ -119,15 +145,24 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
               <div className="flex items-center justify-between gap-2 sm:gap-4 mb-3 pointer-events-none" dir="rtl">
                 {/* Right Side - Pasuk Number + Metadata (horizontal) */}
                 <div className="flex items-center gap-3">
-                  {/* Pasuk Number in Circle */}
-                  <div className={cn(
-                    "w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 transition-all duration-200",
-                    "group-hover:bg-primary/20"
-                  )}>
-                    <span className="font-bold text-primary text-xl font-['Frank_Ruhl_Libre']">
-                      {toHebrewNumber(pasuk.pasuk_num)}
-                    </span>
-                  </div>
+                  {/* Selection checkbox or pasuk number circle */}
+                  {selectionMode ? (
+                    <Checkbox
+                      checked={selected}
+                      onCheckedChange={() => toggleSelect(pasuk)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-6 w-6 border-2 data-[state=checked]:bg-primary pointer-events-auto"
+                    />
+                  ) : (
+                    <div className={cn(
+                      "w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 transition-all duration-200",
+                      "group-hover:bg-primary/20"
+                    )}>
+                      <span className="font-bold text-primary text-xl font-['Frank_Ruhl_Libre']">
+                        {toHebrewNumber(pasuk.pasuk_num)}
+                      </span>
+                    </div>
+                  )}
                   
                   {/* Metadata - Horizontal Display */}
                   <div className="text-xs sm:text-sm text-muted-foreground font-medium truncate max-w-[50vw] sm:max-w-none">

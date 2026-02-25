@@ -183,6 +183,7 @@ export const FloatingActionButton = ({
     <>
       <div
         ref={fabRef}
+        data-layout="floating-fab" data-layout-label="🔍 כפתור פעולה צף"
         className="fixed z-[60]"
         style={{ left: position.x, top: position.y }}
       >

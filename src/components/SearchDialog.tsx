@@ -144,6 +144,7 @@ export function SearchDialog({ open, onOpenChange, onNavigateToPasuk }: SearchDi
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
+          data-layout="dialog-search" data-layout-label="📦 דיאלוג: חיפוש"
           className={cn(
             "transition-all duration-300 w-[95vw] sm:w-auto overflow-hidden",
             isMaximized ? "max-w-[95vw] h-[95vh]" : "max-w-4xl max-h-[85vh]"

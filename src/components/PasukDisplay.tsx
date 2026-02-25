@@ -55,6 +55,8 @@ import { TextSelectionShare } from "@/components/TextSelectionShare";
 import { useContent } from "@/contexts/ContentContext";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import { useBookmarks } from "@/contexts/BookmarksContext";
+import { useSelection } from "@/contexts/SelectionContext";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface PasukDisplayProps {
   pasuk: FlatPasuk;
@@ -83,6 +85,24 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
   } = useContent();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   
+  const { selectionMode, isSelected, toggleSelect, enableSelectionMode } = useSelection();
+  const selected = isSelected(pasuk.id);
+
+  // Long-press to enter selection mode
+  const [lpTimer, setLpTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePointerDown = () => {
+    if (selectionMode) return;
+    const timer = setTimeout(() => {
+      enableSelectionMode();
+      toggleSelect(pasuk);
+    }, 600);
+    setLpTimer(timer);
+  };
+  const handlePointerUp = () => {
+    if (lpTimer) clearTimeout(lpTimer);
+  };
+
   const [editorOpen, setEditorOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [expandedInMinimizedMode, setExpandedInMinimizedMode] = useState(false);
@@ -206,7 +226,9 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
   return (
     <>
       <Card 
-        className="overflow-hidden border-r-4 border-r-accent shadow-md transition-all w-full group"
+        className={`overflow-hidden border-r-4 shadow-md transition-all w-full group ${
+          selected ? "border-r-primary ring-2 ring-primary/50" : "border-r-accent"
+        }`}
         style={{
           maxWidth: displayStyles.maxWidth,
           margin: displayStyles.margin,
@@ -214,7 +236,14 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
           width: "100%",
           overflowX: "hidden",
         }}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
         onClick={() => {
+          if (selectionMode) {
+            toggleSelect(pasuk);
+            return;
+          }
           if (displayMode === "minimized" && !expandedInMinimizedMode && !forceMinimized) {
             setExpandedInMinimizedMode(true);
           }
@@ -224,16 +253,28 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
           className="bg-secondary/30 relative group"
           style={{ padding: displayStyles.isMobile ? "0.75rem" : undefined }}
         >
-          <div className="absolute top-2 left-2 z-10 flex gap-1">
-            <AddContentButton 
-              type="title"
-              onClick={openAddTitle}
-            />
-            <MinimizeButton
-              variant="individual"
-              isMinimized={effectiveMinimized}
-              onClick={() => setIsMinimized(!isMinimized)}
-            />
+          <div className="absolute top-2 left-2 z-10 flex gap-1 items-center">
+            {selectionMode && (
+              <Checkbox
+                checked={selected}
+                onCheckedChange={() => toggleSelect(pasuk)}
+                onClick={(e) => e.stopPropagation()}
+                className="h-5 w-5 border-2 data-[state=checked]:bg-primary"
+              />
+            )}
+            {!selectionMode && (
+              <>
+                <AddContentButton 
+                  type="title"
+                  onClick={openAddTitle}
+                />
+                <MinimizeButton
+                  variant="individual"
+                  isMinimized={effectiveMinimized}
+                  onClick={() => setIsMinimized(!isMinimized)}
+                />
+              </>
+            )}
           </div>
           <div 
             className={`flex items-start gap-2 ${displayStyles.isMobile ? 'flex-col' : 'justify-between gap-4'}`}
