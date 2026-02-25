@@ -62,8 +62,21 @@ export const ScrollPasukView = memo(({ pesukim, seferId, forceMinimized = false 
                 <span className="font-bold text-primary text-xl md:text-2xl flex-shrink-0 font-['Frank_Ruhl_Libre'] transition-colors duration-200">
                   {toHebrewNumber(pasuk.pasuk_num)}
                 </span>
-                <div className="flex-1">
-                  <div className="text-lg md:text-2xl font-['Frank_Ruhl_Libre'] leading-loose break-words transition-all duration-200">
+                <div className="flex-1 overflow-hidden">
+                  <div 
+                    className="leading-loose break-words"
+                    dir="rtl"
+                    style={{
+                      fontFamily: "'David Libre', 'Noto Serif Hebrew', serif",
+                      fontSize: 'clamp(16px, 1.3vw + 12px, 24px)',
+                      fontWeight: 500,
+                      textRendering: 'optimizeLegibility',
+                      WebkitFontSmoothing: 'antialiased',
+                      overflowWrap: 'break-word',
+                      wordBreak: 'break-word',
+                      maxWidth: '100%',
+                    }}
+                  >
                     {pasuk.text}
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs md:text-sm text-muted-foreground mt-2 transition-colors duration-200">
