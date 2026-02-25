@@ -101,31 +101,31 @@ export const SideContentPanel = ({
   const totalUserItems = bookmarks.length + notes.length + questions.length + highlights.length;
 
   const panelContent = (
-    <div className="flex flex-col h-full" dir="rtl">
+    <div className="flex flex-col h-full space-y-4" dir="rtl">
       {/* Header with mode toggle - only for desktop (mobile gets SheetHeader) */}
       {!isMobile && (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-accent/30 bg-gradient-to-l from-amber-50/40 to-transparent dark:from-amber-900/10 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex gap-2">
             <Button
-              variant={mode === "pasuk" ? "default" : "outline"}
+              variant="outline"
               size="sm"
               onClick={() => onModeChange("pasuk")}
-              className={cn("gap-2 font-semibold", mode === "pasuk" ? "shadow-md" : "border-accent/40 hover:bg-amber-50/50 dark:hover:bg-amber-900/20")}
+              className={cn("gap-2 font-semibold", mode === "pasuk" && "border-accent text-primary")}
             >
-              <BookOpen className={cn("h-4 w-4", mode === "pasuk" ? "text-white" : "text-accent")} />
+              <BookOpen className="h-4 w-4" />
               פירושים
             </Button>
             <Button
-              variant={mode === "user" ? "default" : "outline"}
+              variant="outline"
               size="sm"
               onClick={() => onModeChange("user")}
-              className={cn("gap-2 font-semibold", mode === "user" ? "shadow-md" : "border-accent/40 hover:bg-amber-50/50 dark:hover:bg-amber-900/20")}
+              className={cn("gap-2 font-semibold", mode === "user" && "border-accent text-primary")}
             >
-              <User className={cn("h-4 w-4", mode === "user" ? "text-white" : "text-accent")} />
+              <User className="h-4 w-4" />
               שלי ({totalUserItems})
             </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full">
+          <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full h-8 w-8">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -133,21 +133,21 @@ export const SideContentPanel = ({
 
       {/* Mobile mode tabs inside sheet */}
       {isMobile && (
-        <div className="flex gap-2 px-4 pt-2 pb-3 border-b border-accent/30 flex-shrink-0">
+        <div className="flex gap-2 px-3 pt-2 pb-2 border-b border-border flex-shrink-0">
           <Button
-            variant={mode === "pasuk" ? "default" : "outline"}
+            variant="outline"
             size="sm"
             onClick={() => onModeChange("pasuk")}
-            className={cn("flex-1 gap-2 font-semibold", mode === "pasuk" ? "shadow-md" : "border-accent/40")}
+            className={cn("flex-1 gap-2 font-semibold", mode === "pasuk" && "border-accent text-primary")}
           >
             <BookOpen className="h-4 w-4" />
             פירושים
           </Button>
           <Button
-            variant={mode === "user" ? "default" : "outline"}
+            variant="outline"
             size="sm"
             onClick={() => onModeChange("user")}
-            className={cn("flex-1 gap-2 font-semibold", mode === "user" ? "shadow-md" : "border-accent/40")}
+            className={cn("flex-1 gap-2 font-semibold", mode === "user" && "border-accent text-primary")}
           >
             <User className="h-4 w-4" />
             שלי ({totalUserItems})
@@ -188,7 +188,7 @@ export const SideContentPanel = ({
         <SheetContent
           side="bottom"
           dir="rtl"
-          className="h-[85vh] p-0 border-t-2 border-accent bg-card text-foreground rounded-t-2xl flex flex-col"
+          className="h-[85vh] p-0 border-t border-border bg-card text-foreground rounded-t-lg flex flex-col"
         >
           <SheetHeader className="px-4 pt-4 pb-0 flex-shrink-0">
             <SheetTitle className="text-right text-foreground flex items-center justify-end gap-2">
@@ -206,14 +206,13 @@ export const SideContentPanel = ({
   if (inGrid) {
     if (!isOpen) return null;
     return (
-      <div 
+      <Card
         dir="rtl"
         data-layout="side-panel" data-layout-label="📋 פאנל תוכן צדי"
-        className="bg-card border border-accent/30 rounded-2xl shadow-2xl flex flex-col overflow-y-auto z-40 animate-fade-in sticky top-0 self-start"
-        style={{ minHeight: 'calc(100vh - 200px)' }}
+        className="p-4 h-fit w-full animate-fade-in flex flex-col overflow-y-auto"
       >
         {panelContent}
-      </div>
+      </Card>
     );
   }
 
@@ -227,13 +226,13 @@ export const SideContentPanel = ({
         className="fixed inset-0 bg-black/40 z-30 md:hidden animate-fade-in"
         onClick={onClose}
       />
-      <div 
+      <Card
         dir="rtl"
         data-layout="side-panel" data-layout-label="📋 פאנל תוכן צדי"
-        className="fixed left-0 top-[460px] md:top-[470px] w-80 md:w-96 max-h-[calc(100vh-470px)] bg-card border border-accent/30 rounded-2xl shadow-2xl z-40 animate-fade-in flex flex-col overflow-y-auto ml-1"
+        className="fixed left-0 top-[460px] md:top-[470px] w-80 md:w-96 max-h-[calc(100vh-470px)] p-4 z-40 animate-fade-in flex flex-col overflow-y-auto ml-1"
       >
         {panelContent}
-      </div>
+      </Card>
     </>
   );
 };
@@ -279,8 +278,8 @@ const PasukContentView = ({
                   className={cn(
                     "h-8 min-w-[2rem] px-2 rounded-lg text-xs font-bold border transition-all",
                     pasuk?.id === p.id
-                      ? "bg-accent text-accent-foreground border-accent shadow-sm"
-                      : "bg-muted/40 border-border/50 hover:bg-accent/20 hover:border-accent/50"
+                      ? "border-accent text-primary bg-accent/10"
+                      : "bg-background border-border hover:bg-muted/50"
                   )}
                   title={`פסוק ${toHebrewNumber(p.pasuk_num)}`}
                 >
@@ -294,7 +293,7 @@ const PasukContentView = ({
         {pasuk && (
           <>
             {/* Selected pasuk header */}
-            <div className="mb-5 p-4 bg-gradient-to-l from-primary/8 to-primary/3 rounded-xl border border-accent/30 shadow-sm">
+            <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
               <div className="text-sm text-muted-foreground mb-2 font-medium">
                 {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
               </div>
@@ -373,9 +372,9 @@ const UserContentView = ({
       <div className="p-4 space-y-4" dir="rtl">
         {/* Bookmarks Section */}
         <Collapsible open={expandedSections.bookmarks} onOpenChange={() => toggleSection('bookmarks')}>
-          <Card className="overflow-hidden border-accent/20 shadow-sm">
+          <Card className="overflow-hidden border-border shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto ">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                     <BookmarkIcon className="h-4 w-4 text-primary" />
@@ -415,9 +414,9 @@ const UserContentView = ({
 
         {/* Notes Section */}
         <Collapsible open={expandedSections.notes} onOpenChange={() => toggleSection('notes')}>
-          <Card className="overflow-hidden border-accent/20 shadow-sm">
+          <Card className="overflow-hidden border-border shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto ">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
                     <StickyNote className="h-4 w-4 text-yellow-500" />
@@ -457,9 +456,9 @@ const UserContentView = ({
 
         {/* Questions Section */}
         <Collapsible open={expandedSections.questions} onOpenChange={() => toggleSection('questions')}>
-          <Card className="overflow-hidden border-accent/20 shadow-sm">
+          <Card className="overflow-hidden border-border shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto ">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
                     <HelpCircle className="h-4 w-4 text-blue-500" />
@@ -499,9 +498,9 @@ const UserContentView = ({
 
         {/* Highlights Section */}
         <Collapsible open={expandedSections.highlights} onOpenChange={() => toggleSection('highlights')}>
-          <Card className="overflow-hidden border-accent/20 shadow-sm">
+          <Card className="overflow-hidden border-border shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto hover:bg-amber-50/50 dark:hover:bg-amber-900/10">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto ">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
                     <Highlighter className="h-4 w-4 text-orange-500" />
