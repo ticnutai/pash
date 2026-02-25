@@ -251,74 +251,64 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
       >
         <CardHeader 
           className="bg-secondary/30 relative group"
-          style={{ padding: displayStyles.isMobile ? "0.75rem" : undefined }}
+          style={{ padding: displayStyles.isMobile ? "0.75rem" : "1rem 1.25rem" }}
+          dir="rtl"
         >
-          <div className="absolute top-2 left-2 z-10 flex gap-1 items-center">
-            {selectionMode && (
-              <Checkbox
-                checked={selected}
-                onCheckedChange={() => toggleSelect(pasuk)}
-                onClick={(e) => e.stopPropagation()}
-                className="h-5 w-5 border-2 data-[state=checked]:bg-primary"
-              />
-            )}
-            {!selectionMode && (
-              <>
-                <AddContentButton 
-                  type="title"
-                  onClick={openAddTitle}
+          {/* Top row: Badge + action icons */}
+          <div className="flex items-center justify-between gap-2 mb-3">
+            {/* Right side: Pasuk badge */}
+            <Badge variant="outline" className="font-bold text-sm flex-shrink-0">
+              פרק {toHebrewNumber(pasuk.perek)} פסוק {toHebrewNumber(pasuk.pasuk_num)}
+            </Badge>
+
+            {/* Left side: Action buttons */}
+            <div className="flex items-center gap-1">
+              {selectionMode && (
+                <Checkbox
+                  checked={selected}
+                  onCheckedChange={() => toggleSelect(pasuk)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-5 w-5 border-2 data-[state=checked]:bg-primary"
                 />
-                <MinimizeButton
-                  variant="individual"
-                  isMinimized={effectiveMinimized}
-                  onClick={() => setIsMinimized(!isMinimized)}
-                />
-              </>
-            )}
-          </div>
-          <div 
-            className={`flex items-start gap-2 ${displayStyles.isMobile ? 'flex-col' : 'justify-between gap-4'}`}
-            style={{ textAlign: displayStyles.textAlign }}
-          >
-            <div className="flex-1 w-full min-w-0 overflow-hidden">
-              <div className={`flex items-center gap-2 mb-2 ${displayStyles.isMobile ? "flex-wrap" : "justify-between"}`}>
-                {!hideHeaderActions && (
-                  <>
-                    <div className="flex gap-1 flex-wrap">
-                      <NotesDialog pasukId={pasukId} pasukText={formattedPasukText} />
+              )}
+              {!selectionMode && !hideHeaderActions && (
+                <>
+                  <NotesDialog pasukId={pasukId} pasukText={formattedPasukText} />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`);
+                    }}
+                    className="h-8 w-8"
+                    title="פרשנים נוספים מספריא"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sharePasukWhatsApp({
+                        seferId,
+                        perek: pasuk.perek,
+                        pasukNum: pasuk.pasuk_num,
+                        pasukText: formattedPasukText,
+                        content: mergedContent,
+                      });
+                    }}
+                    className="h-8 w-8"
+                    title="שתף בוואטסאפ"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  {!displayStyles.isMobile && (
+                    <>
                       <Button
                         variant="ghost"
-                        size={displayStyles.isMobile ? "icon" : "sm"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/commentaries/${seferId}/${pasuk.perek}/${pasuk.pasuk_num}`);
-                        }}
-                        className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
-                        title="פרשנים נוספים מספריא (נפתח בטאב חדש)"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size={displayStyles.isMobile ? "icon" : "sm"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          sharePasukWhatsApp({
-                            seferId,
-                            perek: pasuk.perek,
-                            pasukNum: pasuk.pasuk_num,
-                            pasukText: formattedPasukText,
-                            content: mergedContent,
-                          });
-                        }}
-                        className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
-                        title="שתף בוואטסאפ"
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size={displayStyles.isMobile ? "icon" : "sm"}
+                        size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           sharePasukEmail({
@@ -329,63 +319,74 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                             content: mergedContent,
                           });
                         }}
-                        className={displayStyles.isMobile ? "h-8 w-8 hidden" : "gap-2 h-8"}
+                        className="h-8 w-8"
                         title="שתף במייל"
                       >
                         <Mail className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size={displayStyles.isMobile ? "icon" : "sm"}
+                        size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num, formattedPasukText);
                         }}
-                        className={displayStyles.isMobile ? "h-8 w-8 hidden" : "gap-2 h-8"}
+                        className="h-8 w-8"
                         title="שתף קישור לפסוק"
                       >
                         <Link2 className="h-4 w-4" />
                       </Button>
-                    </div>
-                    <Badge variant="outline" className={`font-bold flex-shrink-0 ${displayStyles.isMobile ? "text-xs" : ""}`}>
-                      פרק {toHebrewNumber(pasuk.perek)} פסוק {toHebrewNumber(pasuk.pasuk_num)}
-                    </Badge>
-                  </>
-                )}
-              </div>
-                <div className="w-full overflow-hidden" style={{ maxWidth: "100%" }}>
-                  <PasukLineActions 
-                    text={formattedPasukText}
-                    onBookmark={() => toggleBookmark(pasukId, formattedPasukText)}
-                  >
-                    <ClickableText 
-                      text={formattedPasukText} 
-                      pasukId={pasukId}
-                      fontFamily={settings.pasukFont}
-                      fontSize={`${settings.pasukSize}px`}
-                      color={settings.pasukColor}
-                      fontWeight={settings.pasukBold ? "bold" : "normal"}
-                      className="w-full block"
-                      style={{
-                        wordWrap: "break-word",
-                        overflowWrap: "break-word",
-                        whiteSpace: "normal",
-                        maxWidth: "100%",
-                      }}
-                    />
-                  </PasukLineActions>
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0 flex-wrap">
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  <MessageCircle className="h-3 w-3" />
-                  {toHebrewNumber(totalQuestions)}
-                </Badge>
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  <MessageSquare className="h-3 w-3" />
-                  {toHebrewNumber(totalAnswers)}
-                </Badge>
-              </div>
+                    </>
+                  )}
+                  <AddContentButton 
+                    type="title"
+                    onClick={openAddTitle}
+                  />
+                  <MinimizeButton
+                    variant="individual"
+                    isMinimized={effectiveMinimized}
+                    onClick={() => setIsMinimized(!isMinimized)}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Pasuk text */}
+          <div className="w-full overflow-hidden" style={{ maxWidth: "100%" }}>
+            <PasukLineActions 
+              text={formattedPasukText}
+              onBookmark={() => toggleBookmark(pasukId, formattedPasukText)}
+            >
+              <ClickableText 
+                text={formattedPasukText} 
+                pasukId={pasukId}
+                fontFamily={settings.pasukFont}
+                fontSize={`${settings.pasukSize}px`}
+                color={settings.pasukColor}
+                fontWeight={settings.pasukBold ? "bold" : "normal"}
+                className="w-full block"
+                style={{
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
+                  whiteSpace: "normal",
+                  maxWidth: "100%",
+                  lineHeight: displayStyles.lineHeight,
+                }}
+              />
+            </PasukLineActions>
+          </div>
+
+          {/* Bottom row: Question/Answer counts */}
+          <div className="flex gap-2 mt-3">
+            <Badge variant="secondary" className="gap-1 text-xs">
+              <MessageCircle className="h-3 w-3" />
+              {toHebrewNumber(totalQuestions)} שאלות
+            </Badge>
+            <Badge variant="secondary" className="gap-1 text-xs">
+              <MessageSquare className="h-3 w-3" />
+              {toHebrewNumber(totalAnswers)} תשובות
+            </Badge>
           </div>
         </CardHeader>
 
