@@ -645,7 +645,7 @@ const Index = () => {
 
       {/* Floating Settings Button - rendered by Settings component */}
       <Suspense fallback={null}>
-        <Settings />
+        {!(isMobile && sidePanelOpen) && <Settings />}
       </Suspense>
 
       {/* Layout editor overlay — Ctrl+Shift+L or floating button */}

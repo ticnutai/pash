@@ -141,6 +141,7 @@ export const LayoutOverlay = () => {
   const [copied, setCopied]   = useState(false);
   const [hiddenCats, setHiddenCats] = useState<Set<string>>(new Set());
   const [legendOpen, setLegendOpen] = useState(true);
+  const isSmallViewport = typeof window !== "undefined" && window.innerWidth < 768;
   const dragRef = useRef<{
     zoneId: string; startX: number; startY: number; origDx: number; origDy: number;
   } | null>(null);
@@ -306,6 +307,7 @@ export const LayoutOverlay = () => {
   };
 
   if (!active) {
+    if (isSmallViewport) return null;
     return createPortal(
       <button
         onClick={() => setActive(true)}

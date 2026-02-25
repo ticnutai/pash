@@ -145,7 +145,7 @@ export const FloatingQuickSelector = ({
         <Button
           size="icon"
           className={cn(
-            "fixed bottom-4 rounded-full shadow-xl z-50 touch-manipulation",
+            "fixed bottom-4 rounded-full shadow-xl z-40 touch-manipulation",
             isMobile ? "right-4" : "left-4",
             "bg-accent hover:bg-accent/90 text-accent-foreground active:scale-95 border-2 border-accent",
             "transition-colors duration-200",

@@ -184,7 +184,7 @@ export const FloatingActionButton = ({
       <div
         ref={fabRef}
         data-layout="floating-fab" data-layout-label="🔍 כפתור פעולה צף"
-        className="fixed z-[60]"
+        className="fixed z-40"
         style={{ left: position.x, top: position.y }}
       >
         {/* Expanded panel: icons row + search input */}
