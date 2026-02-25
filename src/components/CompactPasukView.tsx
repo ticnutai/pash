@@ -279,21 +279,24 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
               
               {/* Pasuk Text - Only when not expanded */}
               {!isExpanded && (
-                <div className="mt-3" style={{ textAlign: displayStyles.textAlign }}>
+                <div className="mt-3 w-full overflow-hidden" dir="rtl">
                   <p 
-                    className="text-lg sm:text-xl leading-relaxed font-['Frank_Ruhl_Libre'] line-clamp-3 font-medium transition-all duration-200"
+                    className="leading-relaxed transition-all duration-200"
                     style={{ 
-                      fontFamily: settings.pasukFont,
-                      fontSize: `calc(${settings.pasukSize}px * ${displayStyles.fontScale})`,
-                      color: settings.pasukColor,
-                      fontWeight: settings.pasukBold ? "bold" : "normal",
-                      lineHeight: displayStyles.lineHeight,
-                      letterSpacing: displayStyles.letterSpacing,
-                      wordWrap: "break-word",
+                      fontFamily: settings.pasukFont || "'David Libre', 'Noto Serif Hebrew', serif",
+                      fontSize: `${Math.min((settings.pasukSize || 18) * (displayStyles.fontScale || 1), displayStyles.isMobile ? 22 : 28)}px`,
+                      color: settings.pasukColor || 'hsl(var(--foreground))',
+                      fontWeight: settings.pasukBold ? "bold" : 500,
+                      lineHeight: displayStyles.lineHeight || '1.8',
+                      letterSpacing: displayStyles.letterSpacing || '0.01em',
+                      wordBreak: "break-word",
                       overflowWrap: "break-word",
-                      direction: "rtl",
+                      hyphens: "auto",
                       textAlign: 'justify',
                       textAlignLast: 'right',
+                      textRendering: 'optimizeLegibility',
+                      WebkitFontSmoothing: 'antialiased',
+                      maxWidth: '100%',
                     }}
                   >
                     {formatTorahText(pasuk.text)}
