@@ -108,20 +108,19 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
             key={pasuk.id}
             ref={isFirstNew ? firstNewPasukRef : null}
             className={cn(
-              "overflow-hidden w-full transition-all duration-300 border-r-4 cursor-pointer",
+              "overflow-hidden w-full transition-all duration-300 cursor-pointer border-0",
               selected
-                ? "border-r-primary shadow-xl ring-2 ring-primary/50 bg-primary/5"
+                ? "shadow-xl ring-2 ring-primary/50 bg-primary/5"
                 : isExpanded
-                  ? "border-r-primary shadow-xl ring-2 ring-primary/50"
-                  : "border-r-accent shadow-sm hover:shadow-md"
+                  ? "shadow-xl ring-2 ring-primary/40"
+                  : "shadow-sm hover:shadow-lg"
             )}
             style={{
               maxWidth: displayStyles.maxWidth,
               margin: displayStyles.margin,
-              wordWrap: "break-word",
               overflowWrap: "break-word",
-              minHeight: isExpanded ? 'auto' : '100px',
               contain: 'layout style',
+              borderRight: selected ? '4px solid hsl(var(--primary))' : isExpanded ? '4px solid hsl(var(--primary))' : '4px solid hsl(var(--accent))',
             }}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
@@ -134,173 +133,87 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
               togglePasuk(pasuk.id);
             }}
           >
-            {/* Compact Pasuk Display - Clickable */}
             <div
               className={cn(
-                "w-full p-3 sm:p-6 transition-all duration-200 touch-manipulation group",
-                !isExpanded && "hover:bg-accent/30"
+                "w-full transition-all duration-200 touch-manipulation group",
+                !isExpanded && "hover:bg-accent/20"
               )}
             >
-              {/* Header - Single Row Layout */}
-              <div className="flex items-center justify-between gap-2 sm:gap-4 mb-3 pointer-events-none" dir="rtl">
-                {/* Right Side - Pasuk Number + Metadata (horizontal) */}
-                <div className="flex items-center gap-3">
-                  {/* Selection checkbox or pasuk number circle */}
+              {/* Top Bar: metadata + actions */}
+              <div className="flex items-center justify-between px-4 pt-3 sm:px-6 sm:pt-4" dir="rtl">
+                <span className="text-xs text-muted-foreground/70 font-medium">
+                  {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)}
+                </span>
+                <div className="flex items-center gap-0.5 pointer-events-auto opacity-60 group-hover:opacity-100 transition-opacity">
                   {selectionMode ? (
                     <Checkbox
                       checked={selected}
                       onCheckedChange={() => toggleSelect(pasuk)}
                       onClick={(e) => e.stopPropagation()}
-                      className="h-6 w-6 border-2 data-[state=checked]:bg-primary pointer-events-auto"
+                      className="h-5 w-5 border-2 data-[state=checked]:bg-primary"
                     />
                   ) : (
-                    <div className={cn(
-                      "w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 transition-all duration-200",
-                      "group-hover:bg-primary/20"
-                    )}>
-                      <span className="font-bold text-primary text-lg sm:text-xl font-['Frank_Ruhl_Libre']">
-                        {toHebrewNumber(pasuk.pasuk_num)}
-                      </span>
-                    </div>
+                    <>
+                      <Button variant="ghost" size="icon" onClick={(e) => handleBookmark(e, pasuk)} className="h-7 w-7" title={isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? "הסר סימניה" : "הוסף סימניה"}>
+                        {isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? <BookmarkCheck className="h-3.5 w-3.5 fill-primary text-primary" /> : <Bookmark className="h-3.5 w-3.5" />}
+                      </Button>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <NotesDialog pasukId={`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`} pasukText={pasuk.text} />
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); sharePasukWhatsApp({ seferId, perek: pasuk.perek, pasukNum: pasuk.pasuk_num, pasukText: formatTorahText(pasuk.text), content: pasuk.content || [] }); }} className="h-7 w-7" title="שתף"><Share2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num, formatTorahText(pasuk.text)); }} className="h-7 w-7 hidden sm:flex" title="קישור"><Link2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" onClick={(e) => handleAddContent(e, pasuk)} className="h-7 w-7 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" title="הוסף תוכן"><StickyNote className="h-3.5 w-3.5" /></Button>
+                    </>
                   )}
-                  
-                  {/* Metadata - Horizontal Display */}
-                  <div className="text-xs sm:text-sm text-muted-foreground font-medium truncate max-w-[50vw] sm:max-w-none">
-                    {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
-                  </div>
-                </div>
-
-                {/* Left Side - Action Buttons */}
-                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                  {/* Always Visible Icons */}
-                  <div className="flex items-center gap-1 pointer-events-auto">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        sharePasukWhatsApp({
-                          seferId,
-                          perek: pasuk.perek,
-                          pasukNum: pasuk.pasuk_num,
-                          pasukText: formatTorahText(pasuk.text),
-                          content: pasuk.content || [],
-                        });
-                      }}
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
-                      title="שתף בוואטסאפ"
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        sharePasukEmail({
-                          seferId,
-                          perek: pasuk.perek,
-                          pasukNum: pasuk.pasuk_num,
-                          pasukText: formatTorahText(pasuk.text),
-                          content: pasuk.content || [],
-                        });
-                      }}
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors hidden sm:flex"
-                      title="שתף במייל"
-                    >
-                      <Mail className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num, formatTorahText(pasuk.text));
-                      }}
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors hidden sm:flex"
-                      title="שתף קישור לפסוק"
-                    >
-                      <Link2 className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors hidden sm:flex"
-                      title="פרשנים נוספים"
-                    >
-                      <BookOpen className="h-4 w-4" />
-                    </Button>
-
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <NotesDialog
-                        pasukId={`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`}
-                        pasukText={pasuk.text}
-                      />
-                    </div>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => handleBookmark(e, pasuk)}
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
-                      title={isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? "הסר סימניה" : "הוסף סימניה"}
-                    >
-                      {isBookmarked(`${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`) ? (
-                        <BookmarkCheck className="h-4 w-4 fill-primary text-primary" />
-                      ) : (
-                        <Bookmark className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Hover-Only Icons - always visible on mobile for touch access */}
-                  <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => handleAddContent(e, pasuk)}
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
-                      title="הוסף תוכן"
-                    >
-                      <StickyNote className="h-4 w-4" />
-                    </Button>
-                    
-                    <div className="cursor-pointer">
-                      {isExpanded ? (
-                        <ChevronUp className="h-5 w-5 text-primary" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
-              
-              {/* Pasuk Text - Only when not expanded */}
+
+              {/* Main Content: Number + Text */}
               {!isExpanded && (
-                <div className="mt-3 w-full overflow-hidden" dir="rtl">
-                  <p 
-                    className="leading-relaxed transition-all duration-200"
-                    style={{ 
-                      fontFamily: settings.pasukFont || "'David Libre', 'Noto Serif Hebrew', serif",
-                      fontSize: `${Math.min((settings.pasukSize || 18) * (displayStyles.fontScale || 1), displayStyles.isMobile ? 22 : 28)}px`,
-                      color: settings.pasukColor || 'hsl(var(--foreground))',
-                      fontWeight: settings.pasukBold ? "bold" : 500,
-                      lineHeight: displayStyles.lineHeight || '1.8',
-                      letterSpacing: displayStyles.letterSpacing || '0.01em',
-                      wordBreak: "break-word",
-                      overflowWrap: "break-word",
-                      hyphens: "auto",
-                      textAlign: 'justify',
-                      textAlignLast: 'right',
-                      textRendering: 'optimizeLegibility',
-                      WebkitFontSmoothing: 'antialiased',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    {formatTorahText(pasuk.text)}
-                  </p>
+                <div className="flex gap-3 sm:gap-4 px-4 pb-4 pt-2 sm:px-6 sm:pb-5" dir="rtl">
+                  {/* Pasuk Number - Elegant Gold Circle */}
+                  <div className={cn(
+                    "w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shrink-0 transition-all duration-300",
+                    "bg-gradient-to-br from-[hsl(40,60%,55%)] to-[hsl(40,50%,45%)]",
+                    "shadow-[0_2px_8px_hsl(40,50%,40%,0.3)]",
+                    "group-hover:shadow-[0_3px_12px_hsl(40,50%,40%,0.4)] group-hover:scale-105"
+                  )}>
+                    <span 
+                      className="text-white font-bold text-lg sm:text-xl"
+                      style={{ fontFamily: "'David Libre', 'Noto Serif Hebrew', serif" }}
+                    >
+                      {toHebrewNumber(pasuk.pasuk_num)}
+                    </span>
+                  </div>
+
+                  {/* Pasuk Text */}
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <p 
+                      style={{ 
+                        fontFamily: settings.pasukFont || "'David Libre', 'Noto Serif Hebrew', serif",
+                        fontSize: `${Math.min((settings.pasukSize || 20) * (displayStyles.fontScale || 1), displayStyles.isMobile ? 22 : 26)}px`,
+                        color: settings.pasukColor || 'hsl(var(--foreground))',
+                        fontWeight: settings.pasukBold ? 700 : 500,
+                        lineHeight: displayStyles.lineHeight || '2',
+                        letterSpacing: '0.02em',
+                        textAlign: 'justify',
+                        textAlignLast: 'right',
+                        textRendering: 'optimizeLegibility',
+                        WebkitFontSmoothing: 'antialiased',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                      }}
+                    >
+                      {formatTorahText(pasuk.text)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Expand indicator */}
+              {!isExpanded && (
+                <div className="flex justify-center pb-2">
+                  <ChevronDown className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary/60 transition-colors" />
                 </div>
               )}
             </div>
