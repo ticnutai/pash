@@ -44,10 +44,10 @@ export const TextDisplaySettings = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 text-foreground hover:text-foreground hover:bg-foreground/10"
+          className="h-10 w-10 sm:h-11 sm:w-11 text-accent hover:text-accent hover:bg-accent/15 border border-accent/30 rounded-xl"
           title="הגדרות תצוגת טקסט"
         >
-          <Type className="h-4 w-4" />
+          <Type className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2.5} />
         </Button>
       </DialogTrigger>
       <DialogContent
