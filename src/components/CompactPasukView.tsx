@@ -137,7 +137,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
             {/* Compact Pasuk Display - Clickable */}
             <div
               className={cn(
-                "w-full p-4 sm:p-6 transition-all duration-200 touch-manipulation group",
+                "w-full p-3 sm:p-6 transition-all duration-200 touch-manipulation group",
                 !isExpanded && "hover:bg-accent/30"
               )}
             >
@@ -155,10 +155,10 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                     />
                   ) : (
                     <div className={cn(
-                      "w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 transition-all duration-200",
+                      "w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 transition-all duration-200",
                       "group-hover:bg-primary/20"
                     )}>
-                      <span className="font-bold text-primary text-xl font-['Frank_Ruhl_Libre']">
+                      <span className="font-bold text-primary text-lg sm:text-xl font-['Frank_Ruhl_Libre']">
                         {toHebrewNumber(pasuk.pasuk_num)}
                       </span>
                     </div>
@@ -206,7 +206,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                           content: pasuk.content || [],
                         });
                       }}
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors hidden sm:flex"
                       title="שתף במייל"
                     >
                       <Mail className="h-4 w-4" />
@@ -219,14 +219,14 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                         e.stopPropagation();
                         sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num, formatTorahText(pasuk.text));
                       }}
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors hidden sm:flex"
                       title="שתף קישור לפסוק"
                     >
                       <Link2 className="h-4 w-4" />
                     </Button>
 
                     <Button
-                      className="h-8 w-8 hover:bg-accent/50 transition-colors"
+                      className="h-8 w-8 hover:bg-accent/50 transition-colors hidden sm:flex"
                       title="פרשנים נוספים"
                     >
                       <BookOpen className="h-4 w-4" />

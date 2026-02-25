@@ -124,7 +124,7 @@ export const SeferSelector = ({
   }, [onParshaSelect, onPerekSelect, onPasukSelect]);
 
   return (
-    <div className="space-y-3 sm:space-y-4 bg-card rounded-lg shadow-md p-3 sm:p-4">
+    <div className="space-y-2 sm:space-y-4 bg-card rounded-lg shadow-md p-2 sm:p-4">
       <div className="flex items-center justify-between gap-2 mb-2" dir="rtl">
         <div className="flex items-center gap-2 flex-wrap text-sm sm:text-base font-bold min-w-0">
           {/* Breadcrumb: חומש / שמות / יתרו / פרק כ"א / ד' */}
@@ -189,20 +189,20 @@ export const SeferSelector = ({
       </div>
 
       {level === "sefer" && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 animate-fade-in">
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4 animate-fade-in">
           {SEFARIM.map((s) => (
             <Button
               key={s.id}
               variant={selectedSefer === s.id ? "default" : "outline"}
               onClick={() => handleSeferClick(s.id)}
               className={cn(
-                "h-auto py-4 sm:py-6 flex flex-col gap-2 transition-all duration-200 touch-manipulation",
-                "text-base sm:text-lg min-h-[80px] sm:min-h-[100px]",
+                "h-auto py-2 sm:py-6 flex flex-col gap-1 sm:gap-2 transition-all duration-200 touch-manipulation",
+                "text-base sm:text-lg min-h-[52px] sm:min-h-[100px]",
                 selectedSefer === s.id && "shadow-lg ring-2 ring-primary"
               )}
             >
-              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6" />
-              <span className="text-base sm:text-lg font-bold leading-tight whitespace-nowrap">{s.name}</span>
+              <BookOpen className="h-4 w-4 sm:h-6 sm:w-6" />
+              <span className="text-sm sm:text-lg font-bold leading-tight whitespace-nowrap">{s.name}</span>
             </Button>
           ))}
         </div>

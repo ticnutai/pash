@@ -213,7 +213,9 @@ export const FloatingActionButton = ({
                       className={cn(
                         "rounded-full flex items-center justify-center transition-all duration-200",
                         "hover:scale-110 active:scale-95",
-                        "h-9 w-9 bg-muted/60 text-foreground hover:bg-accent hover:text-accent-foreground"
+                        isMobile
+                          ? "h-11 w-11 bg-muted/60 text-foreground hover:bg-accent hover:text-accent-foreground"
+                          : "h-9 w-9 bg-muted/60 text-foreground hover:bg-accent hover:text-accent-foreground"
                       )}
                       title={action.label}
                     >

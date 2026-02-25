@@ -579,37 +579,34 @@ const Index = () => {
       <header data-layout="header" data-layout-label="הדר ראשי" className="sticky top-0 z-50 bg-sidebar shadow-lg">
         <div className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-sidebar sm:rounded-3xl">
           {/* Mobile Layout - Stack vertically */}
-          <div className="flex flex-col gap-2 md:hidden">
-            {/* Top row: Title and Book icon */}
-            <div className="flex items-center justify-center gap-2 px-2">
-              <Book className="h-5 w-5 text-accent flex-shrink-0" />
-              <h1 className="text-sm font-bold text-primary-foreground text-center leading-snug break-words max-w-[90%]">
-                חמישה חומשי תורה - שאלות ופירושים
-              </h1>
-            </div>
-            
-            {/* Bottom row: Action buttons - single line */}
-            <div data-layout="header-actions-mobile" data-layout-label="כפתורי כותרת (מובייל)" className="flex items-center justify-center gap-1.5 px-2">
-              <span data-layout="btn-calendar" data-layout-label="📅 לוח שנה">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleAutoWeeklyParsha}
-                className={cn("h-8 w-8", autoWeeklyParsha ? "text-accent" : "text-muted-foreground")}
-                title={autoWeeklyParsha ? "פרשת השבוע נטענת אוטומטית — לחץ לביטול" : "פרשת השבוע לא נטענת אוטומטית — לחץ להפעלה"}
-              >
-                {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
-              </Button>
-              </span>
-              <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
-              <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
-              <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
-              <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
-              <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
-            </div>
-            {/* Inline quick search */}
-            <div className="px-2">
-              <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
+          <div className="flex flex-col gap-1 md:hidden">
+            {/* Top row: Title + Book icon + Action buttons all in one line */}
+            <div className="flex items-center justify-between gap-1 px-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Book className="h-4 w-4 text-accent flex-shrink-0" />
+                <h1 className="text-xs font-bold text-primary-foreground leading-tight truncate">
+                  חמישה חומשי תורה
+                </h1>
+              </div>
+              {/* Action buttons */}
+              <div data-layout="header-actions-mobile" data-layout-label="כפתורי כותרת (מובייל)" className="flex items-center gap-0.5 flex-shrink-0">
+                <span data-layout="btn-calendar" data-layout-label="📅 לוח שנה">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleAutoWeeklyParsha}
+                  className={cn("h-8 w-8", autoWeeklyParsha ? "text-accent" : "text-muted-foreground")}
+                  title={autoWeeklyParsha ? "פרשת השבוע נטענת אוטומטית — לחץ לביטול" : "פרשת השבוע לא נטענת אוטומטית — לחץ להפעלה"}
+                >
+                  {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
+                </Button>
+                </span>
+                <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
+                <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
+                <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
+                <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+                <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
+              </div>
             </div>
           </div>
 
@@ -764,17 +761,19 @@ const Index = () => {
           )}
         </div>
 
-        {/* Persistent Side Panel Trigger Arrow */}
-        <SidePanelTrigger
-          isOpen={sidePanelOpen}
-          onClick={() => {
-            if (sidePanelOpen) {
-              setSidePanelOpen(false);
-            } else {
-              setSidePanelOpen(true);
-            }
-          }}
-        />
+        {/* Persistent Side Panel Trigger Arrow — hidden on mobile (mobile uses bottom sheet + User button) */}
+        {!isMobile && (
+          <SidePanelTrigger
+            isOpen={sidePanelOpen}
+            onClick={() => {
+              if (sidePanelOpen) {
+                setSidePanelOpen(false);
+              } else {
+                setSidePanelOpen(true);
+              }
+            }}
+          />
+        )}
 
         {/* Side Content Panel - moved into the grid below */}
 

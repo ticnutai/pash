@@ -329,7 +329,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                             content: mergedContent,
                           });
                         }}
-                        className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
+                        className={displayStyles.isMobile ? "h-8 w-8 hidden" : "gap-2 h-8"}
                         title="שתף במייל"
                       >
                         <Mail className="h-4 w-4" />
@@ -341,7 +341,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                           e.stopPropagation();
                           sharePasukLink(seferId, pasuk.perek, pasuk.pasuk_num, formattedPasukText);
                         }}
-                        className={displayStyles.isMobile ? "h-8 w-8" : "gap-2 h-8"}
+                        className={displayStyles.isMobile ? "h-8 w-8 hidden" : "gap-2 h-8"}
                         title="שתף קישור לפסוק"
                       >
                         <Link2 className="h-4 w-4" />
@@ -426,13 +426,13 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                           setEditorOpen(true);
                         }}
                       />
-                      {/* Edit and Delete buttons - show only on hover if it's the user's title */}
+                      {/* Edit and Delete buttons - always visible on mobile, hover on desktop */}
                       {userTitles.find(t => t.id === contentItem.id) && (
                         <>
                            <Button
                             size="sm"
                             variant="ghost"
-                            className="h-6 w-6 p-0 opacity-0 group-hover/title:opacity-100 transition-opacity"
+                            className="h-6 w-6 p-0 sm:opacity-0 sm:group-hover/title:opacity-100 transition-opacity"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingTitle({ id: contentItem.id as number, title: contentItem.title || "" });
@@ -443,7 +443,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-6 w-6 p-0 opacity-0 group-hover/title:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                            className="h-6 w-6 p-0 sm:opacity-0 sm:group-hover/title:opacity-100 transition-opacity text-destructive hover:text-destructive"
                             onClick={(e) => {
                               e.stopPropagation();
                               setDeletingTitle(contentItem.id as number);
@@ -455,7 +455,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                       )}
                     </div>
                   )}
-                  <div className="w-full overflow-hidden pr-8 pl-20" style={{ maxWidth: "100%" }}>
+                  <div className="w-full overflow-hidden pr-8 pl-8 sm:pl-20" style={{ maxWidth: "100%" }}>
                     <ClickableText
                       text={fixText(contentItem.title)}
                       pasukId={`${pasukId}-title-${String(contentItem.id)}`}
@@ -754,7 +754,7 @@ const QuestionSection = memo(({
             </div>
           </Button>
           {isUserQuestion && onEditQuestion && onDeleteQuestion && (
-            <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover/question:opacity-100 transition-opacity">
+            <div className="absolute top-2 left-2 flex gap-1 sm:opacity-0 sm:group-hover/question:opacity-100 transition-opacity">
               <Button
                 size="sm"
                 variant="ghost"
@@ -849,7 +849,7 @@ const AnswerSection = memo(({
             {normalizeMefareshName(perush.mefaresh)}
           </Badge>
           {isUserAnswer && onEditAnswer && onDeleteAnswer && (
-            <div className="flex gap-1 opacity-0 group-hover/answer:opacity-100 transition-opacity">
+            <div className="flex gap-1 sm:opacity-0 sm:group-hover/answer:opacity-100 transition-opacity">
               <Button
                 size="sm"
                 variant="ghost"

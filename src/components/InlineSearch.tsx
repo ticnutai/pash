@@ -74,7 +74,7 @@ export function InlineSearch({ onNavigateToPasuk }: InlineSearchProps) {
           onChange={(e) => { setQuery(e.target.value); setIsActive(true); }}
           onFocus={() => { setIsActive(true); if (results.length > 0) setShowResults(true); }}
           placeholder="חיפוש מהיר..."
-          className="h-9 text-sm pr-9 pl-9 rounded-full border-2 border-accent bg-white text-foreground placeholder:text-muted-foreground focus:bg-white focus:border-accent"
+          className="h-9 text-sm pr-9 pl-9 rounded-full border-2 border-accent bg-background text-foreground placeholder:text-muted-foreground focus:bg-background focus:border-accent"
         />
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
         {query && (

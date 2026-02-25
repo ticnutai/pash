@@ -145,7 +145,8 @@ export const FloatingQuickSelector = ({
         <Button
           size="icon"
           className={cn(
-            "fixed bottom-4 left-4 rounded-full shadow-xl z-50 touch-manipulation",
+            "fixed bottom-4 rounded-full shadow-xl z-50 touch-manipulation",
+            isMobile ? "right-4" : "left-4",
             "bg-accent hover:bg-accent/90 text-accent-foreground active:scale-95 border-2 border-accent",
             "transition-colors duration-200",
             isMobile ? "h-14 w-14" : "h-11 w-11"
@@ -157,10 +158,10 @@ export const FloatingQuickSelector = ({
       </PopoverTrigger>
       <PopoverContent
         side="top"
-        align="start"
+        align={isMobile ? "end" : "start"}
         sideOffset={12}
         dir="rtl"
-        className="w-[320px] max-h-[400px] p-0 overflow-hidden border border-accent bg-card text-foreground"
+        className={cn("max-h-[400px] p-0 overflow-hidden border border-accent bg-card text-foreground", isMobile ? "w-[calc(100vw-2rem)]" : "w-[320px]")}
       >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b p-3 flex items-center justify-between gap-2" dir="rtl">
