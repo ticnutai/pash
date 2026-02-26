@@ -785,38 +785,34 @@ const Index = () => {
 
             {/* Navigation buttons - parsha & pasuk - ABOVE the grid */}
             {currentParshaName && parshaAllPesukim.length > 0 && (
-              <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="flex items-center justify-center gap-8 py-4 px-2" dir="rtl">
-                {/* Parsha navigation group */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateToParsha('prev')}
-                    disabled={!canNavigatePrev}
-                    className="h-9 px-3 rounded-lg hover:bg-primary/10 disabled:opacity-30 transition-all border-primary/20"
-                    title="פרשה קודמת"
-                  >
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                    <span className="text-sm">פרשה קודמת</span>
-                  </Button>
-                  <span className="text-sm font-bold text-primary px-2">{currentParshaName}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateToParsha('next')}
-                    disabled={!canNavigateNext}
-                    className="h-9 px-3 rounded-lg hover:bg-primary/10 disabled:opacity-30 transition-all border-primary/20"
-                    title="פרשה הבאה"
-                  >
-                    <span className="text-sm">פרשה הבאה</span>
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                  </Button>
-                </div>
+              <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
+                {/* Parsha navigation: arrow > name > arrow */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateToParsha('prev')}
+                  disabled={!canNavigatePrev}
+                  className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                <span className="text-sm font-bold text-primary truncate max-w-[120px] text-center" style={{ fontSize: currentParshaName.length > 8 ? '0.75rem' : '0.875rem' }}>
+                  {currentParshaName}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateToParsha('next')}
+                  disabled={!canNavigateNext}
+                  className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
 
                 {/* Separator */}
-                <div className="h-6 w-px bg-border" />
+                <div className="h-5 w-px bg-border mx-1" />
 
-                {/* Pasuk navigation group */}
+                {/* Pasuk navigation: arrow > number > arrow */}
                 <PasukSimpleNavigator
                   pesukim={parshaAllPesukim}
                   currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}

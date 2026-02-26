@@ -37,32 +37,28 @@ export const PasukSimpleNavigator = ({
   const currentPasuk = pesukim[currentIndex];
 
   return (
-    <div className="flex items-center justify-center gap-3 py-2 px-4">
+    <div className="flex items-center gap-1">
       <Button
         variant="ghost"
-        size="sm"
+        size="icon"
         onClick={handlePrev}
         disabled={!canNavigatePrev}
-        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+        className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors"
         title="פסוק קודם"
       >
         <ChevronRight className="h-5 w-5" />
       </Button>
       
-      <div className="flex items-center gap-2">
-        <div className="h-2 w-2 rounded-full bg-primary" />
-        <span className="text-lg font-semibold text-primary">
-          פסוק {toHebrewNumber(currentPasuk.pasuk_num)}
-        </span>
-        <div className="h-2 w-2 rounded-full bg-primary" />
-      </div>
+      <span className="text-sm font-semibold text-primary min-w-[2rem] text-center">
+        {toHebrewNumber(currentPasuk.pasuk_num)}
+      </span>
       
       <Button
         variant="ghost"
-        size="sm"
+        size="icon"
         onClick={handleNext}
         disabled={!canNavigateNext}
-        className="h-8 w-8 p-0 hover:bg-primary/20 disabled:opacity-30 transition-colors"
+        className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors"
         title="פסוק הבא"
       >
         <ChevronLeft className="h-5 w-5" />
