@@ -4,6 +4,8 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +14,22 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+
+const hebrewFonts = [
+  { value: "David Libre", label: "דוד ליברה", sample: "אבגד" },
+  { value: "Frank Ruehl Libre", label: "פרנק רוהל", sample: "אבגד" },
+  { value: "Noto Serif Hebrew", label: "נוטו סריף", sample: "אבגד" },
+  { value: "Miriam Libre", label: "מרים ליברה", sample: "אבגד" },
+  { value: "Rubik", label: "רוביק", sample: "אבגד" },
+  { value: "Heebo", label: "היבו", sample: "אבגד" },
+  { value: "Alef", label: "אלף", sample: "אבגד" },
+  { value: "Varela Round", label: "וארלה ראונד", sample: "אבגד" },
+  { value: "Assistant", label: "אסיסטנט", sample: "אבגד" },
+  { value: "Secular One", label: "סקולר וואן", sample: "אבגד" },
+  { value: "Suez One", label: "סואץ וואן", sample: "אבגד" },
+  { value: "Arial", label: "אריאל", sample: "אבגד" },
+  { value: "Times New Roman", label: "טיימס ניו רומן", sample: "אבגד" },
+];
 
 const alignmentValues = ["right", "center", "left"] as const;
 const spacingValues = ["compact", "normal", "comfortable", "spacious"] as const;
@@ -67,17 +85,54 @@ const SliderSection = ({ label, valueBadge, value, onChange, min, max, step, mar
   </div>
 );
 
+interface FontSelectorProps {
+  label: string;
+  value: string;
+  onChange: (font: string) => void;
+}
+
+const FontSelector = ({ label, value, onChange }: FontSelectorProps) => (
+  <div className="space-y-2">
+    <Label className="text-sm font-semibold">{label}</Label>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="text-right h-10">
+        <SelectValue>
+          <span style={{ fontFamily: value }} className="text-sm">
+            {hebrewFonts.find(f => f.value === value)?.label || value}
+          </span>
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent className="max-h-[300px]">
+        {hebrewFonts.map((font) => (
+          <SelectItem key={font.value} value={font.value} className="py-2">
+            <div className="flex items-center gap-3 w-full">
+              <span className="text-xs text-muted-foreground shrink-0">{font.label}</span>
+              <span style={{ fontFamily: font.value, fontSize: '16px' }} className="text-foreground">
+                {font.sample} — בראשית ברא
+              </span>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+);
+
 interface TabContentProps {
   sizeValue: number;
   onSizeChange: (v: number) => void;
   sizeLabel: string;
+  fontValue: string;
+  onFontChange: (font: string) => void;
+  fontLabel: string;
+  boldValue: boolean;
+  onBoldChange: (bold: boolean) => void;
   settings: ReturnType<typeof useFontAndColorSettings>["settings"];
   updateSettings: ReturnType<typeof useFontAndColorSettings>["updateSettings"];
   previewText?: string;
-  previewFont?: string;
 }
 
-const TabContent = ({ sizeValue, onSizeChange, sizeLabel, settings, updateSettings, previewText, previewFont }: TabContentProps) => {
+const TabContent = ({ sizeValue, onSizeChange, sizeLabel, fontValue, onFontChange, fontLabel, boldValue, onBoldChange, settings, updateSettings, previewText }: TabContentProps) => {
   const currentAlignmentIdx = alignmentValues.indexOf(settings.textAlignment);
   const currentSpacingIdx = spacingValues.indexOf(settings.contentSpacing as typeof spacingValues[number]);
   const currentLineHeightIdx = lineHeightValues.indexOf(settings.lineHeight as typeof lineHeightValues[number]);
@@ -85,6 +140,16 @@ const TabContent = ({ sizeValue, onSizeChange, sizeLabel, settings, updateSettin
 
   return (
     <div className="space-y-4 py-1" dir="rtl">
+      {/* Font selector */}
+      <FontSelector label={fontLabel} value={fontValue} onChange={onFontChange} />
+
+      <div className="flex items-center justify-between">
+        <Switch checked={boldValue} onCheckedChange={onBoldChange} />
+        <Label className="text-sm font-semibold">טקסט מודגש</Label>
+      </div>
+
+      <Separator className="bg-accent/20" />
+
       {/* Font size */}
       <SliderSection
         label={sizeLabel}
@@ -157,12 +222,13 @@ const TabContent = ({ sizeValue, onSizeChange, sizeLabel, settings, updateSettin
       {previewText && (
         <>
           <Separator className="bg-accent/20" />
-          <div className="rounded-lg bg-muted/20 p-3">
-            <Label className="text-xs text-muted-foreground mb-1 block">תצוגה מקדימה</Label>
+          <div className="rounded-lg bg-muted/20 p-3 border border-accent/10">
+            <Label className="text-xs text-muted-foreground mb-2 block">תצוגה מקדימה</Label>
             <p
               style={{
-                fontFamily: previewFont || settings.pasukFont,
+                fontFamily: fontValue,
                 fontSize: `${Math.min(sizeValue, 24)}px`,
+                fontWeight: boldValue ? "bold" : "normal",
                 lineHeight: settings.lineHeight === "tight" ? "1.3"
                   : settings.lineHeight === "relaxed" ? "1.7"
                   : settings.lineHeight === "loose" ? "2.0"
@@ -227,10 +293,14 @@ export const TextDisplaySettings = () => {
               sizeValue={settings.pasukSize}
               onSizeChange={(v) => updateSettings({ pasukSize: v })}
               sizeLabel="גודל פסוקים"
+              fontValue={settings.pasukFont}
+              onFontChange={(f) => updateSettings({ pasukFont: f })}
+              fontLabel="גופן פסוקים"
+              boldValue={settings.pasukBold}
+              onBoldChange={(b) => updateSettings({ pasukBold: b })}
               settings={settings}
               updateSettings={updateSettings}
               previewText="בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ"
-              previewFont={settings.pasukFont}
             />
           </TabsContent>
 
@@ -239,6 +309,11 @@ export const TextDisplaySettings = () => {
               sizeValue={settings.titleSize}
               onSizeChange={(v) => updateSettings({ titleSize: v })}
               sizeLabel="גודל כותרות"
+              fontValue={settings.titleFont}
+              onFontChange={(f) => updateSettings({ titleFont: f })}
+              fontLabel="גופן כותרות"
+              boldValue={settings.titleBold}
+              onBoldChange={(b) => updateSettings({ titleBold: b })}
               settings={settings}
               updateSettings={updateSettings}
               previewText="פרשת בראשית — פרק א׳"
@@ -250,6 +325,11 @@ export const TextDisplaySettings = () => {
               sizeValue={settings.questionSize}
               onSizeChange={(v) => updateSettings({ questionSize: v })}
               sizeLabel="גודל שאלות"
+              fontValue={settings.questionFont}
+              onFontChange={(f) => updateSettings({ questionFont: f })}
+              fontLabel="גופן שאלות"
+              boldValue={settings.questionBold}
+              onBoldChange={(b) => updateSettings({ questionBold: b })}
               settings={settings}
               updateSettings={updateSettings}
               previewText="מדוע נאמר 'בראשית' ולא 'בתחילה'?"
@@ -261,6 +341,11 @@ export const TextDisplaySettings = () => {
               sizeValue={settings.commentarySize}
               onSizeChange={(v) => updateSettings({ commentarySize: v })}
               sizeLabel="גודל מפרשים"
+              fontValue={settings.commentaryFont}
+              onFontChange={(f) => updateSettings({ commentaryFont: f })}
+              fontLabel="גופן מפרשים"
+              boldValue={settings.commentaryBold}
+              onBoldChange={(b) => updateSettings({ commentaryBold: b })}
               settings={settings}
               updateSettings={updateSettings}
               previewText="אמר רבי יצחק: לא היה צריך להתחיל את התורה אלא מ'החודש הזה לכם'"
