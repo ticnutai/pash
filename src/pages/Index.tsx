@@ -783,46 +783,6 @@ const Index = () => {
           <>
             {/* Navigation bar moved above the grid */}
 
-            {/* Navigation buttons - parsha & pasuk - ABOVE the grid */}
-            {currentParshaName && parshaAllPesukim.length > 0 && (
-              <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
-                {/* Parsha navigation: arrow > name > arrow */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigateToParsha('prev')}
-                  disabled={!canNavigatePrev}
-                  className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-                <span className="text-sm font-bold text-primary truncate max-w-[120px] text-center" style={{ fontSize: currentParshaName.length > 8 ? '0.75rem' : '0.875rem' }}>
-                  {currentParshaName}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigateToParsha('next')}
-                  disabled={!canNavigateNext}
-                  className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-
-                {/* Separator */}
-                <div className="h-5 w-px bg-border mx-1" />
-
-                {/* Pasuk navigation: arrow > number > arrow */}
-                <PasukSimpleNavigator
-                  pesukim={parshaAllPesukim}
-                  currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
-                  onNavigate={handlePasukSelect}
-                />
-              </div>
-            )}
-
-            {/* Parsha/Pasuk nav moved into content column */}
-
             {/* Mobile controls - ABOVE the grid */}
             {isMobile && (
               <div data-layout="mobile-controls" data-layout-label="בקרות מובייל" className="flex items-center gap-1.5 flex-wrap">
@@ -863,6 +823,39 @@ const Index = () => {
                     onClick={() => setGlobalMinimize(!globalMinimize)}
                   />
                 )}
+              </div>
+            )}
+
+            {/* Navigation buttons - parsha & pasuk - BELOW controls */}
+            {currentParshaName && parshaAllPesukim.length > 0 && (
+              <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateToParsha('prev')}
+                  disabled={!canNavigatePrev}
+                  className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                <span className="text-sm font-bold text-primary truncate max-w-[120px] text-center" style={{ fontSize: currentParshaName.length > 8 ? '0.75rem' : '0.875rem' }}>
+                  {currentParshaName}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateToParsha('next')}
+                  disabled={!canNavigateNext}
+                  className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <div className="h-5 w-px bg-border mx-1" />
+                <PasukSimpleNavigator
+                  pesukim={parshaAllPesukim}
+                  currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
+                  onNavigate={handlePasukSelect}
+                />
               </div>
             )}
 
