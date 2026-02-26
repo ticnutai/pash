@@ -13,7 +13,7 @@ import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { DevicePreview } from "@/components/DevicePreview";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import { PasukSimpleNavigator } from "@/components/PasukSimpleNavigator";
-import { ReadingProgress } from "@/components/ReadingProgress";
+// ReadingProgress removed - replaced with nav buttons
 import { useTheme } from "@/contexts/ThemeContext";
 import { useDisplayMode, DisplayMode } from "@/contexts/DisplayModeContext";
 import { useDevice } from "@/contexts/DeviceContext";
@@ -783,14 +783,45 @@ const Index = () => {
           <>
             {/* Navigation bar moved above the grid */}
 
-            {/* Reading progress bar - ABOVE the grid */}
-            {parshaAllPesukim.length > 0 && selectedPasuk !== null && (
-              <div data-layout="reading-progress" data-layout-label="📊 התקדמות קריאה">
-              <ReadingProgress
-                totalPesukim={parshaAllPesukim.length}
-                currentPasukIndex={parshaAllPesukim.findIndex(p => p.pasuk_num === selectedPasuk && p.perek === selectedPerek)}
-                parshaName={currentParshaName}
-              />
+            {/* Navigation buttons - parsha & pasuk - ABOVE the grid */}
+            {currentParshaName && parshaAllPesukim.length > 0 && (
+              <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="flex items-center justify-center gap-8 py-4 px-2" dir="rtl">
+                {/* Parsha navigation group */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateToParsha('prev')}
+                    disabled={!canNavigatePrev}
+                    className="h-9 px-3 rounded-lg hover:bg-primary/10 disabled:opacity-30 transition-all border-primary/20"
+                    title="פרשה קודמת"
+                  >
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                    <span className="text-sm">פרשה קודמת</span>
+                  </Button>
+                  <span className="text-sm font-bold text-primary px-2">{currentParshaName}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateToParsha('next')}
+                    disabled={!canNavigateNext}
+                    className="h-9 px-3 rounded-lg hover:bg-primary/10 disabled:opacity-30 transition-all border-primary/20"
+                    title="פרשה הבאה"
+                  >
+                    <span className="text-sm">פרשה הבאה</span>
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                  </Button>
+                </div>
+
+                {/* Separator */}
+                <div className="h-6 w-px bg-border" />
+
+                {/* Pasuk navigation group */}
+                <PasukSimpleNavigator
+                  pesukim={parshaAllPesukim}
+                  currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
+                  onNavigate={handlePasukSelect}
+                />
               </div>
             )}
 
