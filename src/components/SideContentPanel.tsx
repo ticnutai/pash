@@ -46,8 +46,6 @@ interface SideContentPanelProps {
   onModeChange: (mode: PanelMode) => void;
   selectedPasuk: FlatPasuk | null;
   seferId: number;
-  availablePesukim?: FlatPasuk[];
-  onPasukSelect?: (pasuk: FlatPasuk) => void;
   inGrid?: boolean;
 }
 
@@ -58,8 +56,6 @@ export const SideContentPanel = ({
   onModeChange,
   selectedPasuk,
   seferId,
-  availablePesukim = [],
-  onPasukSelect,
   inGrid = false
 }: SideContentPanelProps) => {
   const navigate = useNavigate();
@@ -107,19 +103,19 @@ export const SideContentPanel = ({
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex gap-2">
             <Button
-              variant="outline"
+              variant={mode === "pasuk" ? "default" : "outline"}
               size="sm"
               onClick={() => onModeChange("pasuk")}
-              className={cn("gap-2 font-semibold", mode === "pasuk" && "border-accent text-primary")}
+              className={cn("gap-2 font-semibold", mode === "pasuk" ? "shadow-sm" : "")}
             >
               <BookOpen className="h-4 w-4" />
               פירושים
             </Button>
             <Button
-              variant="outline"
+              variant={mode === "user" ? "default" : "outline"}
               size="sm"
               onClick={() => onModeChange("user")}
-              className={cn("gap-2 font-semibold", mode === "user" && "border-accent text-primary")}
+              className={cn("gap-2 font-semibold", mode === "user" ? "shadow-sm" : "")}
             >
               <User className="h-4 w-4" />
               שלי ({totalUserItems})
@@ -135,19 +131,19 @@ export const SideContentPanel = ({
       {isMobile && (
         <div className="flex gap-2 px-3 pt-2 pb-2 border-b border-border flex-shrink-0">
           <Button
-            variant="outline"
+            variant={mode === "pasuk" ? "default" : "outline"}
             size="sm"
             onClick={() => onModeChange("pasuk")}
-            className={cn("flex-1 gap-2 font-semibold", mode === "pasuk" && "border-accent text-primary")}
+            className={cn("flex-1 gap-2 font-semibold", mode === "pasuk" ? "shadow-sm" : "")}
           >
             <BookOpen className="h-4 w-4" />
             פירושים
           </Button>
           <Button
-            variant="outline"
+            variant={mode === "user" ? "default" : "outline"}
             size="sm"
             onClick={() => onModeChange("user")}
-            className={cn("flex-1 gap-2 font-semibold", mode === "user" && "border-accent text-primary")}
+            className={cn("flex-1 gap-2 font-semibold", mode === "user" ? "shadow-sm" : "")}
           >
             <User className="h-4 w-4" />
             שלי ({totalUserItems})
@@ -158,7 +154,7 @@ export const SideContentPanel = ({
       {/* Content based on mode */}
       <div className="flex-1 overflow-hidden">
         {mode === "pasuk" ? (
-          <PasukContentView pasuk={selectedPasuk} seferId={seferId} availablePesukim={availablePesukim} onPasukSelect={onPasukSelect} />
+          <PasukContentView pasuk={selectedPasuk} seferId={seferId} />
         ) : (
           <UserContentView
             user={user}
@@ -190,6 +186,9 @@ export const SideContentPanel = ({
           dir="rtl"
           className="h-[85vh] p-0 border-t border-border bg-card text-foreground rounded-t-lg flex flex-col"
         >
+          <div className="flex justify-center pt-2 pb-1 flex-shrink-0" aria-hidden="true">
+            <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+          </div>
           <SheetHeader className="px-4 pt-4 pb-0 flex-shrink-0">
             <SheetTitle className="text-right text-foreground flex items-center justify-end gap-2">
               <span>{mode === "pasuk" ? "פירושים" : "התוכן שלי"}</span>
@@ -208,7 +207,7 @@ export const SideContentPanel = ({
     return (
       <Card
         dir="rtl"
-        data-layout="side-panel" data-layout-label="📋 פאנל תוכן צדי"
+        data-layout="side-panel" data-layout-label="\ud83d\udccb \u05e4\u05d0\u05e0\u05dc \u05ea\u05d5\u05db\u05df \u05e6\u05d3\u05d9"
         className="p-4 h-fit w-full animate-fade-in flex flex-col overflow-y-auto"
       >
         {panelContent}
@@ -228,7 +227,7 @@ export const SideContentPanel = ({
       />
       <Card
         dir="rtl"
-        data-layout="side-panel" data-layout-label="📋 פאנל תוכן צדי"
+        data-layout="side-panel" data-layout-label="\ud83d\udccb \u05e4\u05d0\u05e0\u05dc \u05ea\u05d5\u05db\u05df \u05e6\u05d3\u05d9"
         className="fixed left-0 top-[460px] md:top-[470px] w-80 md:w-96 max-h-[calc(100vh-470px)] p-4 z-40 animate-fade-in flex flex-col overflow-y-auto ml-1"
       >
         {panelContent}
@@ -240,16 +239,12 @@ export const SideContentPanel = ({
 // Pasuk content view component
 const PasukContentView = ({ 
   pasuk, 
-  seferId,
-  availablePesukim = [],
-  onPasukSelect,
+  seferId 
 }: { 
   pasuk: FlatPasuk | null; 
   seferId: number;
-  availablePesukim?: FlatPasuk[];
-  onPasukSelect?: (pasuk: FlatPasuk) => void;
 }) => {
-  if (!pasuk && availablePesukim.length === 0) {
+  if (!pasuk) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-center h-full" dir="rtl">
         <div className="text-muted-foreground space-y-3">
@@ -266,55 +261,27 @@ const PasukContentView = ({
   return (
     <ScrollArea className="h-full">
       <div className="p-4 sm:p-5" dir="rtl">
-        {/* Pasuk selector chips */}
-        {availablePesukim.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs text-muted-foreground mb-2 font-medium">בחר פסוק:</p>
-            <div className="flex flex-wrap gap-1.5">
-              {availablePesukim.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => onPasukSelect?.(p)}
-                  className={cn(
-                    "h-8 min-w-[2rem] px-2 rounded-lg text-xs font-bold border transition-all",
-                    pasuk?.id === p.id
-                      ? "border-accent text-primary bg-accent/10"
-                      : "bg-background border-border hover:bg-muted/50"
-                  )}
-                  title={`פסוק ${toHebrewNumber(p.pasuk_num)}`}
-                >
-                  {toHebrewNumber(p.pasuk_num)}
-                </button>
-              ))}
-            </div>
+        {/* Selected pasuk header */}
+        <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+          <div className="text-sm text-muted-foreground mb-2 font-medium">
+            {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
           </div>
-        )}
+          <div className="text-lg font-['Frank_Ruhl_Libre'] leading-relaxed">
+            {pasuk.text}
+          </div>
+        </div>
 
-        {pasuk && (
-          <>
-            {/* Selected pasuk header */}
-            <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
-              <div className="text-sm text-muted-foreground mb-2 font-medium">
-                {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
-              </div>
-              <div className="text-lg font-['Frank_Ruhl_Libre'] leading-relaxed">
-                {pasuk.text}
-              </div>
-            </div>
-
-            {/* Pasuk content (titles, questions, commentaries) */}
-            {pasuk.content && pasuk.content.length > 0 ? (
-              <PasukDisplay 
-                pasuk={pasuk} 
-                seferId={seferId}
-                forceMinimized={false}
-              />
-            ) : (
-              <div className="text-center py-10 text-muted-foreground">
-                <p className="text-sm">אין תוכן לפסוק זה</p>
-              </div>
-            )}
-          </>
+        {/* Pasuk content (titles, questions, commentaries) */}
+        {pasuk.content && pasuk.content.length > 0 ? (
+          <PasukDisplay 
+            pasuk={pasuk} 
+            seferId={seferId}
+            forceMinimized={false}
+          />
+        ) : (
+          <div className="text-center py-10 text-muted-foreground">
+            <p className="text-sm">אין תוכן לפסוק זה</p>
+          </div>
         )}
       </div>
     </ScrollArea>
@@ -374,7 +341,7 @@ const UserContentView = ({
         <Collapsible open={expandedSections.bookmarks} onOpenChange={() => toggleSection('bookmarks')}>
           <Card className="overflow-hidden border-border shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto ">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-3 py-3 h-auto">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                     <BookmarkIcon className="h-4 w-4 text-primary" />
@@ -416,7 +383,7 @@ const UserContentView = ({
         <Collapsible open={expandedSections.notes} onOpenChange={() => toggleSection('notes')}>
           <Card className="overflow-hidden border-border shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto ">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-3 py-3 h-auto">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
                     <StickyNote className="h-4 w-4 text-yellow-500" />
@@ -458,7 +425,7 @@ const UserContentView = ({
         <Collapsible open={expandedSections.questions} onOpenChange={() => toggleSection('questions')}>
           <Card className="overflow-hidden border-border shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto ">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-3 py-3 h-auto">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
                     <HelpCircle className="h-4 w-4 text-blue-500" />
@@ -500,7 +467,7 @@ const UserContentView = ({
         <Collapsible open={expandedSections.highlights} onOpenChange={() => toggleSection('highlights')}>
           <Card className="overflow-hidden border-border shadow-sm">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3.5 h-auto ">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-3 py-3 h-auto">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
                     <Highlighter className="h-4 w-4 text-orange-500" />
