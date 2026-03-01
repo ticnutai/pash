@@ -63,6 +63,7 @@ export const MultiShareBar = () => {
                  bg-primary text-primary-foreground rounded-full shadow-2xl
                  border border-primary/20 backdrop-blur-sm
                  animate-in slide-in-from-bottom-4 duration-300"
+      style={{ bottom: 'max(calc(1rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px)))), 5rem)' }}
     >
       {/* Count */}
       <Badge variant="secondary" className="text-primary font-bold text-sm gap-1 px-2">

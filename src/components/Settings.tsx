@@ -139,6 +139,7 @@ export const Settings = () => {
           data-layout="floating-settings" data-layout-label="⚙️ הגדרות צפות"
           size="icon"
           className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-40 bg-primary hover:bg-primary/90"
+          style={{ bottom: 'calc(1rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px))))' }}
         >
           <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>

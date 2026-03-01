@@ -594,12 +594,18 @@ const Index = () => {
 
   return (
     <SelectionProvider>
-    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
+    <div
+      className="min-h-screen bg-background pb-20 overflow-x-hidden"
+      style={{ paddingBottom: 'calc(5rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px))))' }}
+    >
       {/* Header - Fully Responsive */}
       <header data-layout="header" data-layout-label="הדר ראשי" className="sticky top-0 z-50 bg-sidebar shadow-lg">
         <div className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-sidebar sm:rounded-3xl">
           {/* Mobile Layout - Stack vertically */}
-          <div className="flex flex-col gap-1 md:hidden">
+          <div
+            className="flex flex-col gap-1 md:hidden"
+            style={{ paddingTop: 'max(var(--safe-area-inset-top, var(--sai-top, env(safe-area-inset-top, 0px))), 28px)' }}
+          >
             {/* Top row: Title + Book icon + Action buttons all in one line */}
             <div className="flex items-center justify-between gap-1 px-1">
               <div className="flex items-center gap-1.5 min-w-0">

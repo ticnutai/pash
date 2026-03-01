@@ -17,8 +17,11 @@ interface FloatingActionButtonProps {
 /** Returns the bottom safe-area inset in pixels (Android nav bar / iPhone home indicator) */
 function getSafeAreaBottom(): number {
   if (typeof window === 'undefined') return 0;
-  const val = getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom');
-  return parseFloat(val) || 0;
+  const styles = getComputedStyle(document.documentElement);
+  const standard = parseFloat(styles.getPropertyValue('--safe-area-inset-bottom')) || 0;
+  if (standard > 0) return standard;
+  const legacy = parseFloat(styles.getPropertyValue('--sai-bottom')) || 0;
+  return legacy;
 }
 
 const FAB_ACTIONS = [

@@ -151,6 +151,7 @@ export const FloatingQuickSelector = ({
             "transition-colors duration-200",
             isMobile ? "h-14 w-14" : "h-11 w-11"
           )}
+          style={{ bottom: 'calc(1rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px))))' }}
           aria-label="פתח בחירה מהירה"
         >
           <Circle className={cn(isMobile ? "h-3.5 w-3.5" : "h-3 w-3", "text-accent-foreground stroke-[3]")} />
