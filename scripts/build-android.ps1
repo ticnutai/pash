@@ -144,11 +144,11 @@ if (Test-Path $outputPath) {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  פקודות שימושיות:" -ForegroundColor Cyan
-Write-Host "  העלאה לגוגל פליי:" -ForegroundColor White
+Write-Host "  Useful commands:" -ForegroundColor Cyan
+Write-Host "  Upload to Google Play:" -ForegroundColor White
 Write-Host "    .\scripts\upload-google-play.ps1" -ForegroundColor Gray
-Write-Host "  התקנה על מכשיר:" -ForegroundColor White
+Write-Host "  Install on device:" -ForegroundColor White
 Write-Host "    npx cap run android" -ForegroundColor Gray
-Write-Host "  פתיחה ב-Android Studio:" -ForegroundColor White
+Write-Host "  Open in Android Studio:" -ForegroundColor White
 Write-Host "    npx cap open android" -ForegroundColor Gray
 Write-Host "========================================" -ForegroundColor Cyan

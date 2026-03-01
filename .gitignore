@@ -38,3 +38,7 @@ torah-app-release.aab
 *.aab
 *.jks
 keystore.properties
+
+# Desktop build outputs
+release-desktop/
+release-all/
