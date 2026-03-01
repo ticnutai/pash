@@ -19,6 +19,12 @@ const config: CapacitorConfig = {
       style: 'DARK',
       backgroundColor: '#1e3a5f',
     },
+    // Capacitor 8: SystemBars replaces StatusBar for edge-to-edge apps.
+    // insetsHandling: "css" → auto-injects --safe-area-inset-* vars in WebView.
+    SystemBars: {
+      insetsHandling: 'css',
+      style: 'DARK',
+    },
     Keyboard: {
       resize: 'body',
       resizeOnFullScreen: true,

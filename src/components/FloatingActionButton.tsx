@@ -17,7 +17,7 @@ interface FloatingActionButtonProps {
 /** Returns the bottom safe-area inset in pixels (Android nav bar / iPhone home indicator) */
 function getSafeAreaBottom(): number {
   if (typeof window === 'undefined') return 0;
-  const val = getComputedStyle(document.documentElement).getPropertyValue('--sai-bottom');
+  const val = getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom');
   return parseFloat(val) || 0;
 }
 
@@ -63,6 +63,29 @@ export const FloatingActionButton = ({
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
   const hasMoved = useRef(false);
+
+  // Capacitor 8 SystemBars plugin injects --safe-area-inset-bottom after DOM ready.
+  // Re-check FAB position once on mount (with small delay) to account for injection timing.
+  useEffect(() => {
+    const adjustPosition = () => {
+      const sab = getSafeAreaBottom();
+      if (sab === 0) return;
+      const maxY = window.innerHeight - 56 - sab;
+      setPosition(prev => {
+        if (prev.y > maxY) {
+          const next = { ...prev, y: maxY };
+          localStorage.setItem('fab_position', JSON.stringify(next));
+          return next;
+        }
+        return prev;
+      });
+    };
+    // Run immediately (vars may already be set by Capacitor 8)
+    adjustPosition();
+    // Run again after a short delay in case injection happens slightly after mount
+    const t = setTimeout(adjustPosition, 200);
+    return () => clearTimeout(t);
+  }, []);
   const fabRef = useRef<HTMLDivElement>(null);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {

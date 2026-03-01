@@ -2,12 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Safe area insets for Android/iOS notch/nav bar support */
+/* Safe area insets for Android/iOS notch/nav bar support.
+   Capacitor 8 SystemBars plugin auto-injects --safe-area-inset-* CSS vars
+   for WebViews where env() doesn't work reliably (WebView < 140). */
 :root {
-  --sai-top: env(safe-area-inset-top, 0px);
-  --sai-bottom: env(safe-area-inset-bottom, 0px);
-  --sai-left: env(safe-area-inset-left, 0px);
-  --sai-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
 }
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
