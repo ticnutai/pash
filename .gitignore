@@ -42,3 +42,7 @@ keystore.properties
 # Desktop build outputs
 release-desktop/
 release-all/
+
+# Google Play service account keys (sensitive!)
+scripts/google-play-service-account.json
+scripts/play-store-*.json
