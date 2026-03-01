@@ -19,7 +19,7 @@ interface AppHeaderProps {
 
 export const AppHeader = ({ isMobile, syncStatus, onNavigateToPasuk }: AppHeaderProps) => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="container flex h-14 items-center px-4 gap-3">
         <div className="flex items-center gap-2 shrink-0">
           <Book className="h-5 w-5 text-primary" />

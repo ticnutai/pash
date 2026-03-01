@@ -3,6 +3,7 @@ import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, CalendarCheck
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
+import { PARSHA_START } from "@/utils/parshaStartPositions";
 import { SeferSelector } from "@/components/SeferSelector";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { UserMenu } from "@/components/UserMenu";
@@ -400,9 +401,18 @@ const Index = () => {
   });
 
   // All pesukim in the selected parsha (for pasuk navigation)
+  // Start from the actual Torah opening pasuk of the parasha (may be mid-chapter).
   const parshaAllPesukim = useMemo(() => {
     if (selectedParsha === null) return [];
-    return flattenedPesukim.filter(p => p.parsha_id === selectedParsha);
+    let pesukim = flattenedPesukim.filter(p => p.parsha_id === selectedParsha);
+    const start = PARSHA_START[selectedParsha];
+    if (start && start.pasuk > 1) {
+      const startIdx = pesukim.findIndex(
+        p => p.perek === start.perek && p.pasuk_num >= start.pasuk
+      );
+      if (startIdx > 0) pesukim = pesukim.slice(startIdx);
+    }
+    return pesukim;
   }, [flattenedPesukim, selectedParsha]);
 
   const filteredPesukim = useMemo(() => {
@@ -416,6 +426,16 @@ const Index = () => {
     // Filter by perek
     if (selectedPerek !== null) {
       pesukim = pesukim.filter(p => p.perek === selectedPerek);
+    } else if (selectedParsha !== null) {
+      // No specific perek chosen → show the whole parasha but START from its
+      // actual Torah opening pasuk (some parshiot begin mid-chapter).
+      const start = PARSHA_START[selectedParsha];
+      if (start && start.pasuk > 1) {
+        const startIdx = pesukim.findIndex(
+          p => p.perek === start.perek && p.pasuk_num >= start.pasuk
+        );
+        if (startIdx > 0) pesukim = pesukim.slice(startIdx);
+      }
     }
 
     // Don't filter by specific pasuk in these cases:

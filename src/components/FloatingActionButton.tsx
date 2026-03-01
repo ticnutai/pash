@@ -14,6 +14,13 @@ interface FloatingActionButtonProps {
   currentPasuk?: number | null;
 }
 
+/** Returns the bottom safe-area inset in pixels (Android nav bar / iPhone home indicator) */
+function getSafeAreaBottom(): number {
+  if (typeof window === 'undefined') return 0;
+  const val = getComputedStyle(document.documentElement).getPropertyValue('--sai-bottom');
+  return parseFloat(val) || 0;
+}
+
 const FAB_ACTIONS = [
   { id: "search", icon: Search, label: "חיפוש" },
   { id: "nav", icon: Navigation, label: "ניווט מהיר" },
@@ -45,13 +52,13 @@ export const FloatingActionButton = ({
         const parsed = JSON.parse(saved);
         if (typeof window !== 'undefined') {
           const maxX = window.innerWidth - 60;
-          const maxY = window.innerHeight - 60;
+          const maxY = window.innerHeight - 60 - getSafeAreaBottom();
           return { x: Math.min(Math.max(0, parsed.x), maxX), y: Math.min(Math.max(0, parsed.y), maxY) };
         }
         return parsed;
       }
     } catch {}
-    return { x: 16, y: typeof window !== 'undefined' ? window.innerHeight - 120 : 600 };
+    return { x: 16, y: typeof window !== 'undefined' ? window.innerHeight - 120 - getSafeAreaBottom() : 600 };
   });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
@@ -77,7 +84,7 @@ export const FloatingActionButton = ({
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved.current = true;
 
     const newX = Math.max(0, Math.min(window.innerWidth - 56, dragStart.current.startX + dx));
-    const newY = Math.max(0, Math.min(window.innerHeight - 56, dragStart.current.startY + dy));
+    const newY = Math.max(0, Math.min(window.innerHeight - 56 - getSafeAreaBottom(), dragStart.current.startY + dy));
     setPosition({ x: newX, y: newY });
   }, [isDragging]);
 
