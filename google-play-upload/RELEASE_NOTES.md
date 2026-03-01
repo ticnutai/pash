@@ -1,6 +1,32 @@
 # הערות גרסה (Release Notes)
 
-## עברית — העתיקו לשדה "Release notes" ב-Play Console
+## גרסה 1.4.0 — עברית
+
+```
+עדכון גרסה 1.4.0
+
+• שיפורי ביצועים וייצוב כללי
+• תיקון באגים בניווט ובתצוגה
+• שיפור ממשק הלוח הצדדי
+• תמיכה משופרת בנגינת פסוקים
+```
+
+---
+
+## Version 1.4.0 — English
+
+```
+Version 1.4.0 Update
+
+• Performance improvements and general stability
+• Navigation and display bug fixes
+• Improved side panel interface
+• Enhanced verse navigation support
+```
+
+---
+
+## גרסה 1.0 — עברית — העתיקו לשדה "Release notes" ב-Play Console
 
 ```
 גרסה ראשונה של חמישה חומשי תורה!

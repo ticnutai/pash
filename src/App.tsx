@@ -1,7 +1,11 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+
+// Use HashRouter in Electron (file:// protocol) and BrowserRouter in web
+const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+const Router = isElectron ? HashRouter : BrowserRouter;
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { FontAndColorSettingsProvider } from "@/contexts/FontAndColorSettingsContext";
 import { DisplayModeProvider } from "@/contexts/DisplayModeContext";
@@ -45,7 +49,7 @@ const App = () => (
                       <Toaster />
                       <Sonner />
                       <PWAReloadPrompt />
-                      <BrowserRouter>
+                      <Router>
                         <ErrorBoundary fallbackTitle="שגיאה בטעינת הדף">
                           <Suspense fallback={<LoadingFallback />}>
                             <Routes>
@@ -59,7 +63,7 @@ const App = () => (
                             </Routes>
                           </Suspense>
                         </ErrorBoundary>
-                      </BrowserRouter>
+                      </Router>
                       </TooltipProvider>
                     </ContentProvider>
                   </BookmarksProvider>

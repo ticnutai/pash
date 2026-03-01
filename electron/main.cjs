@@ -16,6 +16,17 @@ function createWindow() {
     },
   });
 
+  window.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self' file: data: blob: https:; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' file: https://fonts.googleapis.com; font-src 'self' data: file: https://fonts.gstatic.com; img-src 'self' data: blob: file: https:; connect-src 'self' https:;"
+        ]
+      }
+    });
+  });
+
   const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
   window.loadFile(indexPath);
 
