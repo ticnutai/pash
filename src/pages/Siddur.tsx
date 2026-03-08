@@ -98,9 +98,6 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
           <span className="font-semibold text-base text-foreground" style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}>
             {section.title}
           </span>
-          <span className="text-xs text-muted-foreground mr-1">
-            ({section.lines.length} שורות)
-          </span>
         </div>
         <span className="text-muted-foreground ml-2">
           {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -699,7 +696,7 @@ export const Siddur = () => {
               )}
               style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
             >
-              <span className="text-base leading-none">{CAT_EMOJI[cat.id]}</span>
+              <span className="text-base leading-none" style={{ color: GOLD }}>{CAT_EMOJI[cat.id]}</span>
               {cat.name}
             </button>
           ))}
@@ -722,7 +719,7 @@ export const Siddur = () => {
               )}
               style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
             >
-              <span className="text-base leading-none">{CAT_EMOJI[tab.id]}</span>
+              <span className="text-base leading-none" style={{ color: GOLD }}>{CAT_EMOJI[tab.id]}</span>
               {tab.name}
             </button>
           ))}
