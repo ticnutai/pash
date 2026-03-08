@@ -405,23 +405,38 @@ const FullContinuousPane = ({ nusach }: { nusach: string }) => {
 };
 
 /* ─── TehillimPane ───────────────────────────────────────── */
+const TEHILLIM_DAILY: Record<number, number>   = { 0: 24, 1: 48, 2: 82, 3: 94, 4: 81, 5: 93, 6: 92 };
+const TEHILLIM_DAY_HEB: Record<number, string> = { 0: "ראשון", 1: "שני", 2: "שלישי", 3: "רביעי", 4: "חמישי", 5: "שישי", 6: "שבת" };
+
 const TehillimPane = () => {
   const { tehillim, loading } = useTehillimData();
   const [chapter, setChapter] = useState(1);
-  const [mode, setMode] = useState<"select" | "continuous">(
-    () => (localStorage.getItem("tehillim-view-mode") as "select" | "continuous") ?? "select"
+  const [pasuk,   setPasuk]   = useState<number | null>(null);  // 1-based
+  const [level,   setLevel]   = useState<"chapter" | "text">("chapter");
+  const [mode,    setMode]    = useState<"select" | "daily" | "continuous">(
+    () => (localStorage.getItem("tehillim-view-mode") as "select" | "daily" | "continuous") ?? "select"
   );
   const { settings: tehillimSettings } = useFontAndColorSettings();
-  const textRef = useRef<HTMLDivElement>(null);
+  const textRef               = useRef<HTMLDivElement>(null);
   const continuousSentinelRef = useRef<HTMLDivElement>(null);
+  const verseRefs             = useRef<(HTMLParagraphElement | null)[]>([]);
   const [visibleCount, setVisibleCount] = useState(5);
 
   const handleChapterSelect = (ch: number) => {
     setChapter(ch);
-    setTimeout(() => textRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    setPasuk(null);
+    verseRefs.current = [];
+    setLevel("text");
+    setTimeout(() => textRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  };
+
+  const handlePasukSelect = (idx: number) => {
+    setPasuk(idx + 1);
+    setTimeout(() => verseRefs.current[idx]?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
   };
 
   useEffect(() => { setVisibleCount(5); }, [mode]);
+  useEffect(() => { setLevel("chapter"); setPasuk(null); }, [mode]);
 
   useEffect(() => {
     if (mode !== "continuous" || !tehillim) return;
@@ -437,7 +452,7 @@ const TehillimPane = () => {
     return () => obs.disconnect();
   }, [mode, visibleCount, tehillim]);
 
-  const setModeWithSave = (m: "select" | "continuous") => {
+  const setModeWithSave = (m: "select" | "daily" | "continuous") => {
     localStorage.setItem("tehillim-view-mode", m);
     setMode(m);
   };
@@ -460,32 +475,63 @@ const TehillimPane = () => {
       </div>
     );
 
-  const allChapters = Array.from({ length: 150 }, (_, i) => tehillim[String(i + 1)]).filter(Boolean);
-  const current = tehillim[String(chapter)];
-  const DAILY: Record<number, number> = { 0: 24, 1: 48, 2: 82, 3: 94, 4: 81, 5: 93, 6: 92 };
-  const todayChapter = DAILY[new Date().getDay()];
+  const allChapters  = Array.from({ length: 150 }, (_, i) => tehillim[String(i + 1)]).filter(Boolean);
+  const current      = tehillim[String(chapter)];
+  const dayOfWeek    = new Date().getDay();
+  const todayChapter = TEHILLIM_DAILY[dayOfWeek];
+  const todayDayName = TEHILLIM_DAY_HEB[dayOfWeek];
+  const dailyCurrent = tehillim[String(todayChapter)];
 
   const textStyle: React.CSSProperties = {
     fontFamily: tehillimSettings.tehillimFont,
-    fontSize: `${tehillimSettings.tehillimSize}px`,
+    fontSize:   `${tehillimSettings.tehillimSize}px`,
     fontWeight: tehillimSettings.tehillimBold ? 700 : 400,
-    textAlign: tehillimSettings.textAlignment as React.CSSProperties["textAlign"],
+    textAlign:  tehillimSettings.textAlignment as React.CSSProperties["textAlign"],
     lineHeight: lineHeightCSS(tehillimSettings.lineHeight, tehillimSettings.lineHeightCustom),
   };
 
+  const verseNumStyle: React.CSSProperties = {
+    color: GOLD, fontSize: "0.7em", opacity: 0.9,
+    fontFamily: "'Noto Serif Hebrew', serif",
+    minWidth: "1.4em", verticalAlign: "super", lineHeight: 1,
+    display: "inline-block", marginLeft: "0.3em",
+  };
+
+  const renderVerseCard = (lines: string[], highlightPasuk: number | null, trackRefs = false) => (
+    <div className="rounded-xl border border-border/50 px-5 py-5 space-y-3" style={{ background: "hsl(var(--card))" }}>
+      {lines.map((line, i) => (
+        <p
+          key={i}
+          ref={trackRefs ? (el => { verseRefs.current[i] = el; }) : undefined}
+          className="leading-relaxed text-foreground transition-all rounded-lg"
+          style={{
+            ...textStyle,
+            background:  highlightPasuk === i + 1 ? `${GOLD}18` : "transparent",
+            padding:     highlightPasuk === i + 1 ? "2px 6px" : "0",
+            borderRight: highlightPasuk === i + 1 ? `3px solid ${GOLD}` : "3px solid transparent",
+          }}
+        >
+          <span style={verseNumStyle}>{heNum(i + 1)}</span>
+          {cleanLine(line)}
+        </p>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="pb-8" dir="rtl">
+    <div className="pb-10 px-1" dir="rtl">
       <OrnamentTitle text="תהילים" />
       <Divider />
 
-      {/* View mode toggle — beautiful pill with icons */}
+      {/* ── Mode toggle — 3 pills ── */}
       <div className="flex justify-center mb-4">
         <div
           className="flex gap-1 rounded-full p-1"
           style={{ background: "hsl(var(--muted))", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}
         >
           {([
-            { id: "select" as const,     icon: <BookOpen   className="h-3.5 w-3.5" />, label: "בחר פרק" },
+            { id: "select"     as const, icon: <BookOpen   className="h-3.5 w-3.5" />, label: "בחר פרק"     },
+            { id: "daily"      as const, icon: <Star       className="h-3.5 w-3.5" />, label: "מזמור היום"  },
             { id: "continuous" as const, icon: <ScrollText className="h-3.5 w-3.5" />, label: "קריאה רציפה" },
           ]).map(m => (
             <button
@@ -494,8 +540,8 @@ const TehillimPane = () => {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
               style={{
                 background: mode === m.id ? GOLD : "transparent",
-                color: mode === m.id ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
-                boxShadow: mode === m.id ? `0 2px 8px ${GOLD}55` : "none",
+                color:      mode === m.id ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
+                boxShadow:  mode === m.id ? `0 2px 8px ${GOLD}55` : "none",
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
               }}
             >
@@ -506,86 +552,153 @@ const TehillimPane = () => {
         </div>
       </div>
 
-      {mode === "select" ? (
+      {/* ═══ SELECT mode ═══ */}
+      {mode === "select" && (
         <>
-          {/* Today's psalm shortcut */}
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <span className="text-xs text-muted-foreground">מזמור היום:</span>
-            <button
-              onClick={() => handleChapterSelect(todayChapter)}
-              className="text-xs font-bold px-2 py-0.5 rounded-full transition-all"
-              style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
-            >
-              פרק {heNum(todayChapter)} ({todayChapter})
-            </button>
-          </div>
-
-          {/* Chapter grid */}
-          <div className="grid gap-1 mb-4 justify-items-center grid-cols-10 sm:grid-cols-[repeat(15,minmax(0,1fr))]">
-            {Array.from({ length: 150 }, (_, i) => i + 1).map(ch => (
-              <button
-                key={ch}
-                onClick={() => handleChapterSelect(ch)}
-                title={`פרק ${ch}`}
-                className="w-full aspect-square flex items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-all leading-none"
-                style={
-                  ch === chapter
-                    ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 0 0 2px ${GOLD}` }
-                    : { background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }
-                }
-              >
-                {heNum(ch)}
-              </button>
-            ))}
-          </div>
-
-          {/* Chapter text */}
-          <div ref={textRef}>
-            {current && (
-              <div key={chapter} className="animate-fade-in">
-                <OrnamentTitle text={`פרק ${heNum(chapter)} — ${current.title || "תהלים"}`} />
-                <div
-                  className="rounded-xl border border-border/50 px-5 py-4 space-y-2"
-                  style={{ background: "hsl(var(--card))" }}
+          {level === "chapter" && (
+            <>
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="text-xs text-muted-foreground">מזמור היום:</span>
+                <button
+                  onClick={() => handleChapterSelect(todayChapter)}
+                  className="text-xs font-bold px-2 py-0.5 rounded-full transition-all"
+                  style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
                 >
-                  {current.lines.map((line, i) => (
-                    <p key={i} className="leading-relaxed text-foreground" style={textStyle}>
-                      {cleanLine(line)}
-                    </p>
+                  פרק {heNum(todayChapter)} ({todayChapter})
+                </button>
+              </div>
+
+              <div className="grid gap-1 mb-4 justify-items-center grid-cols-10 sm:grid-cols-[repeat(15,minmax(0,1fr))]">
+                {Array.from({ length: 150 }, (_, i) => i + 1).map(ch => (
+                  <button
+                    key={ch}
+                    onClick={() => handleChapterSelect(ch)}
+                    title={`פרק ${ch}`}
+                    className="w-full aspect-square flex items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-all leading-none"
+                    style={
+                      ch === chapter
+                        ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 0 0 2px ${GOLD}` }
+                        : { background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }
+                    }
+                  >
+                    {heNum(ch)}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {level === "text" && current && (
+            <div key={chapter} className="animate-fade-in">
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-1.5 text-xs mb-3 flex-wrap" dir="ltr">
+                <button
+                  onClick={() => { setLevel("chapter"); setPasuk(null); }}
+                  className="font-medium hover:underline transition-colors"
+                  style={{ color: "hsl(var(--muted-foreground))" }}
+                >
+                  תהילים
+                </button>
+                <span className="opacity-40 text-foreground">›</span>
+                <span className="font-semibold" style={{ color: GOLD }}>
+                  {`פרק ${heNum(chapter)} (${chapter})`}
+                </span>
+                {pasuk && (
+                  <>
+                    <span className="opacity-40 text-foreground">›</span>
+                    <span className="font-semibold" style={{ color: GOLD }}>פסוק {heNum(pasuk)}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Verse picker row */}
+              <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden mb-3" style={{ scrollbarWidth: "none" }}>
+                <div className="flex gap-1 min-w-max pb-1">
+                  {current.lines.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handlePasukSelect(i)}
+                      className="min-w-[30px] h-7 px-1 rounded-md text-[10px] font-bold transition-all"
+                      style={{
+                        background: pasuk === i + 1 ? GOLD : "hsl(var(--muted))",
+                        color:      pasuk === i + 1 ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
+                        boxShadow:  pasuk === i + 1 ? `0 2px 6px ${GOLD}55` : "none",
+                        fontFamily: "'Noto Serif Hebrew', serif",
+                      }}
+                    >
+                      {heNum(i + 1)}
+                    </button>
                   ))}
                 </div>
-                {/* Prev / Next navigation */}
-                <div className="flex justify-between items-center mt-4 gap-2">
-                  <button
-                    onClick={() => chapter > 1 && handleChapterSelect(chapter - 1)}
-                    disabled={chapter <= 1}
-                    className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
-                    style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
-                  >
-                    פרק קודם «
-                  </button>
-                  <span className="text-xs text-muted-foreground">{chapter} / 150</span>
-                  <button
-                    onClick={() => chapter < 150 && handleChapterSelect(chapter + 1)}
-                    disabled={chapter >= 150}
-                    className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
-                    style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
-                  >
-                    » פרק הבא
-                  </button>
-                </div>
               </div>
-            )}
-          </div>
+
+              <OrnamentTitle text={`פרק ${heNum(chapter)} — ${current.title || "תהלים"}`} />
+              <div ref={textRef}>
+                {renderVerseCard(current.lines, pasuk, true)}
+              </div>
+
+              <div className="flex justify-between items-center mt-4 gap-2">
+                <button
+                  onClick={() => chapter > 1 && handleChapterSelect(chapter - 1)}
+                  disabled={chapter <= 1}
+                  className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
+                  style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+                >
+                  פרק קודם «
+                </button>
+                <button
+                  onClick={() => setLevel("chapter")}
+                  className="text-xs px-3 py-1.5 rounded-full transition-all"
+                  style={{ background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }}
+                >
+                  כל הפרקים
+                </button>
+                <button
+                  onClick={() => chapter < 150 && handleChapterSelect(chapter + 1)}
+                  disabled={chapter >= 150}
+                  className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
+                  style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+                >
+                  » פרק הבא
+                </button>
+              </div>
+            </div>
+          )}
         </>
-      ) : (
-        /* Continuous mode — all chapters lazy loaded */
+      )}
+
+      {/* ═══ DAILY mode ═══ */}
+      {mode === "daily" && dailyCurrent && (
+        <div className="animate-fade-in">
+          <div
+            className="flex items-center justify-center gap-2 mb-4 py-2.5 rounded-xl"
+            style={{ background: `${GOLD}12`, border: `1px solid ${GOLD}30` }}
+          >
+            <Star className="h-4 w-4 flex-shrink-0" style={{ color: GOLD }} />
+            <span
+              className="text-sm font-semibold"
+              style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', serif" }}
+            >
+              {`מזמור של יום ${todayDayName} — פרק ${heNum(todayChapter)}`}
+            </span>
+          </div>
+          <OrnamentTitle text={`פרק ${heNum(todayChapter)} — ${dailyCurrent.title || "תהלים"}`} />
+          {renderVerseCard(dailyCurrent.lines, null, false)}
+        </div>
+      )}
+
+      {/* ═══ CONTINUOUS mode ═══ */}
+      {mode === "continuous" && (
         <div className="space-y-8">
           {allChapters.slice(0, visibleCount).map(ch => (
             <div key={ch.chapter}>
               <h3
-                className="font-bold text-base mb-2 flex items-center gap-2"
-                style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
+                className="font-bold mb-2 flex items-center gap-2"
+                style={{
+                  color:      GOLD,
+                  fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                  fontSize:   `${tehillimSettings.tehillimSize}px`,
+                }}
               >
                 <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
                 {`פרק ${heNum(ch.chapter)}`}
@@ -594,13 +707,7 @@ const TehillimPane = () => {
                 )}
               </h3>
               <Divider />
-              <div className="space-y-1.5 mt-2">
-                {ch.lines.map((line, i) => (
-                  <p key={i} className="leading-relaxed text-foreground" style={textStyle}>
-                    {cleanLine(line)}
-                  </p>
-                ))}
-              </div>
+              {renderVerseCard(ch.lines, null, false)}
             </div>
           ))}
           {visibleCount < allChapters.length && (
@@ -830,7 +937,7 @@ export const Siddur = () => {
                       <ChevronDown className="h-3 w-3 opacity-60" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48" dir="rtl">
+                  <DropdownMenuContent align="end" className="w-48" style={{ direction: "rtl" }}>
                     <DropdownMenuLabel className="text-right text-xs text-muted-foreground">מצב תצוגה</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {VIEW_MODES.map(m => (
@@ -958,7 +1065,7 @@ export const Siddur = () => {
       </div>
 
       {/* ── Content area ── */}
-      <main className="flex-1 flex flex-col px-3 sm:px-6 pt-4 sm:pt-6 max-w-2xl mx-auto w-full">
+      <main className="flex-1 flex flex-col px-4 sm:px-6 pt-4 sm:pt-6 max-w-2xl mx-auto w-full">
         {/* Special — nusach-independent panes */}
         {catId === "tehillim" && <TehillimPane />}
         {catId === "kria"     && <KriaPane onNavigate={() => navigate("/")} />}
