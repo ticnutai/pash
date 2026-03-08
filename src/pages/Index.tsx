@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ import { useDevice } from "@/contexts/DeviceContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { getCurrentWeeklyParsha, getCalendarPreference } from "@/utils/parshaUtils";
 import { SeferSkeleton } from "@/components/SeferSkeleton";
@@ -80,6 +80,7 @@ const Index = () => {
   const { syncStatus } = useTheme();
   const { displaySettings } = useDisplayMode();
   const { isMobile } = useDevice();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [corpusMode, setCorpusMode] = useState<CorpusMode>(() => {
     try {
@@ -875,6 +876,17 @@ const Index = () => {
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+                <span data-layout="btn-siddur" data-layout-label="🕍 סידור">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/siddur')}
+                  className="h-8 w-8 text-muted-foreground"
+                  title="סידור תפילה"
+                >
+                  <BookMarked className="h-4 w-4" />
+                </Button>
+                </span>
                 <span data-layout="btn-corpus" data-layout-label="📚 חומשים/נביאים">
                 <Button
                   variant="ghost"
@@ -899,6 +911,17 @@ const Index = () => {
               <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
               <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
               <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+              <span data-layout="btn-siddur" data-layout-label="🕍 סידור">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/siddur')}
+                className="h-9 w-9 text-muted-foreground"
+                title="סידור תפילה"
+              >
+                <BookMarked className="h-5 w-5" />
+              </Button>
+              </span>
               <span data-layout="btn-corpus" data-layout-label="📚 חומשים/נביאים">
               <Button
                 variant="ghost"
