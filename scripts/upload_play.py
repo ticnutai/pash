@@ -40,8 +40,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "תיקון תצוגה חשוב: Safe Area בחלק העליון והתחתון, יציבות כפתורים צפים, שיפורי ביצועים"},
-                {"language": "en-US", "text": "Important display fix: Safe Area top/bottom, floating button stability, performance improvements"},
+                {"language": "he-IL", "text": "הוספת 8 מפרשים: רש\"י, רמב\"ן, אבן עזרא, ספורנו, אור החיים, כלי יקר, חזקוני, מלבי\"ם. תיקון תצוגה ושיפורי ביצועים"},
+                {"language": "en-US", "text": "Added 8 commentators: Rashi, Ramban, Ibn Ezra, Sforno, Or HaChaim, Kli Yakar, Chizkuni, Malbim. Display fixes and performance improvements"},
             ]
         }]
     }

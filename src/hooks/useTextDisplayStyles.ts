@@ -61,13 +61,14 @@ export const useTextDisplayStyles = () => {
       right: "right",
       center: "center",
       left: "left",
+      justify: "justify",
     };
 
     // Padding for mobile
     const padding = isMobile ? "0.5rem" : "1rem";
 
     return {
-      textAlign: alignmentMap[settings.textAlignment] as "right" | "center" | "left",
+      textAlign: alignmentMap[settings.textAlignment] as "right" | "center" | "left" | "justify",
       gap,
       lineHeight,
       letterSpacing,

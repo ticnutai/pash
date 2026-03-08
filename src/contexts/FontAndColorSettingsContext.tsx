@@ -36,9 +36,19 @@ export interface FontAndColorSettings {
   commentaryBold: boolean;
   commentaryLineHeight: "normal" | "relaxed" | "loose";
   commentaryMaxWidth: "narrow" | "medium" | "wide" | "full";
+
+  // Siddur / Prayers
+  siddurFont: string;
+  siddurSize: number;
+  siddurBold: boolean;
+
+  // Tehillim
+  tehillimFont: string;
+  tehillimSize: number;
+  tehillimBold: boolean;
   
   // Display Settings
-  textAlignment: "right" | "center" | "left";
+  textAlignment: "right" | "center" | "left" | "justify";
   contentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
   contentSpacingCustom: number;
   lineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
@@ -80,6 +90,12 @@ const defaultSettings: FontAndColorSettings = {
   commentaryBold: false,
   commentaryLineHeight: "relaxed",
   commentaryMaxWidth: "medium",
+  siddurFont: "Noto Serif Hebrew",
+  siddurSize: 18,
+  siddurBold: false,
+  tehillimFont: "Noto Serif Hebrew",
+  tehillimSize: 18,
+  tehillimBold: false,
   textAlignment: "right",
   contentSpacing: "normal",
   contentSpacingCustom: 1,
@@ -100,6 +116,8 @@ const normalizeSettings = (settings: FontAndColorSettings): FontAndColorSettings
   questionSize: clamp(Number(settings.questionSize || defaultSettings.questionSize), 8, 28),
   answerSize: clamp(Number(settings.answerSize || defaultSettings.answerSize), 8, 24),
   commentarySize: clamp(Number(settings.commentarySize || defaultSettings.commentarySize), 8, 24),
+  siddurSize: clamp(Number(settings.siddurSize || defaultSettings.siddurSize), 8, 36),
+  tehillimSize: clamp(Number(settings.tehillimSize || defaultSettings.tehillimSize), 8, 36),
   fontScale: clamp(Number(settings.fontScale || defaultSettings.fontScale), 0.6, 1.8),
 });
 

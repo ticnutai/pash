@@ -759,6 +759,10 @@ export const Settings = () => {
                   <RadioGroupItem value="left" id="align-left" />
                   <Label htmlFor="align-left">שמאל</Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="justify" id="align-justify" />
+                  <Label htmlFor="align-justify">ישור</Label>
+                </div>
               </RadioGroup>
             </div>
 

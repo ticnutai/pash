@@ -1,4 +1,4 @@
-import { AlignRight, AlignCenter, AlignLeft, Type } from "lucide-react";
+import { AlignRight, AlignCenter, AlignLeft, AlignJustify, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ const hebrewFonts = [
   { value: "Times New Roman", label: "טיימס ניו רומן", sample: "אבגד" },
 ];
 
-const alignmentValues = ["right", "center", "left"] as const;
+const alignmentValues = ["right", "center", "left", "justify"] as const;
 const spacingValues = ["compact", "normal", "comfortable", "spacious"] as const;
 const lineHeightValues = ["tight", "normal", "relaxed", "loose"] as const;
 const widthValues = ["narrow", "normal", "wide", "full"] as const;
@@ -46,7 +46,7 @@ const widthLabels: Record<string, string> = {
   narrow: "צר", normal: "רגיל", wide: "רחב", full: "מלא",
 };
 const alignmentLabels: Record<string, string> = {
-  right: "ימין", center: "מרכז", left: "שמאל",
+  right: "ימין", center: "מרכז", left: "שמאל", justify: "ישור",
 };
 
 interface SliderSectionProps {
@@ -133,7 +133,6 @@ interface TabContentProps {
 }
 
 const TabContent = ({ sizeValue, onSizeChange, sizeLabel, fontValue, onFontChange, fontLabel, boldValue, onBoldChange, settings, updateSettings, previewText }: TabContentProps) => {
-  const currentAlignmentIdx = alignmentValues.indexOf(settings.textAlignment);
   const currentSpacingIdx = spacingValues.indexOf(settings.contentSpacing as typeof spacingValues[number]);
   const currentLineHeightIdx = lineHeightValues.indexOf(settings.lineHeight as typeof lineHeightValues[number]);
   const currentWidthIdx = widthValues.indexOf(settings.contentWidth);
@@ -164,19 +163,34 @@ const TabContent = ({ sizeValue, onSizeChange, sizeLabel, fontValue, onFontChang
       <Separator className="bg-accent/20" />
 
       {/* Alignment */}
-      <SliderSection
-        label="יישור טקסט"
-        valueBadge={alignmentLabels[settings.textAlignment]}
-        value={currentAlignmentIdx >= 0 ? currentAlignmentIdx : 0}
-        onChange={(v) => updateSettings({ textAlignment: alignmentValues[v] })}
-        min={0} max={2} step={1}
-        marks={["שמאל", "מרכז", "ימין"]}
-        icon={
-          settings.textAlignment === "right" ? <AlignRight className="h-4 w-4" /> :
-          settings.textAlignment === "center" ? <AlignCenter className="h-4 w-4" /> :
-          <AlignLeft className="h-4 w-4" />
-        }
-      />
+      <div className="space-y-2">
+        <Label className="text-sm font-semibold block text-right">יישור טקסט</Label>
+        <div className="grid grid-cols-4 gap-1.5">
+          {(["right", "center", "left", "justify"] as const).map((align) => {
+            const icon = align === "right" ? <AlignRight className="h-4 w-4" />
+              : align === "center" ? <AlignCenter className="h-4 w-4" />
+              : align === "left" ? <AlignLeft className="h-4 w-4" />
+              : <AlignJustify className="h-4 w-4" />;
+            return (
+              <Button
+                key={align}
+                variant="ghost"
+                size="sm"
+                onClick={() => updateSettings({ textAlignment: align })}
+                className={`flex flex-col items-center gap-0.5 h-auto py-2 rounded-lg border transition-colors ${
+                  settings.textAlignment === align
+                    ? "border-accent bg-accent/15 text-accent"
+                    : "border-border/40 text-muted-foreground hover:border-accent/50 hover:text-accent"
+                }`}
+                title={alignmentLabels[align]}
+              >
+                {icon}
+                <span className="text-[10px]">{alignmentLabels[align]}</span>
+              </Button>
+            );
+          })}
+        </div>
+      </div>
 
       <Separator className="bg-accent/20" />
 
@@ -273,7 +287,7 @@ export const TextDisplaySettings = () => {
         </DialogHeader>
 
         <Tabs defaultValue="pasuk" dir="rtl" className="w-full">
-          <TabsList className="w-full grid grid-cols-4 h-auto gap-1 bg-muted/40 p-1 rounded-xl">
+          <TabsList className="w-full grid grid-cols-3 h-auto gap-1 bg-muted/40 p-1 rounded-xl">
             <TabsTrigger value="pasuk" className="text-xs sm:text-sm py-2 rounded-lg data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
               פסוקים
             </TabsTrigger>
@@ -285,6 +299,12 @@ export const TextDisplaySettings = () => {
             </TabsTrigger>
             <TabsTrigger value="commentary" className="text-xs sm:text-sm py-2 rounded-lg data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
               מפרשים
+            </TabsTrigger>
+            <TabsTrigger value="siddur" className="text-xs sm:text-sm py-2 rounded-lg data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+              תפילות
+            </TabsTrigger>
+            <TabsTrigger value="tehillim" className="text-xs sm:text-sm py-2 rounded-lg data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+              תהילים
             </TabsTrigger>
           </TabsList>
 
@@ -349,6 +369,38 @@ export const TextDisplaySettings = () => {
               settings={settings}
               updateSettings={updateSettings}
               previewText="אמר רבי יצחק: לא היה צריך להתחיל את התורה אלא מ'החודש הזה לכם'"
+            />
+          </TabsContent>
+
+          <TabsContent value="siddur" className="mt-3">
+            <TabContent
+              sizeValue={settings.siddurSize}
+              onSizeChange={(v) => updateSettings({ siddurSize: v })}
+              sizeLabel="גודל תפילות"
+              fontValue={settings.siddurFont}
+              onFontChange={(f) => updateSettings({ siddurFont: f })}
+              fontLabel="גופן תפילות"
+              boldValue={settings.siddurBold}
+              onBoldChange={(b) => updateSettings({ siddurBold: b })}
+              settings={settings}
+              updateSettings={updateSettings}
+              previewText="בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם"
+            />
+          </TabsContent>
+
+          <TabsContent value="tehillim" className="mt-3">
+            <TabContent
+              sizeValue={settings.tehillimSize}
+              onSizeChange={(v) => updateSettings({ tehillimSize: v })}
+              sizeLabel="גודל תהילים"
+              fontValue={settings.tehillimFont}
+              onFontChange={(f) => updateSettings({ tehillimFont: f })}
+              fontLabel="גופן תהילים"
+              boldValue={settings.tehillimBold}
+              onBoldChange={(b) => updateSettings({ tehillimBold: b })}
+              settings={settings}
+              updateSettings={updateSettings}
+              previewText="מִזְמוֹר לְדָוִד — יְיָ רֹעִי לֹא אֶחְסָר"
             />
           </TabsContent>
         </Tabs>

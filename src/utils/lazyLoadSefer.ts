@@ -6,6 +6,8 @@ const memoryCache = new Map<number, Sefer>();
 const ESTHER_SEFER_ID = 101;
 const ESTHER_EXPECTED_VERSE_COUNT = 167;
 
+const NEVIIM_IDS = new Set([101, 102, 103, 104, 105, 106, 107]);
+
 const SEFER_NAMES = ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'דברים'];
 
 const decodeHtmlEntities = (value: string): string => {
@@ -95,6 +97,12 @@ export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
     case 4: module = await import("@/data/bamidbar.json"); break;
     case 5: module = await import("@/data/devarim.json"); break;
     case 101: module = await import("@/data/esther.json"); break;
+    case 102: module = await import("@/data/joshua.json"); break;
+    case 103: module = await import("@/data/judges.json"); break;
+    case 104: module = await import("@/data/i_samuel.json"); break;
+    case 105: module = await import("@/data/ii_samuel.json"); break;
+    case 106: module = await import("@/data/i_kings.json"); break;
+    case 107: module = await import("@/data/ii_kings.json"); break;
     default: throw new Error(`Unknown sefer ID: ${seferId}`);
   }
 
@@ -110,8 +118,16 @@ export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
 /**
  * Preload next sefer in background for smooth navigation
  */
+const NEVIIM_ORDER = [101, 102, 103, 104, 105, 106, 107];
+
 export const preloadNextSefer = (currentSeferId: number) => {
-  const nextSeferId = currentSeferId < 5 ? currentSeferId + 1 : 1;
+  let nextSeferId: number;
+  if (NEVIIM_IDS.has(currentSeferId)) {
+    const idx = NEVIIM_ORDER.indexOf(currentSeferId);
+    nextSeferId = NEVIIM_ORDER[(idx + 1) % NEVIIM_ORDER.length];
+  } else {
+    nextSeferId = currentSeferId < 5 ? currentSeferId + 1 : 1;
+  }
   setTimeout(() => {
     lazyLoadSefer(nextSeferId).catch(() => {});
   }, 2000);

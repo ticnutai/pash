@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { TextDisplaySettings } from "@/components/TextDisplaySettings";
+import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -45,6 +47,27 @@ function heNum(n: number): string {
   return h + (tens[Math.floor(rem / 10)] || "") + (ones[rem % 10] || "");
 }
 
+/* ─── HTML line cleaner ──────────────────────────────────── */
+function cleanLine(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&thinsp;/g, "\u2009")
+    .replace(/&nbsp;/g, "\u00a0")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\{[פסנ]\}/g, "")
+    .trim();
+}
+/* Maps lineHeight setting token → CSS value (generous for nikud) */
+function lineHeightCSS(lh: string, custom?: number): string {
+  if (lh === "tight")    return "1.6";
+  if (lh === "normal")   return "2.0";
+  if (lh === "relaxed")  return "2.4";
+  if (lh === "loose")    return "2.8";
+  if (lh === "custom" && custom) return String(custom);
+  return "2.0";
+}
 /* ─── Gold decoration helpers ───────────────────────────── */
 const GOLD = "#c8a04d";
 const CAT_ICON: Record<string, React.ComponentType<LucideProps>> = {
@@ -84,6 +107,7 @@ const OrnamentTitle = ({ text }: { text: string }) => (
 /* ─── SectionCard ────────────────────────────────────────── */
 const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection; initialOpen?: boolean }) => {
   const [open, setOpen] = useState(initialOpen);
+  const { settings: siddurSettings } = useFontAndColorSettings();
 
   return (
     <div className="rounded-lg border border-border/50 overflow-hidden mb-2" style={{
@@ -98,7 +122,13 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
       >
         <div className="flex items-center gap-2">
           <span className="inline-block w-1.5 h-4 rounded-full" style={{ background: GOLD, opacity: 0.7 }} />
-          <span className="font-semibold text-base text-foreground" style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}>
+          <span
+            className="font-semibold text-foreground"
+            style={{
+              fontFamily: siddurSettings.siddurFont,
+              fontSize: `${siddurSettings.siddurSize}px`,
+            }}
+          >
             {section.title}
           </span>
         </div>
@@ -116,13 +146,16 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
           {section.lines.map((line, i) => (
             <p
               key={i}
-              className="text-base sm:text-lg leading-relaxed text-foreground text-justify"
+              className="text-foreground"
               style={{
-                fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                fontWeight: i === 0 ? 600 : 400,
+                fontFamily: siddurSettings.siddurFont,
+                fontSize: `${siddurSettings.siddurSize}px`,
+                fontWeight: siddurSettings.siddurBold ? 700 : 400,
+                textAlign: siddurSettings.textAlignment as React.CSSProperties["textAlign"],
+                lineHeight: lineHeightCSS(siddurSettings.lineHeight, siddurSettings.lineHeightCustom),
               }}
             >
-              {line.replace(/<[^>]*>/g, "")}
+              {cleanLine(line)}
             </p>
           ))}
         </div>
@@ -135,6 +168,7 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
 const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
   const [visibleCount, setVisibleCount] = useState(8);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const { settings: siddurSettings } = useFontAndColorSettings();
 
   // Reset when sections array changes (e.g. tab switch)
   useEffect(() => { setVisibleCount(8); }, [sections]);
@@ -156,8 +190,12 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
       {sections.slice(0, visibleCount).map((sec, i) => (
         <div key={i}>
           <h3
-            className="font-semibold text-base mb-1 flex items-center gap-2"
-            style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
+            className="font-semibold mb-1 flex items-center gap-2"
+            style={{
+              color: GOLD,
+              fontFamily: siddurSettings.siddurFont,
+              fontSize: `${siddurSettings.siddurSize}px`,
+            }}
           >
             <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
             {sec.title}
@@ -167,13 +205,16 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
             {sec.lines.map((line, j) => (
               <p
                 key={j}
-                className="text-base sm:text-lg leading-relaxed text-foreground text-justify"
+                className="text-foreground"
                 style={{
-                  fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                  fontWeight: j === 0 ? 600 : 400,
+                  fontFamily: siddurSettings.siddurFont,
+                  fontSize: `${siddurSettings.siddurSize}px`,
+                  fontWeight: siddurSettings.siddurBold ? 700 : 400,
+                  textAlign: siddurSettings.textAlignment as React.CSSProperties["textAlign"],
+                  lineHeight: lineHeightCSS(siddurSettings.lineHeight, siddurSettings.lineHeightCustom),
                 }}
               >
-                {line.replace(/<[^>]*>/g, "")}
+                {cleanLine(line)}
               </p>
             ))}
           </div>
@@ -259,6 +300,7 @@ const SERIF = "'Noto Serif Hebrew', 'David Libre', serif";
 
 const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: string; name: string } }) => {
   const { sections, loading } = useSiddurSections(nusach, cat.id);
+  const { settings: siddurSettings } = useFontAndColorSettings();
   if (loading)
     return (
       <div className="flex justify-center py-6">
@@ -274,8 +316,12 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
         {sections.map((sec, i) => (
           <div key={i}>
             <h3
-              className="font-semibold text-base mb-1 flex items-center gap-2"
-              style={{ color: GOLD, fontFamily: SERIF }}
+              className="font-bold mb-1 flex items-center gap-2"
+              style={{
+                color: GOLD,
+                fontFamily: siddurSettings.siddurFont,
+                fontSize: `${siddurSettings.siddurSize}px`,
+              }}
             >
               <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
               {sec.title}
@@ -284,10 +330,16 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
               {sec.lines.map((line, j) => (
                 <p
                   key={j}
-                  className="text-base sm:text-lg leading-relaxed text-foreground text-justify"
-                  style={{ fontFamily: SERIF, fontWeight: j === 0 ? 600 : 400 }}
+                  className="text-foreground"
+                  style={{
+                    fontFamily: siddurSettings.siddurFont,
+                    fontSize: `${siddurSettings.siddurSize}px`,
+                    fontWeight: siddurSettings.siddurBold ? 700 : 400,
+                    textAlign: siddurSettings.textAlignment as React.CSSProperties["textAlign"],
+                    lineHeight: lineHeightCSS(siddurSettings.lineHeight, siddurSettings.lineHeightCustom),
+                  }}
                 >
-                  {line.replace(/<[^>]*>/g, "")}
+                  {cleanLine(line)}
                 </p>
               ))}
             </div>
@@ -348,6 +400,39 @@ const FullContinuousPane = ({ nusach }: { nusach: string }) => {
 const TehillimPane = () => {
   const { tehillim, loading } = useTehillimData();
   const [chapter, setChapter] = useState(1);
+  const [mode, setMode] = useState<"select" | "continuous">(
+    () => (localStorage.getItem("tehillim-view-mode") as "select" | "continuous") ?? "select"
+  );
+  const { settings: tehillimSettings } = useFontAndColorSettings();
+  const textRef = useRef<HTMLDivElement>(null);
+  const continuousSentinelRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(5);
+
+  const handleChapterSelect = (ch: number) => {
+    setChapter(ch);
+    setTimeout(() => textRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  };
+
+  useEffect(() => { setVisibleCount(5); }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "continuous" || !tehillim) return;
+    const entries = Object.keys(tehillim).length;
+    if (visibleCount >= entries) return;
+    const el = continuousSentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisibleCount(v => Math.min(v + 5, entries)); },
+      { rootMargin: "400px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [mode, visibleCount, tehillim]);
+
+  const setModeWithSave = (m: "select" | "continuous") => {
+    localStorage.setItem("tehillim-view-mode", m);
+    setMode(m);
+  };
 
   if (loading)
     return (
@@ -367,74 +452,149 @@ const TehillimPane = () => {
       </div>
     );
 
+  const allChapters = Array.from({ length: 150 }, (_, i) => tehillim[String(i + 1)]).filter(Boolean);
   const current = tehillim[String(chapter)];
-  // Psalm for each day of week (0=Sun … 6=Sat)
   const DAILY: Record<number, number> = { 0: 24, 1: 48, 2: 82, 3: 94, 4: 81, 5: 93, 6: 92 };
   const todayChapter = DAILY[new Date().getDay()];
+
+  const textStyle: React.CSSProperties = {
+    fontFamily: tehillimSettings.tehillimFont,
+    fontSize: `${tehillimSettings.tehillimSize}px`,
+    fontWeight: tehillimSettings.tehillimBold ? 700 : 400,
+    textAlign: tehillimSettings.textAlignment as React.CSSProperties["textAlign"],
+    lineHeight: lineHeightCSS(tehillimSettings.lineHeight, tehillimSettings.lineHeightCustom),
+  };
 
   return (
     <div className="pb-8" dir="rtl">
       <OrnamentTitle text="תהילים" />
       <Divider />
 
-      {/* Today's psalm shortcut */}
-      <div className="flex items-center justify-center gap-2 mb-3">
-        <span className="text-xs text-muted-foreground">מזמור היום:</span>
-        <button
-          onClick={() => setChapter(todayChapter)}
-          className="text-xs font-bold px-2 py-0.5 rounded-full transition-all"
-          style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
-        >
-          פרק {heNum(todayChapter)} ({todayChapter})
-        </button>
-      </div>
-
-      {/* Chapter grid — 10 cols mobile / 15 cols sm+ */}
-      <div
-        className="grid gap-1 mb-4 justify-items-center grid-cols-10 sm:grid-cols-[repeat(15,minmax(0,1fr))]"
-      >
-        {Array.from({ length: 150 }, (_, i) => i + 1).map(ch => (
-          <button
-            key={ch}
-            onClick={() => setChapter(ch)}
-            title={`פרק ${ch}`}
-            className="w-full aspect-square flex items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-all leading-none"
-            style={
-              ch === chapter
-                ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 0 0 2px ${GOLD}` }
-                : { background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }
-            }
-          >
-            {heNum(ch)}
-          </button>
-        ))}
-      </div>
-
-      {/* Chapter text */}
-      {current && (
-        <div key={chapter} className="animate-fade-in">
-          <div className="text-center mb-3">
-            <span
-              className="font-bold text-lg"
-              style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
+      {/* View mode toggle */}
+      <div className="flex justify-center mb-4">
+        <div className="flex gap-0.5 rounded-lg p-0.5" style={{ background: "hsl(var(--muted))" }}>
+          {(["select", "continuous"] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => setModeWithSave(m)}
+              className="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+              style={{
+                background: mode === m ? GOLD : "transparent",
+                color: mode === m ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
+                boxShadow: mode === m ? "0 1px 3px rgba(0,0,0,0.2)" : "none",
+              }}
             >
-              {current.title || `תהלים פרק ${chapter}`}
-            </span>
+              {m === "select" ? "בחר פרק" : "קריאה רציפה"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {mode === "select" ? (
+        <>
+          {/* Today's psalm shortcut */}
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className="text-xs text-muted-foreground">מזמור היום:</span>
+            <button
+              onClick={() => handleChapterSelect(todayChapter)}
+              className="text-xs font-bold px-2 py-0.5 rounded-full transition-all"
+              style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+            >
+              פרק {heNum(todayChapter)} ({todayChapter})
+            </button>
           </div>
-          <div
-            className="rounded-xl border border-border/50 px-5 py-4 space-y-2"
-            style={{ background: "hsl(var(--card))" }}
-          >
-            {current.lines.map((line, i) => (
-              <p
-                key={i}
-                className="text-base sm:text-lg leading-relaxed text-foreground text-justify"
-                style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
+
+          {/* Chapter grid */}
+          <div className="grid gap-1 mb-4 justify-items-center grid-cols-10 sm:grid-cols-[repeat(15,minmax(0,1fr))]">
+            {Array.from({ length: 150 }, (_, i) => i + 1).map(ch => (
+              <button
+                key={ch}
+                onClick={() => handleChapterSelect(ch)}
+                title={`פרק ${ch}`}
+                className="w-full aspect-square flex items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-all leading-none"
+                style={
+                  ch === chapter
+                    ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 0 0 2px ${GOLD}` }
+                    : { background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }
+                }
               >
-                {line.replace(/<[^>]*>/g, "")}
-              </p>
+                {heNum(ch)}
+              </button>
             ))}
           </div>
+
+          {/* Chapter text */}
+          <div ref={textRef}>
+            {current && (
+              <div key={chapter} className="animate-fade-in">
+                <OrnamentTitle text={`פרק ${heNum(chapter)} — ${current.title || "תהלים"}`} />
+                <div
+                  className="rounded-xl border border-border/50 px-5 py-4 space-y-2"
+                  style={{ background: "hsl(var(--card))" }}
+                >
+                  {current.lines.map((line, i) => (
+                    <p key={i} className="leading-relaxed text-foreground" style={textStyle}>
+                      {cleanLine(line)}
+                    </p>
+                  ))}
+                </div>
+                {/* Prev / Next navigation */}
+                <div className="flex justify-between items-center mt-4 gap-2">
+                  <button
+                    onClick={() => chapter > 1 && handleChapterSelect(chapter - 1)}
+                    disabled={chapter <= 1}
+                    className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
+                    style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+                  >
+                    פרק קודם «
+                  </button>
+                  <span className="text-xs text-muted-foreground">{chapter} / 150</span>
+                  <button
+                    onClick={() => chapter < 150 && handleChapterSelect(chapter + 1)}
+                    disabled={chapter >= 150}
+                    className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
+                    style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+                  >
+                    » פרק הבא
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Continuous mode — all chapters lazy loaded */
+        <div className="space-y-8">
+          {allChapters.slice(0, visibleCount).map(ch => (
+            <div key={ch.chapter}>
+              <h3
+                className="font-bold text-base mb-2 flex items-center gap-2"
+                style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
+              >
+                <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
+                {`פרק ${heNum(ch.chapter)}`}
+                {ch.title && ch.title !== "תהילים" && (
+                  <span className="text-xs font-normal opacity-70">— {ch.title}</span>
+                )}
+              </h3>
+              <Divider />
+              <div className="space-y-1.5 mt-2">
+                {ch.lines.map((line, i) => (
+                  <p key={i} className="leading-relaxed text-foreground" style={textStyle}>
+                    {cleanLine(line)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ))}
+          {visibleCount < allChapters.length && (
+            <div ref={continuousSentinelRef} className="flex justify-center items-center py-6 gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" style={{ color: GOLD }} />
+              <span className="text-sm" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
+                טוען פרקים נוספים...
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -635,7 +795,7 @@ export const Siddur = () => {
                 סידור תפילה
               </h1>
             </div>
-            <div className="w-9" /> {/* Spacer to balance back button */}
+            <TextDisplaySettings />
           </div>
 
           {/* ── Nusach tabs ── */}
@@ -668,16 +828,15 @@ export const Siddur = () => {
 
       {/* ── Category tabs ── */}
       <div
-        className="border-b border-border/40 overflow-x-auto [&::-webkit-scrollbar]:hidden"
-        style={{
-          background: "hsl(var(--card))",
-          scrollbarWidth: "none",
-          opacity: (!isSpecial && viewMode === "scroll") ? 0.4 : 1,
-          pointerEvents: (!isSpecial && viewMode === "scroll") ? "none" : "auto",
-          transition: "opacity 0.2s",
-        }}
+        className="border-b border-border/40 flex items-stretch"
+        style={{ background: "hsl(var(--card))" }}
       >
-        <div className="flex gap-0 min-w-max px-2 py-1 max-w-4xl mx-auto items-center">
+        {/* Scrollable tabs */}
+        <div
+          className="flex-1 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: "none" }}
+        >
+        <div className="flex gap-0 min-w-max px-2 py-1 items-center">
           {/* Loading spinner placeholder */}
           {catsLoading && (
             <div className="px-4 py-2 flex items-center gap-2 text-muted-foreground text-sm">
@@ -728,31 +887,35 @@ export const Siddur = () => {
           ))}
 
           {/* View mode segmented control (only for siddur panes, not tehillim/kria) */}
-          {!isSpecial && (
-            <div className="ml-auto pl-2 flex-shrink-0">
-              <div
-                className="flex items-center gap-0.5 rounded-lg p-0.5"
-                style={{ background: "hsl(var(--muted))" }}
-              >
-                {VIEW_MODES.map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => setMode(m.id)}
-                    title={m.title}
-                    className="p-1.5 rounded-md transition-all"
-                    style={{
-                      color:      viewMode === m.id ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
-                      background: viewMode === m.id ? GOLD : "transparent",
-                      boxShadow:  viewMode === m.id ? "0 1px 3px rgba(0,0,0,0.2)" : "none",
-                    }}
-                  >
-                    {m.icon}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* (moved outside the scrollable area — see below) */}
         </div>
+        </div>
+
+        {/* View mode toggle — OUTSIDE the scrollable area so it's always visible */}
+        {!isSpecial && (
+          <div className="flex-shrink-0 flex items-center px-2 border-l border-border/40" dir="ltr">
+            <div
+              className="flex items-center gap-0.5 rounded-lg p-0.5"
+              style={{ background: "hsl(var(--muted))" }}
+            >
+              {VIEW_MODES.map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setMode(m.id)}
+                  title={m.title}
+                  className="p-1.5 rounded-md transition-all"
+                  style={{
+                    color:      viewMode === m.id ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
+                    background: viewMode === m.id ? GOLD : "transparent",
+                    boxShadow:  viewMode === m.id ? "0 1px 3px rgba(0,0,0,0.2)" : "none",
+                  }}
+                >
+                  {m.icon}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Content area ── */}

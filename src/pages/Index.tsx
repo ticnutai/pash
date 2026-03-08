@@ -69,7 +69,13 @@ const TORAH_SEFARIM = [
 ];
 
 const NEVIIM_SEFARIM = [
-  { id: 101, name: "מגילת אסתר" },
+  { id: 102, name: "יהושע" },
+  { id: 103, name: "שופטים" },
+  { id: 104, name: "שמואל א" },
+  { id: 105, name: "שמואל ב" },
+  { id: 106, name: "מלכים א" },
+  { id: 107, name: "מלכים ב" },
+  { id: 101, name: "אסתר" },
 ];
 
 const getCorpusModeForSefer = (seferId: number): CorpusMode => {
@@ -127,7 +133,7 @@ const Index = () => {
   const [chumashSelectedPasukId, setChumashSelectedPasukId] = useState<number | null>(null);
   const currentSeferOptions = corpusMode === "torah" ? TORAH_SEFARIM : NEVIIM_SEFARIM;
   // appTitle removed – no longer shown in mobile header
-  const appSubtitle = corpusMode === "torah" ? "חמישה חומשי תורה - שאלות ופירושים" : "נביאים - מגילת אסתר";
+  const appSubtitle = corpusMode === "torah" ? "חמישה חומשי תורה - שאלות ופירושים" : "נביאים ומגילות";
 
   const toggleTextLanguage = useCallback(() => {
     setTextLanguage(prev => {
@@ -398,9 +404,7 @@ const Index = () => {
         seferClickStartedAtRef.current = null;
         
         // Preload next sefer in background for smooth navigation
-        if (corpusMode === "torah") {
-          preloadNextSefer(selectedSefer);
-        }
+        preloadNextSefer(selectedSefer);
       } catch (err) {
         if (!cancelled) {
           console.error("Error loading sefer:", err);

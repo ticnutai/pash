@@ -203,8 +203,12 @@ export const SeferSelector = ({
 
       {level === "sefer" && (
         <div className={cn(
-          "gap-2 sm:gap-4 animate-fade-in",
-          currentSefarim.length <= 2 ? "grid grid-cols-1 sm:grid-cols-2" : "grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5"
+          "animate-fade-in",
+          currentSefarim.length > 5
+            ? "flex flex-row-reverse gap-2 overflow-x-auto pb-1 snap-x"
+            : currentSefarim.length <= 2
+              ? "grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4"
+              : "grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4"
         )}>
           {currentSefarim.map((s) => (
             <Button
@@ -214,6 +218,7 @@ export const SeferSelector = ({
               className={cn(
                 "h-auto py-2 sm:py-6 flex flex-col gap-1 sm:gap-2 transition-all duration-200 touch-manipulation",
                 "text-base sm:text-lg min-h-[52px] sm:min-h-[100px]",
+                currentSefarim.length > 5 && "min-w-[80px] flex-shrink-0 snap-start",
                 selectedSefer === s.id && "shadow-lg ring-2 ring-primary"
               )}
             >
