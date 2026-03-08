@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSiddurCategories, useSiddurSections, useTehillimData } from "@/hooks/useSiddurData";
@@ -27,21 +27,6 @@ const CATEGORIES_ORDER = [
   "shabbat_musaf",    "shabbat_mincha",
   "brachot", "other",
 ];
-const CAT_EMOJI: Record<string, string> = {
-  shacharit:          "🌅",
-  mincha:             "☀️",
-  arvit:              "🌙",
-  shabbat_kabbalat:   "✨",
-  shabbat_arvit:      "🕯️",
-  shabbat_shacharit:  "🌸",
-  shabbat_musaf:      "📖",
-  shabbat_mincha:     "🍃",
-  brachot:            "🍊",
-  other:              "📜",
-  tehillim:           "📗",
-  kria:               "🕍",
-};
-
 /* Tabs that are always shown regardless of nusach data */
 const STATIC_TABS = [
   { id: "tehillim", name: "תהילים"       },
@@ -62,6 +47,24 @@ function heNum(n: number): string {
 
 /* ─── Gold decoration helpers ───────────────────────────── */
 const GOLD = "#c8a04d";
+const CAT_ICON: Record<string, React.ComponentType<LucideProps>> = {
+  shacharit:         Sunrise,
+  mincha:            Sun,
+  arvit:             Moon,
+  shabbat_kabbalat:  Sparkles,
+  shabbat_arvit:     Flame,
+  shabbat_shacharit: Star,
+  shabbat_musaf:     BookOpen,
+  shabbat_mincha:    Leaf,
+  brachot:           Heart,
+  other:             ScrollText,
+  tehillim:          BookMarked,
+  kria:              Book,
+};
+const CatIcon = ({ id }: { id: string }) => {
+  const Icon = CAT_ICON[id];
+  return Icon ? <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: GOLD }} /> : null;
+};
 const Divider = () => (
   <div className="my-1 mx-auto" style={{
     width: "60%", height: "1px",
@@ -696,7 +699,7 @@ export const Siddur = () => {
               )}
               style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
             >
-              <span className="text-base leading-none" style={{ color: GOLD }}>{CAT_EMOJI[cat.id]}</span>
+              <CatIcon id={cat.id} />
               {cat.name}
             </button>
           ))}
@@ -719,7 +722,7 @@ export const Siddur = () => {
               )}
               style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
             >
-              <span className="text-base leading-none" style={{ color: GOLD }}>{CAT_EMOJI[tab.id]}</span>
+              <CatIcon id={tab.id} />
               {tab.name}
             </button>
           ))}
