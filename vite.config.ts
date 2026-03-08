@@ -8,8 +8,12 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 5000,
+    port: 6001,
     strictPort: false,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+    },
   },
   plugins: [
     react(),
