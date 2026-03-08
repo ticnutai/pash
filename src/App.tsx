@@ -16,8 +16,8 @@ import { ContentProvider } from "@/contexts/ContentContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { Loader2, WifiOff } from "lucide-react";
 import { PWAReloadPrompt } from "@/components/PWAReloadPrompt";
 
 // Lazy load ALL pages for optimal initial bundle size
@@ -34,6 +34,27 @@ const LoadingFallback = () => (
   </div>
 );
 
+function OfflineBanner() {
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const setOnline = () => setIsOnline(true);
+    const setOffline = () => setIsOnline(false);
+    window.addEventListener("online", setOnline);
+    window.addEventListener("offline", setOffline);
+    return () => {
+      window.removeEventListener("online", setOnline);
+      window.removeEventListener("offline", setOffline);
+    };
+  }, []);
+  if (isOnline) return null;
+  return (
+    <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-center gap-2 bg-amber-500 text-white text-sm py-1.5 px-4">
+      <WifiOff className="h-4 w-4 shrink-0" />
+      <span>אין חיבור לאינטרנט — עובד במצב לא מקוון</span>
+    </div>
+  );
+}
+
 const App = () => (
   <ErrorBoundary fallbackTitle="שגיאה כללית באפליקציה">
     <AuthProvider>
@@ -49,6 +70,7 @@ const App = () => (
                       <Toaster />
                       <Sonner />
                       <PWAReloadPrompt />
+                      <OfflineBanner />
                       <Router>
                         <ErrorBoundary fallbackTitle="שגיאה בטעינת הדף">
                           <Suspense fallback={<LoadingFallback />}>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useCallback, useEffect, ReactNode } from "react";
+import { createContext, useContext, useMemo, useCallback, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useDevice } from "@/contexts/DeviceContext";
@@ -124,13 +124,6 @@ export const FontAndColorSettingsProvider = ({ children }: { children: ReactNode
   });
 
   const normalizedSettings = useMemo(() => normalizeSettings(settings), [settings]);
-
-  useEffect(() => {
-    const changed = JSON.stringify(settings) !== JSON.stringify(normalizedSettings);
-    if (changed) {
-      setSettingsData(normalizedSettings);
-    }
-  }, [normalizedSettings, setSettingsData, settings]);
 
   const updateSettings = useCallback((newSettings: Partial<FontAndColorSettings>) => {
     setSettingsData((prev) => normalizeSettings({ ...prev, ...newSettings }));

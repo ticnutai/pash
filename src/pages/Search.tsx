@@ -117,6 +117,12 @@ export default function Search() {
               {activeResults.length > 0 && (
                 <div className="mb-4 text-sm text-muted-foreground text-right">נמצאו {activeResults.length} תוצאות</div>
               )}
+              {searchQuery.trim().length >= 2 && workerReady && !aiLoading && activeResults.length === 0 && (
+                <div className="py-12 text-center text-muted-foreground">
+                  <p className="text-lg">לא נמצאו תוצאות עבור &ldquo;{searchQuery}&rdquo;</p>
+                  <p className="text-sm mt-1">נסה מילה אחרת או הרחב את הסינון</p>
+                </div>
+              )}
               <SearchResults results={activeResults} onExpandCommentary={handleExpandCommentary} />
             </div>
           </TabsContent>
@@ -141,6 +147,12 @@ export default function Search() {
             <div className="pt-4">
               {activeResults.length > 0 && (
                 <div className="mb-4 text-sm text-muted-foreground text-right">נמצאו {activeResults.length} תוצאות</div>
+              )}
+              {searchQuery.trim().length >= 2 && !aiLoading && activeResults.length === 0 && (
+                <div className="py-12 text-center text-muted-foreground">
+                  <p className="text-lg">לא נמצאו תוצאות עבור &ldquo;{searchQuery}&rdquo;</p>
+                  <p className="text-sm mt-1">נסה לנסח מחדש את השאלה</p>
+                </div>
               )}
               <SearchResults results={activeResults} onExpandCommentary={handleExpandCommentary} />
             </div>

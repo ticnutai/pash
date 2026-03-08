@@ -31,14 +31,16 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
   // Load highlights from Supabase
   useEffect(() => {
     if (user) {
-      loadHighlights();
+      let ignore = false;
+      loadHighlights(() => ignore);
+      return () => { ignore = true; };
     } else {
       setHighlights([]);
       setLoading(false);
     }
   }, [user]);
 
-  const loadHighlights = async () => {
+  const loadHighlights = async (isIgnored: () => boolean) => {
     if (!user) return;
 
     try {
@@ -46,6 +48,7 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
 
       // 1. Load from IndexedDB cache instantly
       const cached = await torahDB.getUserData('highlights');
+      if (isIgnored()) return;
       if (cached) {
         setHighlights(cached as Highlight[]);
         setLoading(false);
@@ -58,6 +61,7 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
+      if (isIgnored()) return;
       if (error) throw error;
 
       const mappedHighlights: Highlight[] = (data || []).map((h) => ({
@@ -73,10 +77,11 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
       // 3. Save to IndexedDB
       torahDB.saveUserData('highlights', mappedHighlights).catch(() => {});
     } catch (error: any) {
+      if (isIgnored()) return;
       console.error("Error loading highlights:", error);
       toast.error("שגיאה בטעינת הדגשות");
     } finally {
-      setLoading(false);
+      if (!isIgnored()) setLoading(false);
     }
   };
 

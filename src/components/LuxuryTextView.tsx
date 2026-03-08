@@ -336,23 +336,25 @@ const PasukRow = ({
 
         {/* Text */}
         {formatTorahText(pasuk.text)}
+      </p>
 
-        {/* Rashi click-toggle icon */}
-        {showRashiToggle && (
+      {/* Rashi click-toggle button — kept outside <p> to avoid inline bidi collision with pasuk number */}
+      {showRashiToggle && (
+        <div dir="rtl" className="mt-0.5 flex justify-end">
           <button
             onClick={() => setRashiOpen((p) => !p)}
             className={cn(
-              "inline-flex items-center justify-center rounded px-1 py-0.5 mx-1 text-[10px] font-bold border transition-colors align-middle",
+              "inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold border transition-colors",
               rashiOpen
                 ? "bg-[#c8a04d]/20 border-[#c8a04d] text-[#c8a04d]"
                 : "border-[#c8a04d]/40 text-[#c8a04d]/70 hover:border-[#c8a04d] hover:text-[#c8a04d]"
             )}
             title={rashiOpen ? "הסתר רש״י" : "הצג רש״י"}
           >
-            ר״ש
+            רש״י
           </button>
-        )}
-      </p>
+        </div>
+      )}
 
       {/* Rashi block — inline mode */}
       {showRashiInline && <RashiBlock text={rashiText!} fontSize={fontSize} />}

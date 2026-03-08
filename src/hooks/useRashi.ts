@@ -8,8 +8,18 @@ export type RashiMap = Map<string, string>;
 const rashiKey = (seferId: number, perek: number, pasuk: number) =>
   `${seferId}-${perek}-${pasuk}`;
 
-// In-memory cache across hook instances
+// In-memory cache across hook instances — capped at MAX_CACHE_ENTRIES
 const globalCache = new Map<string, RashiMap>();
+const MAX_CACHE_ENTRIES = 50;
+
+function setCacheEntry(key: string, value: RashiMap) {
+  if (globalCache.size >= MAX_CACHE_ENTRIES) {
+    // Evict the oldest entry (Map preserves insertion order)
+    const firstKey = globalCache.keys().next().value;
+    if (firstKey !== undefined) globalCache.delete(firstKey);
+  }
+  globalCache.set(key, value);
+}
 
 /**
  * Fetches Rashi commentary from Supabase for all verses in `pesukim`.
@@ -80,7 +90,7 @@ export function useRashi(pesukim: FlatPasuk[], enabled: boolean) {
               perekMap.set(k, row.text);
               result.set(k, row.text);
             }
-            globalCache.set(ck, perekMap);
+            setCacheEntry(ck, perekMap);
             continue;
           }
         } catch {
@@ -113,10 +123,10 @@ export function useRashi(pesukim: FlatPasuk[], enabled: boolean) {
             perekMap.set(k, text);
             result.set(k, text);
           }
-          globalCache.set(ck, perekMap);
+          setCacheEntry(ck, perekMap);
         } catch {
           // No local file — no Rashi for this chapter
-          globalCache.set(ck, new Map()); // cache miss to avoid re-fetching
+          setCacheEntry(ck, new Map()); // cache miss to avoid re-fetching
         }
       }
 
