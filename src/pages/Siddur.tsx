@@ -1,16 +1,9 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-/* Pre-register all siddur JSON paths so Vite bundles them */
-const SIDDUR_FILES  = import.meta.glob<{ default: SiddurData }>(
-  "../data/siddur/siddur_*.json"
-);
-const TEHILLIM_FILE = import.meta.glob<{ default: TehillimMap }>(
-  "../data/tehillim.json"
-);
+import { useSiddurCategories, useSiddurSections, useTehillimData } from "@/hooks/useSiddurData";
 
 /* ─── Types ─────────────────────────────────────────────── */
 type SiddurSection   = { title: string; lines: string[] };
@@ -138,25 +131,124 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
   );
 };
 
+/* ─── ContinuousReader ───────────────────────────────────── */
+const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
+  const [visibleCount, setVisibleCount] = useState(8);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset when sections array changes (e.g. tab switch)
+  useEffect(() => { setVisibleCount(8); }, [sections]);
+
+  useEffect(() => {
+    if (visibleCount >= sections.length) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisibleCount(v => Math.min(v + 8, sections.length)); },
+      { rootMargin: "300px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [visibleCount, sections.length]);
+
+  return (
+    <div className="space-y-6 pb-8" dir="rtl">
+      {sections.slice(0, visibleCount).map((sec, i) => (
+        <div key={i}>
+          <h3
+            className="font-semibold text-base mb-1 flex items-center gap-2"
+            style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
+          >
+            <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
+            {sec.title}
+          </h3>
+          <Divider />
+          <div className="space-y-1.5 mt-2">
+            {sec.lines.map((line, j) => (
+              <p
+                key={j}
+                className="text-base sm:text-lg leading-relaxed text-foreground text-justify"
+                style={{
+                  fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                  fontWeight: j === 0 ? 600 : 400,
+                }}
+              >
+                {line.replace(/<[^>]*>/g, "")}
+              </p>
+            ))}
+          </div>
+        </div>
+      ))}
+      {visibleCount < sections.length && (
+        <div ref={sentinelRef} className="flex justify-center items-center py-4 gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" style={{ color: GOLD }} />
+          <span className="text-sm" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
+            טוען {sections.length - visibleCount} סעיפים נוספים...
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ─── CategoryPane ───────────────────────────────────────── */
-const CategoryPane = ({ cat }: { cat: SiddurCategory }) => {
-  const sections = cat.sections ?? [];
-  if (!sections.length) {
+const CategoryPane = ({
+  nusach,
+  catId,
+  viewMode,
+}: {
+  nusach: string;
+  catId: string;
+  viewMode: "accordion" | "continuous";
+}) => {
+  const { sections, catName, loading, error } = useSiddurSections(nusach, catId);
+
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+        <p className="text-sm text-muted-foreground" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
+          טוען סידור...
+        </p>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4" dir="rtl">
+        <div className="rounded-xl p-6 text-center max-w-sm border border-border" style={{ background: "hsl(var(--card))" }}>
+          <span className="text-3xl mb-3 block">📖</span>
+          <p className="font-semibold text-foreground mb-2" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
+            הסידור עדיין בהורדה
+          </p>
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+
+  if (!sections || !sections.length)
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground" dir="rtl">
         <BookMarked className="h-10 w-10 opacity-30" />
         <p className="text-sm">אין תוכן זמין כרגע</p>
       </div>
     );
-  }
+
   return (
     <div className="pb-8">
-      <OrnamentTitle text={cat.name} />
+      <OrnamentTitle text={catName} />
       <Divider />
-      <div className="mt-4 space-y-1">
-        {sections.map((sec, i) => (
-          <SectionCard key={`${sec.title}-${i}`} section={sec} initialOpen={i === 0} />
-        ))}
+      <div className="mt-4">
+        {viewMode === "continuous"
+          ? <ContinuousReader sections={sections} />
+          : (
+            <div className="space-y-1">
+              {sections.map((sec, i) => (
+                <SectionCard key={`${sec.title}-${i}`} section={sec} initialOpen={i === 0} />
+              ))}
+            </div>
+          )
+        }
       </div>
     </div>
   );
@@ -164,22 +256,8 @@ const CategoryPane = ({ cat }: { cat: SiddurCategory }) => {
 
 /* ─── TehillimPane ───────────────────────────────────────── */
 const TehillimPane = () => {
-  const [tehillim, setTehillim] = useState<TehillimMap | null>(null);
-  const [loading, setLoading]   = useState(false);
-  const [chapter, setChapter]   = useState(1);
-  const loaded                  = useRef(false);
-
-  useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
-    setLoading(true);
-    const key = "../data/tehillim.json";
-    const importer = TEHILLIM_FILE[key];
-    if (!importer) { setLoading(false); return; }
-    importer()
-      .then(m => { setTehillim(m.default); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+  const { tehillim, loading } = useTehillimData();
+  const [chapter, setChapter] = useState(1);
 
   if (loading)
     return (
@@ -400,57 +478,30 @@ const KriaPane = ({ onNavigate }: { onNavigate: () => void }) => (
 
 /* ─── Main Siddur component ──────────────────────────────── */
 export const Siddur = () => {
-  const navigate               = useNavigate();
-  const [nusach, setNusach]   = useState("sefard");
-  const [catId, setCatId]     = useState("shacharit");
-  const [data, setData]       = useState<SiddurData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
-  const loadedRef             = useRef<Record<string, SiddurData>>({});
+  const navigate                = useNavigate();
+  const [nusach, setNusach]    = useState("sefard");
+  const [catId, setCatId]      = useState("shacharit");
+  const [viewMode, setViewMode] = useState<"accordion" | "continuous">(() =>
+    (localStorage.getItem("siddur-view-mode") as "accordion" | "continuous") ?? "accordion"
+  );
 
+  const { categories, loading: catsLoading } = useSiddurCategories(nusach);
   const isSpecial = NUSACH_INDEP.has(catId);
 
-  const loadNusach = useCallback(async (id: string) => {
-    if (loadedRef.current[id]) {
-      setData(loadedRef.current[id]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const key = `../data/siddur/siddur_${id}.json`;
-      const importer = SIDDUR_FILES[key];
-      if (!importer) throw new Error("not found");
-      const mod = await importer();
-      loadedRef.current[id] = mod.default;
-      setData(mod.default);
-    } catch {
-      setError("הנתונים עדיין בהורדה — אנא המתן רגע ורענן");
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { loadNusach(nusach); }, [nusach, loadNusach]);
-
-  /* Build ordered category list from loaded data */
-  const categories = useMemo(() =>
-    data
-      ? CATEGORIES_ORDER
-          .filter(k => data[k] && Array.isArray(data[k].sections) && data[k].sections.length > 0)
-          .map(k => ({ id: k, ...data[k] }))
-      : [],
-  [data]);
-
-  const currentCat = data?.[catId];
-
-  /* If active category disappeared in new nusach, fall back */
+  // If active category disappeared in new nusach, fall back to first
   useEffect(() => {
     if (!isSpecial && categories.length > 0 && !categories.find(c => c.id === catId)) {
       setCatId(categories[0].id);
     }
   }, [categories, catId, isSpecial]);
+
+  const toggleViewMode = () => {
+    setViewMode(v => {
+      const next = v === "accordion" ? "continuous" : "accordion";
+      localStorage.setItem("siddur-view-mode", next);
+      return next;
+    });
+  };
 
   return (
     <div
@@ -527,9 +578,9 @@ export const Siddur = () => {
         className="border-b border-border/40 overflow-x-auto [&::-webkit-scrollbar]:hidden"
         style={{ background: "hsl(var(--card))", scrollbarWidth: "none" }}
       >
-        <div className="flex gap-0 min-w-max px-2 py-1 max-w-4xl mx-auto">
+        <div className="flex gap-0 min-w-max px-2 py-1 max-w-4xl mx-auto items-center">
           {/* Loading spinner placeholder */}
-          {loading && (
+          {catsLoading && (
             <div className="px-4 py-2 flex items-center gap-2 text-muted-foreground text-sm">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span>טוען...</span>
@@ -537,7 +588,7 @@ export const Siddur = () => {
           )}
 
           {/* Siddur prayer categories (from loaded nusach data) */}
-          {!loading && categories.map(cat => (
+          {!catsLoading && categories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setCatId(cat.id)}
@@ -555,7 +606,7 @@ export const Siddur = () => {
           ))}
 
           {/* Separator before special tabs */}
-          {!loading && categories.length > 0 && (
+          {!catsLoading && categories.length > 0 && (
             <div className="self-stretch w-px bg-border/40 mx-1 my-2" />
           )}
 
@@ -576,45 +627,36 @@ export const Siddur = () => {
               {tab.name}
             </button>
           ))}
+
+          {/* Spacer + view mode toggle (only for siddur panes, not tehillim/kria) */}
+          {!isSpecial && (
+            <div className="ml-auto pl-2 flex-shrink-0">
+              <button
+                onClick={toggleViewMode}
+                title={viewMode === "accordion" ? "עבור לתצוגה רציפה" : "עבור לתצוגת מקטעים"}
+                className="p-1.5 rounded-md transition-colors hover:bg-accent/20"
+                style={{ color: viewMode === "continuous" ? GOLD : "hsl(var(--muted-foreground))" }}
+              >
+                {viewMode === "accordion"
+                  ? <LayoutList className="h-4 w-4" />
+                  : <AlignJustify className="h-4 w-4" />
+                }
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Content area ── */}
       <main className="flex-1 flex flex-col px-3 sm:px-6 pt-4 sm:pt-6 max-w-2xl mx-auto w-full">
-        {/* Siddur loading spinner */}
-        {!isSpecial && loading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
-            <p className="text-muted-foreground text-sm" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
-              טוען סידור...
-            </p>
-          </div>
-        )}
-
-        {!isSpecial && error && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4" dir="rtl">
-            <div
-              className="rounded-xl p-6 text-center max-w-sm border border-border"
-              style={{ background: "hsl(var(--card))" }}
-            >
-              <span className="text-3xl mb-3 block">📖</span>
-              <p className="font-semibold text-foreground mb-2" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
-                הסידור עדיין בהורדה
-              </p>
-              <p className="text-sm text-muted-foreground mb-4">{error}</p>
-              <Button size="sm" onClick={() => loadNusach(nusach)} style={{ background: GOLD, color: "#1a1a1a" }}>
-                נסה שוב
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Special — nusach-independent panes */}
         {catId === "tehillim" && <TehillimPane />}
         {catId === "kria"     && <KriaPane onNavigate={() => navigate("/")} />}
 
         {/* Regular siddur prayer content */}
-        {!isSpecial && !loading && !error && currentCat && <CategoryPane cat={currentCat} />}
+        {!isSpecial && (
+          <CategoryPane nusach={nusach} catId={catId} viewMode={viewMode} />
+        )}
       </main>
     </div>
   );

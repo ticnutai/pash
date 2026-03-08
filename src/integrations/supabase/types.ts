@@ -444,6 +444,60 @@ export type Database = {
         }
         Relationships: []
       }
+      siddur: {
+        Row: {
+          id: string
+          nusach: string
+          category: string
+          cat_name: string
+          section_idx: number
+          title: string
+          lines: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nusach: string
+          category: string
+          cat_name: string
+          section_idx: number
+          title: string
+          lines: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nusach?: string
+          category?: string
+          cat_name?: string
+          section_idx?: number
+          title?: string
+          lines?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      tehillim: {
+        Row: {
+          chapter: number
+          title: string
+          lines: Json
+          created_at: string
+        }
+        Insert: {
+          chapter: number
+          title: string
+          lines: Json
+          created_at?: string
+        }
+        Update: {
+          chapter?: number
+          title?: string
+          lines?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
