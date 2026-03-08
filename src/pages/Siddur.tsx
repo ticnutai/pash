@@ -2,8 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, type LucideProps } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useSiddurCategories, useSiddurSections, useTehillimData } from "@/hooks/useSiddurData";
 
@@ -470,21 +478,29 @@ const TehillimPane = () => {
       <OrnamentTitle text="תהילים" />
       <Divider />
 
-      {/* View mode toggle */}
+      {/* View mode toggle — beautiful pill with icons */}
       <div className="flex justify-center mb-4">
-        <div className="flex gap-0.5 rounded-lg p-0.5" style={{ background: "hsl(var(--muted))" }}>
-          {(["select", "continuous"] as const).map(m => (
+        <div
+          className="flex gap-1 rounded-full p-1"
+          style={{ background: "hsl(var(--muted))", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}
+        >
+          {([
+            { id: "select" as const,     icon: <BookOpen   className="h-3.5 w-3.5" />, label: "בחר פרק" },
+            { id: "continuous" as const, icon: <ScrollText className="h-3.5 w-3.5" />, label: "קריאה רציפה" },
+          ]).map(m => (
             <button
-              key={m}
-              onClick={() => setModeWithSave(m)}
-              className="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+              key={m.id}
+              onClick={() => setModeWithSave(m.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
               style={{
-                background: mode === m ? GOLD : "transparent",
-                color: mode === m ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
-                boxShadow: mode === m ? "0 1px 3px rgba(0,0,0,0.2)" : "none",
+                background: mode === m.id ? GOLD : "transparent",
+                color: mode === m.id ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
+                boxShadow: mode === m.id ? `0 2px 8px ${GOLD}55` : "none",
+                fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
               }}
             >
-              {m === "select" ? "בחר פרק" : "קריאה רציפה"}
+              {m.icon}
+              {m.label}
             </button>
           ))}
         </div>
@@ -795,7 +811,44 @@ export const Siddur = () => {
                 סידור תפילה
               </h1>
             </div>
-            <TextDisplaySettings />
+            <div className="flex items-center gap-2">
+              {!isSpecial && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8 text-xs font-medium"
+                      style={{
+                        borderColor: `${GOLD}66`,
+                        color: GOLD,
+                        background: `${GOLD}15`,
+                      }}
+                    >
+                      <Layers className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{VIEW_MODES.find(m => m.id === viewMode)?.title ?? "תצוגה"}</span>
+                      <ChevronDown className="h-3 w-3 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48" dir="rtl">
+                    <DropdownMenuLabel className="text-right text-xs text-muted-foreground">מצב תצוגה</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {VIEW_MODES.map(m => (
+                      <DropdownMenuItem
+                        key={m.id}
+                        onClick={() => setMode(m.id)}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <span style={{ color: viewMode === m.id ? GOLD : "hsl(var(--muted-foreground))" }}>{m.icon}</span>
+                        <span className={cn("flex-1 text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
+                        {viewMode === m.id && <span className="text-xs" style={{ color: GOLD }}>✓</span>}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <TextDisplaySettings />
+            </div>
           </div>
 
           {/* ── Nusach tabs ── */}
@@ -891,28 +944,14 @@ export const Siddur = () => {
         </div>
         </div>
 
-        {/* View mode toggle — OUTSIDE the scrollable area so it's always visible */}
+        {/* View mode indicator — subtle current-mode badge in tab bar */}
         {!isSpecial && (
           <div className="flex-shrink-0 flex items-center px-2 border-l border-border/40" dir="ltr">
             <div
-              className="flex items-center gap-0.5 rounded-lg p-0.5"
-              style={{ background: "hsl(var(--muted))" }}
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium"
+              style={{ background: `${GOLD}18`, color: GOLD }}
             >
-              {VIEW_MODES.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => setMode(m.id)}
-                  title={m.title}
-                  className="p-1.5 rounded-md transition-all"
-                  style={{
-                    color:      viewMode === m.id ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
-                    background: viewMode === m.id ? GOLD : "transparent",
-                    boxShadow:  viewMode === m.id ? "0 1px 3px rgba(0,0,0,0.2)" : "none",
-                  }}
-                >
-                  {m.icon}
-                </button>
-              ))}
+              {VIEW_MODES.find(m => m.id === viewMode)?.icon}
             </div>
           </div>
         )}
