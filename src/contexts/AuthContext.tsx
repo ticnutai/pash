@@ -16,18 +16,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Single getSession call for the entire app
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const ensureSession = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
+
+        setSession(data.session ?? null);
+        setUser(data.user ?? null);
+      } catch (error) {
+        console.error("Failed to initialize auth session:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void ensureSession();
 
     // Single auth state listener for the entire app
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (event === "SIGNED_OUT") {
+        void supabase.auth.signInAnonymously().catch((error) => {
+          console.error("Failed to create anonymous session after sign out:", error);
+        });
+      }
     });
 
     return () => subscription.unsubscribe();

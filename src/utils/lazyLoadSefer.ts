@@ -3,8 +3,58 @@ import { torahDB } from "@/utils/torahDB";
 
 // In-memory cache for instant access
 const memoryCache = new Map<number, Sefer>();
+const ESTHER_SEFER_ID = 101;
+const ESTHER_EXPECTED_VERSE_COUNT = 167;
 
 const SEFER_NAMES = ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'דברים'];
+
+const decodeHtmlEntities = (value: string): string => {
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/;(thinsp|nbsp|amp|quot|lt|gt|apos|#\d+|#x[\da-f]+)&/gi, " ")
+    .replace(/&thinsp;|&#8201;|&#x2009;/gi, " ")
+    .replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
+    .replace(/&rlm;|&lrm;|&#8206;|&#8207;|&#x200e;|&#x200f;/gi, "")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/[\u0591-\u05AF\u05BD]/g, "")
+    .replace(/\s{2,}/g, " ")
+    .normalize("NFC")
+    .trim();
+};
+
+const normalizeSeferText = (sefer: Sefer): Sefer => {
+  return {
+    ...sefer,
+    parshiot: sefer.parshiot.map((parsha) => ({
+      ...parsha,
+      perakim: parsha.perakim.map((perek) => ({
+        ...perek,
+        pesukim: perek.pesukim.map((pasuk) => ({
+          ...pasuk,
+          text: decodeHtmlEntities(pasuk.text || ""),
+          text_en: pasuk.text_en ? decodeHtmlEntities(pasuk.text_en) : pasuk.text_en,
+        })),
+      })),
+    })),
+  };
+};
+
+const countPesukim = (sefer: Sefer): number => {
+  return sefer.parshiot.reduce(
+    (parshaSum, parsha) =>
+      parshaSum + parsha.perakim.reduce((perekSum, perek) => perekSum + perek.pesukim.length, 0),
+    0
+  );
+};
+
+const isValidCachedSefer = (seferId: number, sefer: Sefer): boolean => {
+  if (seferId !== ESTHER_SEFER_ID) return true;
+  return countPesukim(sefer) >= ESTHER_EXPECTED_VERSE_COUNT;
+};
 
 /**
  * Lazy load sefer data with 3-tier caching:
@@ -15,16 +65,22 @@ const SEFER_NAMES = ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'ד
 export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
   // Tier 1: Memory cache
   if (memoryCache.has(seferId)) {
-    return memoryCache.get(seferId)!;
+    const cached = memoryCache.get(seferId)!;
+    if (isValidCachedSefer(seferId, cached)) {
+      return cached;
+    }
+    memoryCache.delete(seferId);
   }
 
   // Tier 2: IndexedDB cache
   try {
     const cached = await torahDB.getSefer(seferId);
     if (cached) {
-      const seferData = cached as Sefer;
-      memoryCache.set(seferId, seferData);
-      return seferData;
+      const seferData = normalizeSeferText(cached as Sefer);
+      if (isValidCachedSefer(seferId, seferData)) {
+        memoryCache.set(seferId, seferData);
+        return seferData;
+      }
     }
   } catch (e) {
     // IndexedDB failed, continue to bundle
@@ -38,10 +94,11 @@ export const lazyLoadSefer = async (seferId: number): Promise<Sefer> => {
     case 3: module = await import("@/data/vayikra.json"); break;
     case 4: module = await import("@/data/bamidbar.json"); break;
     case 5: module = await import("@/data/devarim.json"); break;
+    case 101: module = await import("@/data/esther.json"); break;
     default: throw new Error(`Unknown sefer ID: ${seferId}`);
   }
 
-  const data = module.default as Sefer;
+  const data = normalizeSeferText(module.default as Sefer);
   
   // Store in both caches
   memoryCache.set(seferId, data);

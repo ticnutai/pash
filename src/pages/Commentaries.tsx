@@ -12,6 +12,7 @@ import { NotesDialog } from "@/components/NotesDialog";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { getAvailableCommentariesProgressive, prefetchNeighboringVerses, getPasukSefariaUrl, getMefareshSefariaUrl } from "@/utils/sefariaCommentaries";
+import { lazyLoadSefer } from "@/utils/lazyLoadSefer";
 import { SefariaCommentary, AVAILABLE_COMMENTARIES } from "@/types/sefaria";
 import { torahDB } from "@/utils/torahDB";
 import type { Sefer } from "@/types/torah";
@@ -103,16 +104,7 @@ export const Commentaries = () => {
       // Load the pasuk text from the original data
       let loadedSeferName = "";
       try {
-        const seferFiles: Record<number, string> = {
-          1: "bereishit",
-          2: "shemot",
-          3: "vayikra",
-          4: "bamidbar",
-          5: "devarim"
-        };
-        
-        const seferFileName = seferFiles[numSeferId];
-        const seferData: Sefer = await import(`@/data/${seferFileName}.json`).then(m => m.default);
+        const seferData: Sefer = await lazyLoadSefer(numSeferId);
         
         loadedSeferName = seferData.sefer_name;
         setSeferName(loadedSeferName);

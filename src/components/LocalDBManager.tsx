@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Download, Trash2, HardDrive, CheckCircle2, Loader2, Database, BookOpen, MessageSquare, Bookmark, Palette, FileText, ChevronDown, ChevronUp, Clock, Search } from "lucide-react";
+import { Download, Trash2, HardDrive, CheckCircle2, Loader2, Database, BookOpen, MessageSquare, Bookmark, Palette, FileText, ChevronDown, ChevronUp, Clock, Search, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
@@ -11,8 +11,11 @@ import { downloadAllSefarim, clearAllSeferCache } from "@/utils/lazyLoadSefer";
 import { downloadAllCommentaries, downloadCommentaryByMefaresh, clearCommentaryCache } from "@/utils/sefariaCommentaries";
 import { AVAILABLE_COMMENTARIES, getCommentariesByCategory } from "@/types/sefaria";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SEFER_NAMES = ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'דברים'];
+const USER_DATA_KEYS = ['highlights', 'notes', 'personal_questions', 'bookmarks', 'content_titles', 'content_questions', 'content_answers'];
 
 interface StoredInfo {
   seferId: number;
@@ -34,6 +37,7 @@ interface DataStatus {
  * Designed to be embedded directly inside a Settings tab.
  */
 export const LocalDBManager = () => {
+  const { user } = useAuth();
   const [status, setStatus] = useState<DataStatus>({
     sefarim: [],
     userDataKeys: [],
@@ -43,6 +47,7 @@ export const LocalDBManager = () => {
   });
   const [downloading, setDownloading] = useState(false);
   const [downloadingCommentaries, setDownloadingCommentaries] = useState(false);
+  const [syncingCloud, setSyncingCloud] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState({ completed: 0, total: 5, current: '' });
   const [commentaryProgress, setCommentaryProgress] = useState({ completed: 0, total: 45, current: '' });
   const [initialized, setInitialized] = useState(false);
@@ -56,7 +61,7 @@ export const LocalDBManager = () => {
     ]);
 
     const userDataKeys: string[] = [];
-    for (const key of ['highlights', 'notes', 'personal_questions', 'bookmarks', 'content']) {
+    for (const key of USER_DATA_KEYS) {
       const hasData = await torahDB.hasUserData(key);
       if (hasData) userDataKeys.push(key);
     }
@@ -155,6 +160,155 @@ export const LocalDBManager = () => {
       toast.error("שגיאה בהורדת המפרשים");
     } finally {
       setDownloadingCommentaries(false);
+    }
+  };
+
+  const handleSyncAllToCloud = async () => {
+    if (!user) {
+      toast.error("אין משתמש מחובר לסנכרון לענן");
+      return;
+    }
+
+    setSyncingCloud(true);
+    try {
+      const [
+        highlightsRaw,
+        notesRaw,
+        personalQuestionsRaw,
+        bookmarksRaw,
+        titlesRaw,
+        questionsRaw,
+        answersRaw,
+      ] = await Promise.all([
+        torahDB.getUserData('highlights'),
+        torahDB.getUserData('notes'),
+        torahDB.getUserData('personal_questions'),
+        torahDB.getUserData('bookmarks'),
+        torahDB.getUserData('content_titles'),
+        torahDB.getUserData('content_questions'),
+        torahDB.getUserData('content_answers'),
+      ]);
+
+      let syncedRows = 0;
+
+      const highlights = Array.isArray(highlightsRaw) ? highlightsRaw as Array<{ id: string; pasukId: string; text: string; color: string; startIndex: number; endIndex: number; }> : [];
+      if (highlights.length > 0) {
+        const rows = highlights.map((item) => ({
+          id: item.id,
+          user_id: user.id,
+          pasuk_id: item.pasukId,
+          highlight_text: item.text,
+          color: item.color,
+          start_index: item.startIndex,
+          end_index: item.endIndex,
+        }));
+        const { error } = await supabase.from("user_highlights").upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+        syncedRows += rows.length;
+      }
+
+      const notes = Array.isArray(notesRaw) ? notesRaw as Array<{ id: string; pasukId: string; content: string; }> : [];
+      if (notes.length > 0) {
+        const rows = notes.map((item) => ({
+          id: item.id,
+          user_id: user.id,
+          pasuk_id: item.pasukId,
+          note_text: item.content,
+        }));
+        const { error } = await supabase.from("user_notes").upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+        syncedRows += rows.length;
+      }
+
+      const personalQuestions = Array.isArray(personalQuestionsRaw)
+        ? personalQuestionsRaw as Array<{ id: string; pasukId: string; question: string; answer?: string; }>
+        : [];
+      if (personalQuestions.length > 0) {
+        const rows = personalQuestions.map((item) => ({
+          id: item.id,
+          user_id: user.id,
+          pasuk_id: item.pasukId,
+          question_text: item.question,
+          answer_text: item.answer ?? null,
+        }));
+        const { error } = await supabase.from("user_personal_questions").upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+        syncedRows += rows.length;
+      }
+
+      const bookmarks = Array.isArray(bookmarksRaw)
+        ? bookmarksRaw as Array<{ id: string; pasukId: string; pasukText: string; note?: string; tags?: string[]; }>
+        : [];
+      if (bookmarks.length > 0) {
+        const rows = bookmarks.map((item) => ({
+          id: item.id,
+          user_id: user.id,
+          pasuk_id: item.pasukId,
+          pasuk_text: item.pasukText,
+          note: item.note ?? null,
+          tags: item.tags ?? null,
+        }));
+        const { error } = await supabase.from("user_bookmarks").upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+        syncedRows += rows.length;
+      }
+
+      const titles = Array.isArray(titlesRaw)
+        ? titlesRaw as Array<{ id: number; pasukId: string; title: string; isShared?: boolean; }>
+        : [];
+      if (titles.length > 0) {
+        const rows = titles.map((item) => ({
+          id: item.id,
+          user_id: user.id,
+          pasuk_id: item.pasukId,
+          title: item.title,
+          is_shared: item.isShared ?? false,
+        }));
+        const { error } = await supabase.from("user_titles").upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+        syncedRows += rows.length;
+      }
+
+      const questions = Array.isArray(questionsRaw)
+        ? questionsRaw as Array<{ id: number; titleId: number; text: string; isShared?: boolean; }>
+        : [];
+      if (questions.length > 0) {
+        const rows = questions.map((item) => ({
+          id: item.id,
+          user_id: user.id,
+          title_id: item.titleId,
+          text: item.text,
+          is_shared: item.isShared ?? false,
+        }));
+        const { error } = await supabase.from("user_questions").upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+        syncedRows += rows.length;
+      }
+
+      const answers = Array.isArray(answersRaw)
+        ? answersRaw as Array<{ id: number; questionId: number; mefaresh: string; text: string; isShared?: boolean; }>
+        : [];
+      if (answers.length > 0) {
+        const rows = answers.map((item) => ({
+          id: item.id,
+          user_id: user.id,
+          question_id: item.questionId,
+          mefaresh: item.mefaresh,
+          text: item.text,
+          is_shared: item.isShared ?? false,
+        }));
+        const { error } = await supabase.from("user_answers").upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+        syncedRows += rows.length;
+      }
+
+      toast.success(`סנכרון לענן הושלם (${syncedRows} רשומות)`);
+      await loadStatus();
+    } catch (error) {
+      console.error('Cloud sync error:', error);
+      toast.error("שגיאה בסנכרון לענן");
+    } finally {
+      setSyncingCloud(false);
     }
   };
 
@@ -392,6 +546,20 @@ export const LocalDBManager = () => {
             : 'אין נתוני משתמש מקומיים'
           }
         </div>
+        <Button
+          onClick={handleSyncAllToCloud}
+          disabled={syncingCloud || status.userDataKeys.length === 0}
+          className="w-full mt-3 gap-2"
+          size="sm"
+          variant="secondary"
+        >
+          {syncingCloud ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <UploadCloud className="h-4 w-4" />
+          )}
+          <span>{syncingCloud ? 'מסנכרן לענן...' : 'Sync All לענן'}</span>
+        </Button>
       </Card>
 
       {/* Clear All */}

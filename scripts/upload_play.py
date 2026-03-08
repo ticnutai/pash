@@ -40,8 +40,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": f"גרסה 1.4.0 - שיפורי ביצועים ותיקוני באגים"},
-                {"language": "en-US", "text": f"Version 1.4.0 - Performance improvements and bug fixes"},
+                {"language": "he-IL", "text": "תיקון תצוגה חשוב: Safe Area בחלק העליון והתחתון, יציבות כפתורים צפים, שיפורי ביצועים"},
+                {"language": "en-US", "text": "Important display fix: Safe Area top/bottom, floating button stability, performance improvements"},
             ]
         }]
     }

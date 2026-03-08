@@ -26,13 +26,12 @@ export function GlobalSearchTrigger({ onNavigateToPasuk }: GlobalSearchTriggerPr
     <>
       <Button
         variant="ghost"
-        size="sm"
+        size="icon"
         onClick={() => setOpen(true)}
-        className="gap-2 text-white hover:text-white hover:bg-white/10 flex-row-reverse"
+        className="text-white hover:text-white hover:bg-white/10 border border-white/30 rounded-md"
         aria-label="חיפוש בתורה (Ctrl+K)"
         title="חיפוש (Ctrl+K)"
       >
-        <span>חיפוש</span>
         <SearchCheck className="h-4 w-4" />
       </Button>
 

@@ -219,9 +219,6 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
     }));
   }, [formattedPasukText, pasukId]);
 
-  // Don't show if no questions
-  if (totalQuestions === 0) return null;
-
   // Full mode or verses-questions mode
   return (
     <>
@@ -401,6 +398,13 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
             overflowX: "hidden",
           }}
         >
+        {!effectiveMinimized && mergedContent.length === 0 && (
+          <div className="text-sm text-muted-foreground text-center py-4 border border-dashed border-border rounded-md bg-muted/30">
+            <p>אין תוכן מקומי לפסוק זה</p>
+            <p className="text-xs mt-1">לחץ על אייקון הספר לפתיחת מפרשים מספריא</p>
+          </div>
+        )}
+
         {!effectiveMinimized && mergedContent.map((contentItem) => {
           const hasQuestions = contentItem.questions.length > 0;
           const isUserTitle = contentItem.title && typeof contentItem.id === 'number';

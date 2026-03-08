@@ -48,7 +48,7 @@ export const Auth = () => {
   useEffect(() => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+      if (session && !session.user.is_anonymous) {
         navigate("/");
         return;
       }

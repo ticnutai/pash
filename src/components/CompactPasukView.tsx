@@ -193,7 +193,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                         fontFamily: settings.pasukFont || "'David Libre', 'Noto Serif Hebrew', serif",
                         fontSize: `${Math.min((settings.pasukSize || 20) * (displayStyles.fontScale || 1), displayStyles.isMobile ? 22 : 26)}px`,
                         color: settings.pasukColor || 'hsl(var(--foreground))',
-                        fontWeight: settings.pasukBold ? 700 : 500,
+                        fontWeight: settings.pasukBold ? 700 : 400,
                         lineHeight: displayStyles.lineHeight || '2',
                         letterSpacing: '0.02em',
                         textAlign: 'justify',
@@ -224,6 +224,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
                 className="border-t border-border animate-accordion-down"
                 onClick={(e) => {
                   e.stopPropagation();
+                  togglePasuk(pasuk.id);
                 }}
               >
                 <PasukDisplay

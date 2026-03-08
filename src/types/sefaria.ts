@@ -58,6 +58,7 @@ export const AVAILABLE_COMMENTARIES: CommentaryInfo[] = [
   { hebrew: "העמק דבר", english: "HaEmek_Davar", category: "additional" },
   { hebrew: "דעת זקנים", english: "Daat_Zkenim", category: "additional" },
   { hebrew: "מצודת דוד", english: "Metzudat_David", category: "additional" },
+  { hebrew: "ביאור הגר\"א", english: "Beur_HaGra", category: "additional" },
 ];
 
 /**

@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Search, Navigation, X, Bookmark, StickyNote, Share2, Settings } from "lucide-react";
+import { Search, Navigation, X, Bookmark, StickyNote, Share2, Settings, Ellipsis, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDevice } from "@/contexts/DeviceContext";
 import { SearchDialog } from "@/components/SearchDialog";
 import { sharePasukLink } from "@/utils/shareUtils";
 import { Input } from "@/components/ui/input";
+import { logInteraction } from "@/utils/interactionDebug";
 
 interface FloatingActionButtonProps {
   onNavigateToPasuk?: (sefer: number, perek: number, pasuk: number) => void;
@@ -24,9 +25,13 @@ function getSafeAreaBottom(): number {
   return legacy;
 }
 
-const FAB_ACTIONS = [
+const PRIMARY_FAB_ACTIONS = [
+  { id: "nav", icon: Navigation, label: "בחירה מהירה" },
   { id: "search", icon: Search, label: "חיפוש" },
-  { id: "nav", icon: Navigation, label: "ניווט מהיר" },
+  { id: "more", icon: Ellipsis, label: "עוד פונקציות" },
+] as const;
+
+const EXTRA_FAB_ACTIONS = [
   { id: "bookmarks", icon: Bookmark, label: "סימניות" },
   { id: "notes", icon: StickyNote, label: "הערות" },
   { id: "share", icon: Share2, label: "שתף פסוק" },
@@ -42,26 +47,31 @@ export const FloatingActionButton = ({
 }: FloatingActionButtonProps) => {
   const { isMobile } = useDevice();
   const [expanded, setExpanded] = useState(false);
+  const [showExtraActions, setShowExtraActions] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const defaultPosition = {
+    x: 16,
+    y: typeof window !== 'undefined' ? window.innerHeight - 168 - Math.max(getSafeAreaBottom(), 48) : 600,
+  };
 
   // Dragging state
   const [position, setPosition] = useState(() => {
+    const saved = localStorage.getItem('fab_position');
+    if (!saved) return defaultPosition;
     try {
-      const saved = localStorage.getItem('fab_position');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof window !== 'undefined') {
-          const maxX = window.innerWidth - 60;
-          const maxY = window.innerHeight - 60 - getSafeAreaBottom();
-          return { x: Math.min(Math.max(0, parsed.x), maxX), y: Math.min(Math.max(0, parsed.y), maxY) };
-        }
-        return parsed;
+      const parsed = JSON.parse(saved);
+      if (typeof window !== 'undefined') {
+        const maxX = window.innerWidth - 60;
+        const maxY = window.innerHeight - 60 - Math.max(getSafeAreaBottom(), 48);
+        return { x: Math.min(Math.max(0, parsed.x), maxX), y: Math.min(Math.max(0, parsed.y), maxY) };
       }
-    } catch {}
-    return { x: 16, y: typeof window !== 'undefined' ? window.innerHeight - 120 - getSafeAreaBottom() : 600 };
+      return parsed;
+    } catch {
+      return defaultPosition;
+    }
   });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
@@ -71,8 +81,7 @@ export const FloatingActionButton = ({
   // Re-check FAB position once on mount (with small delay) to account for injection timing.
   useEffect(() => {
     const adjustPosition = () => {
-      const sab = getSafeAreaBottom();
-      if (sab === 0) return;
+      const sab = Math.max(getSafeAreaBottom(), 48);
       const maxY = window.innerHeight - 56 - sab;
       setPosition(prev => {
         if (prev.y > maxY) {
@@ -92,6 +101,12 @@ export const FloatingActionButton = ({
   const fabRef = useRef<HTMLDivElement>(null);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    logInteraction("FloatingActionButton", "pointer-down", {
+      x: e.clientX,
+      y: e.clientY,
+      pointerType: e.pointerType,
+      expanded,
+    });
     setIsDragging(true);
     hasMoved.current = false;
     dragStart.current = {
@@ -101,7 +116,7 @@ export const FloatingActionButton = ({
       startY: position.y,
     };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [position]);
+  }, [position, expanded]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging) return;
@@ -115,23 +130,32 @@ export const FloatingActionButton = ({
   }, [isDragging]);
 
   const handlePointerUp = useCallback(() => {
+    logInteraction("FloatingActionButton", "pointer-up", {
+      isDragging,
+      hasMoved: hasMoved.current,
+      expanded,
+      x: position.x,
+      y: position.y,
+    });
     if (isDragging) {
       setIsDragging(false);
       localStorage.setItem('fab_position', JSON.stringify(position));
       if (!hasMoved.current) {
+        logInteraction("FloatingActionButton", "toggle-expanded", { nextExpanded: !expanded });
         setExpanded(prev => !prev);
       }
     }
-  }, [isDragging, position]);
+  }, [isDragging, position, expanded]);
 
   // Focus search input when expanded
   useEffect(() => {
-    if (expanded) {
+    if (expanded && !isMobile) {
       setTimeout(() => searchInputRef.current?.focus(), 100);
     } else {
       setSearchQuery("");
+      setShowExtraActions(false);
     }
-  }, [expanded]);
+  }, [expanded, isMobile]);
 
   // Close expanded menu when clicking outside
   useEffect(() => {
@@ -158,21 +182,36 @@ export const FloatingActionButton = ({
   }, []);
 
   const handleAction = useCallback((actionId: string) => {
-    setExpanded(false);
+    logInteraction("FloatingActionButton", "action-click", {
+      actionId,
+      expanded,
+      showExtraActions,
+      currentSefer,
+      currentPerek,
+      currentPasuk,
+    });
     switch (actionId) {
       case "search":
+        setExpanded(false);
         setSearchOpen(true);
         break;
       case "nav":
+        setExpanded(false);
         onOpenQuickNav?.();
         break;
+      case "more":
+        setShowExtraActions(true);
+        break;
       case "bookmarks":
+        setExpanded(false);
         setBookmarksOpen(true);
         break;
       case "notes":
+        setExpanded(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       case "share":
+        setExpanded(false);
         if (currentSefer && currentPerek && currentPasuk) {
           sharePasukLink(currentSefer, currentPerek, currentPasuk);
         } else {
@@ -184,14 +223,17 @@ export const FloatingActionButton = ({
           }
         }
         break;
-      case "settings":
+      case "settings": {
+        setExpanded(false);
         const settingsBtn = document.querySelector('[data-settings-trigger]') as HTMLElement;
         if (settingsBtn) settingsBtn.click();
         break;
+      }
     }
-  }, [onOpenQuickNav, currentSefer, currentPerek, currentPasuk]);
+  }, [onOpenQuickNav, currentSefer, currentPerek, currentPasuk, expanded, showExtraActions]);
 
   const handleSearchSubmit = useCallback(() => {
+    logInteraction("FloatingActionButton", "search-submit", { searchQuery });
     if (searchQuery.trim()) {
       setExpanded(false);
       setSearchOpen(true);
@@ -237,7 +279,7 @@ export const FloatingActionButton = ({
             )}>
               {/* Action icons row */}
               <div className="flex items-center justify-center gap-1.5">
-                {FAB_ACTIONS.filter(a => a.id !== "search").map((action) => {
+                {(showExtraActions ? EXTRA_FAB_ACTIONS : PRIMARY_FAB_ACTIONS).map((action) => {
                   const Icon = action.icon;
                   return (
                     <button
@@ -257,6 +299,20 @@ export const FloatingActionButton = ({
                   );
                 })}
               </div>
+
+              {showExtraActions && (
+                <button
+                  onClick={() => setShowExtraActions(false)}
+                  className={cn(
+                    "rounded-xl h-8 w-full flex items-center justify-center gap-1.5 transition-colors",
+                    "bg-muted/50 text-foreground hover:bg-muted"
+                  )}
+                  title="חזרה לתפריט הראשי"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  <span className="text-xs font-medium">חזרה</span>
+                </button>
+              )}
 
               {/* Search input */}
               <div className="relative" dir="rtl">

@@ -375,6 +375,22 @@ All colors MUST be HSL.
     overflow-x: hidden;
   }
 
+  body.has-bottom-system-bar #root {
+    padding-bottom: var(--safe-area-inset-bottom, 0px);
+  }
+
+  body.has-bottom-system-bar::after {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--safe-area-inset-bottom, 0px);
+    background: hsl(var(--background));
+    pointer-events: none;
+    z-index: 35;
+  }
+
   /* Hebrew text optimization */
   .hebrew-text {
     font-size: 1.1em;

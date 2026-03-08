@@ -16,64 +16,85 @@ serve(async (req) => {
     
     console.log(`Fetching from Sefaria: ${commentaryName} on ${book} ${chapter}:${verse}`);
 
-    // Build Sefaria API URL
-    // Targum Onkelos uses a different ref format
-    let ref: string;
+    // Build Sefaria API refs (try multiple aliases when needed)
+    let refs: string[] = [];
     if (commentaryName === "Onkelos") {
-      ref = `Onkelos ${book} ${chapter}:${verse}`;
+      refs = [`Onkelos ${book} ${chapter}:${verse}`];
     } else if (commentaryName === "HaEmek_Davar") {
-      ref = `Haamek Davar on ${book} ${chapter}:${verse}`;
+      refs = [`Haamek Davar on ${book} ${chapter}:${verse}`];
     } else if (commentaryName === "Metzudat_David") {
-      ref = `Metzudat David on ${book} ${chapter}:${verse}`;
+      refs = [`Metzudat David on ${book} ${chapter}:${verse}`];
     } else if (commentaryName === "Daat_Zkenim") {
-      ref = `Da'at Zkenim on ${book} ${chapter}:${verse}`;
+      refs = [`Da'at Zkenim on ${book} ${chapter}:${verse}`];
     } else if (commentaryName === "Alshich") {
-      ref = `Alshich on ${book} ${chapter}:${verse}`;
+      refs = [`Alshich on ${book} ${chapter}:${verse}`];
     } else if (commentaryName === "Malbim") {
-      ref = `Malbim on ${book} ${chapter}:${verse}`;
+      refs = [`Malbim on ${book} ${chapter}:${verse}`];
     } else if (commentaryName === "Chizkuni") {
-      ref = `Chizkuni, ${book} ${chapter}:${verse}`;
+      refs = [`Chizkuni, ${book} ${chapter}:${verse}`];
+    } else if (commentaryName === "Beur_HaGra") {
+      refs = [
+        `Beur HaGra on ${book} ${chapter}:${verse}`,
+        `Biur HaGra on ${book} ${chapter}:${verse}`,
+        `Vilna Gaon on ${book} ${chapter}:${verse}`,
+        `HaGra on ${book} ${chapter}:${verse}`,
+      ];
     } else {
-      ref = `${commentaryName.replace(/_/g, ' ')} on ${book} ${chapter}:${verse}`;
+      refs = [`${commentaryName.replace(/_/g, ' ')} on ${book} ${chapter}:${verse}`];
     }
-    const url = `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}?context=0`;
-    
-    console.log(`Sefaria URL: ${url}`);
+    let data: any = null;
+    let usedRef: string | null = null;
+    let lastStatus = 0;
+    let lastErrorText = '';
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Torah-Study-App/1.0'
+    for (const ref of refs) {
+      const url = `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}?context=0`;
+      console.log(`Sefaria URL: ${url}`);
+
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Torah-Study-App/1.0'
+        }
+      });
+
+      if (!response.ok) {
+        lastStatus = response.status;
+        lastErrorText = await response.text();
+        continue;
       }
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Sefaria API error: ${response.status} - ${errorText}`);
-      
-      // Return a more informative error
+      const candidate = await response.json();
+      const candidateText = candidate?.he || candidate?.text;
+      if (candidateText && !(Array.isArray(candidateText) && candidateText.length === 0)) {
+        data = candidate;
+        usedRef = ref;
+        break;
+      }
+    }
+
+    if (!data) {
       return new Response(
-        JSON.stringify({ 
-          error: `Sefaria returned ${response.status}`,
-          details: errorText,
-          requestedRef: ref
-        }), 
+        JSON.stringify({
+          error: `Sefaria returned ${lastStatus || 404}`,
+          details: lastErrorText || 'No text found for requested refs',
+          requestedRefs: refs
+        }),
         {
-          status: response.status,
+          status: lastStatus || 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
 
-    const data = await response.json();
-    console.log('Successfully fetched from Sefaria');
+    console.log(`Successfully fetched from Sefaria with ref: ${usedRef}`);
 
     // Extract Hebrew text from the response
     const hebrewText = data.he || data.text || '';
     
     return new Response(JSON.stringify({
       text: Array.isArray(hebrewText) ? hebrewText.join(' ') : hebrewText,
-      ref: data.ref || ref,
+      ref: data.ref || usedRef,
       heRef: data.heRef || '',
       fullData: data
     }), {

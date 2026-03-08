@@ -16,4 +16,22 @@ if (Capacitor.isNativePlatform()) {
   SplashScreen.hide().catch(() => {});
 }
 
+const updateBottomSystemBarClass = () => {
+  const insetValue = getComputedStyle(document.documentElement)
+    .getPropertyValue('--safe-area-inset-bottom')
+    .trim();
+  const bottomInset = Number.parseFloat(insetValue) || 0;
+  document.body.classList.toggle('has-bottom-system-bar', bottomInset > 0);
+};
+
+window.addEventListener('safeAreaUpdated', updateBottomSystemBarClass as EventListener);
+window.addEventListener('resize', updateBottomSystemBarClass);
+window.addEventListener('orientationchange', updateBottomSystemBarClass);
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', updateBottomSystemBarClass, { once: true });
+} else {
+  updateBottomSystemBarClass();
+}
+
 createRoot(document.getElementById("root")!).render(<App />);

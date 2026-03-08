@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { Sefer } from "@/types/torah";
 import { ArrowRight, Home } from "lucide-react";
+import { logInteraction } from "@/utils/interactionDebug";
 
 type SelectionLevel = "parsha" | "perek" | "pasuk";
 
@@ -44,10 +45,16 @@ export const QuickSelector = ({
   // Reset to parsha level when sefer changes
   useEffect(() => {
     setCurrentLevel("parsha");
+    logInteraction("QuickSelector", "sefer-change-reset", { seferId: sefer?.sefer_id });
   }, [sefer?.sefer_id]);
 
   // Keep the dialog in sync with the actual selection state
   useEffect(() => {
+    logInteraction("QuickSelector", "sync-level", {
+      selectedParsha,
+      selectedPerek,
+      selectedPasuk,
+    });
     if (selectedParsha === null) {
       setCurrentLevel("parsha");
       return;
@@ -89,6 +96,7 @@ export const QuickSelector = ({
   }, [sefer, selectedPerek]);
 
   const handleParshaSelect = (parshaId: number) => {
+    logInteraction("QuickSelector", "parsha-click", { parshaId });
     onParshaSelect(parshaId);
     onPerekSelect(null);
     onPasukSelect(null);
@@ -96,16 +104,19 @@ export const QuickSelector = ({
   };
 
   const handlePerekSelect = (perek: number) => {
+    logInteraction("QuickSelector", "perek-click", { perek });
     onPerekSelect(perek);
     onPasukSelect(null);
     setCurrentLevel("pasuk");
   };
 
   const handlePasukSelect = (pasuk: number) => {
+    logInteraction("QuickSelector", "pasuk-click", { pasuk });
     onPasukSelect(pasuk);
   };
 
   const handleBack = () => {
+    logInteraction("QuickSelector", "back-click", { currentLevel });
     if (currentLevel === "pasuk") {
       setCurrentLevel("perek");
       onPasukSelect(null);
@@ -116,6 +127,7 @@ export const QuickSelector = ({
   };
 
   const handleReset = () => {
+    logInteraction("QuickSelector", "reset-click");
     setCurrentLevel("parsha");
     onParshaSelect(null);
     onPerekSelect(null);
@@ -187,10 +199,10 @@ export const QuickSelector = ({
                 onClick={() => {
                   onPerekSelect(null);
                   onPasukSelect(null);
-                  setCurrentLevel("perek");
+                  setCurrentLevel("parsha");
                 }}
                 className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
-                title="חזרה לבחירת פרק"
+                title="חזרה לבחירת פרשה"
               >
                 {selectedParshaName}
               </Button>
@@ -204,10 +216,10 @@ export const QuickSelector = ({
                 size="sm"
                 onClick={() => {
                   onPasukSelect(null);
-                  setCurrentLevel("pasuk");
+                  setCurrentLevel("perek");
                 }}
                 className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
-                title="חזרה לבחירת פסוק"
+                title="חזרה לבחירת פרק"
               >
                 פרק {toHebrewNumber(selectedPerek)}
               </Button>

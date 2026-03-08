@@ -41,6 +41,8 @@ export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
     ? Math.min(baseFontSize * scale, 24) 
     : baseFontSize * scale;
 
+  const getPasukMarker = (pasukNum: number) => toHebrewNumber(pasukNum).replace(/[׳״]/g, "");
+
   return (
     <Card
       className="overflow-hidden w-full animate-fade-in border-r-4 border-r-primary/30 shadow-md"
@@ -75,8 +77,8 @@ export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
             <p style={{ textAlignLast: "right" }}>
               {group.pesukim.map((pasuk, i) => (
                 <span key={pasuk.id}>
-                  <span className="text-primary font-bold select-none mx-1">
-                    {toHebrewNumber(pasuk.pasuk_num)}
+                  <span className="text-primary font-bold select-none mx-1 inline-flex items-center justify-center rounded-full min-w-[1.45em] px-1.5 bg-primary/10 border border-primary/25 leading-none">
+                    {getPasukMarker(pasuk.pasuk_num)}
                   </span>
                   {formatTorahText(pasuk.text)}
                   {i < group.pesukim.length - 1 ? " " : ""}

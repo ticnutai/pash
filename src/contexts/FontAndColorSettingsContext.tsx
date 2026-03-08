@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useCallback, ReactNode } from "react";
+import { createContext, useContext, useMemo, useCallback, useEffect, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useDevice } from "@/contexts/DeviceContext";
@@ -62,19 +62,19 @@ const defaultSettings: FontAndColorSettings = {
   pasukSize: 18,
   pasukColor: "#1a1a1a",
   pasukBold: false,
-  titleFont: "Frank Ruehl Libre",
+  titleFont: "David Libre",
   titleSize: 16,
   titleColor: "#2563eb",
   titleBold: true,
-  questionFont: "Arial",
+  questionFont: "David Libre",
   questionSize: 16,
   questionColor: "#1a1a1a",
   questionBold: false,
-  answerFont: "Arial",
+  answerFont: "David Libre",
   answerSize: 14,
   answerColor: "#666666",
   answerBold: false,
-  commentaryFont: "Frank Ruehl Libre",
+  commentaryFont: "David Libre",
   commentarySize: 18,
   commentaryColor: "#2d2d2d",
   commentaryBold: false,
@@ -90,6 +90,18 @@ const defaultSettings: FontAndColorSettings = {
   letterSpacingCustom: 0,
   fontScale: 1,
 };
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const normalizeSettings = (settings: FontAndColorSettings): FontAndColorSettings => ({
+  ...settings,
+  pasukSize: clamp(Number(settings.pasukSize || defaultSettings.pasukSize), 8, 32),
+  titleSize: clamp(Number(settings.titleSize || defaultSettings.titleSize), 8, 28),
+  questionSize: clamp(Number(settings.questionSize || defaultSettings.questionSize), 8, 28),
+  answerSize: clamp(Number(settings.answerSize || defaultSettings.answerSize), 8, 24),
+  commentarySize: clamp(Number(settings.commentarySize || defaultSettings.commentarySize), 8, 24),
+  fontScale: clamp(Number(settings.fontScale || defaultSettings.fontScale), 0.6, 1.8),
+});
 
 const FontAndColorSettingsContext = createContext<FontAndColorSettingsContextType | undefined>(undefined);
 
@@ -111,11 +123,20 @@ export const FontAndColorSettingsProvider = ({ children }: { children: ReactNode
     defaultValue: defaultSettings,
   });
 
+  const normalizedSettings = useMemo(() => normalizeSettings(settings), [settings]);
+
+  useEffect(() => {
+    const changed = JSON.stringify(settings) !== JSON.stringify(normalizedSettings);
+    if (changed) {
+      setSettingsData(normalizedSettings);
+    }
+  }, [normalizedSettings, setSettingsData, settings]);
+
   const updateSettings = useCallback((newSettings: Partial<FontAndColorSettings>) => {
-    setSettingsData((prev) => ({ ...prev, ...newSettings }));
+    setSettingsData((prev) => normalizeSettings({ ...prev, ...newSettings }));
   }, [setSettingsData]);
 
-  const value = useMemo(() => ({ settings, updateSettings, syncStatus: status }), [settings, updateSettings, status]);
+  const value = useMemo(() => ({ settings: normalizedSettings, updateSettings, syncStatus: status }), [normalizedSettings, updateSettings, status]);
 
   return (
     <FontAndColorSettingsContext.Provider value={value}>

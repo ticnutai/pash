@@ -20,6 +20,7 @@ export interface Pasuk {
   id: number;
   pasuk_num: number;
   text: string;
+  text_en?: string;
   content: Content[];
 }
 
@@ -49,6 +50,7 @@ export interface FlatPasuk {
   perek: number;
   pasuk_num: number;
   text: string;
+  text_en?: string;
   content: Content[];
   parsha_id?: number;
   parsha_name?: string;

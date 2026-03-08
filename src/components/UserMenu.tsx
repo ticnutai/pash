@@ -17,13 +17,14 @@ import {
 export const UserMenu = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isAnonymous = Boolean(user?.is_anonymous);
 
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       toast.success("התנתקת בהצלחה");
-      navigate("/auth");
+      navigate("/");
     } catch (error: any) {
       toast.error("שגיאה בניתוק");
     }
@@ -46,7 +47,7 @@ export const UserMenu = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="gap-2 text-white hover:text-white hover:bg-white/10 flex-row-reverse">
-          <span>{user.email?.split("@")[0]}</span>
+          <span>{isAnonymous ? "אורח" : user.email?.split("@")[0]}</span>
           <CircleUser className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -55,11 +56,17 @@ export const UserMenu = () => {
           <div className="flex flex-col gap-1">
             <span className="text-sm font-semibold">החשבון שלי</span>
             <span className="text-xs text-muted-foreground">
-              {user.email}
+              {isAnonymous ? "מצב אורח" : user.email}
             </span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isAnonymous && (
+          <DropdownMenuItem onClick={() => navigate("/auth")} className="gap-2 cursor-pointer">
+            <LogIn className="h-4 w-4" />
+            <span>התחבר לחשבון</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2 cursor-pointer">
           <UserCircle className="h-4 w-4" />
           <span>המערכת שלי</span>

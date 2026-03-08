@@ -26,7 +26,7 @@ export const ViewModeToggle = ({ seferId: _seferId }: ViewModeToggleProps) => {
     { value: "full", label: "הצג הכל", icon: <Eye className="h-4 w-4 ml-2" /> },
     { value: "compact", label: "תצוגה רצופה", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "chumash", label: "תצוגת חומש", icon: <BookText className="h-4 w-4 ml-2" /> },
-    { value: "luxury", label: "תצוגה מפוארת", icon: <Layers className="h-4 w-4 ml-2" /> },
+    { value: "luxury", label: "תצוגה שמו\"ת", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "minimized", label: "מזער הכל", icon: <EyeOff className="h-4 w-4 ml-2" /> },
   ];
 
@@ -54,9 +54,10 @@ export const ViewModeToggle = ({ seferId: _seferId }: ViewModeToggleProps) => {
           <DropdownMenuItem
             key={mode.value}
             onClick={() => updateDisplaySettings({ mode: mode.value })}
-            className="justify-end"
+            className={`justify-end ${safeSettings.mode === mode.value ? "bg-accent/20 text-accent font-semibold" : ""}`}
           >
             <span className="flex items-center">
+              {safeSettings.mode === mode.value && <span className="ml-2">✓</span>}
               {mode.label}
               {mode.icon}
             </span>

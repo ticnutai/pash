@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, CalendarCheck, CalendarOff } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ import { usePinchZoom } from "@/hooks/usePinchZoom";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { SidePanelTrigger } from "@/components/SidePanelTrigger";
 import { LayoutOverlay } from "@/components/LayoutOverlay";
+import { logInteraction } from "@/utils/interactionDebug";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
@@ -56,12 +57,46 @@ const ComponentLoader = () => (
   </div>
 );
 
+type CorpusMode = "torah" | "neviim";
+type TextLanguage = "he" | "en";
+
+const TORAH_SEFARIM = [
+  { id: 1, name: "בראשית" },
+  { id: 2, name: "שמות" },
+  { id: 3, name: "ויקרא" },
+  { id: 4, name: "במדבר" },
+  { id: 5, name: "דברים" },
+];
+
+const NEVIIM_SEFARIM = [
+  { id: 101, name: "מגילת אסתר" },
+];
+
+const getCorpusModeForSefer = (seferId: number): CorpusMode => {
+  return NEVIIM_SEFARIM.some(s => s.id === seferId) ? "neviim" : "torah";
+};
+
 const Index = () => {
   const { syncStatus } = useTheme();
   const { displaySettings } = useDisplayMode();
   const { isMobile } = useDevice();
   const [searchParams] = useSearchParams();
+  const [corpusMode, setCorpusMode] = useState<CorpusMode>(() => {
+    try {
+      return (localStorage.getItem("corpusMode") as CorpusMode) || "torah";
+    } catch {
+      return "torah";
+    }
+  });
   const [selectedSefer, setSelectedSefer] = useState<number>(1);
+  const [textLanguage, setTextLanguage] = useState<TextLanguage>(() => {
+    try {
+      const saved = localStorage.getItem("textLanguage");
+      return saved === "en" ? "en" : "he";
+    } catch {
+      return "he";
+    }
+  });
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
   const [seferData, setSeferData] = useState<Sefer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +110,7 @@ const Index = () => {
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
   const pendingSearchNav = useRef<{ perek: number; pasuk: number } | null>(null); // pending navigation from search
+  const seferClickStartedAtRef = useRef<number | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [autoWeeklyParsha, setAutoWeeklyParsha] = useState(() => {
     try {
@@ -88,14 +124,46 @@ const Index = () => {
   const [sidePanelMode, setSidePanelMode] = useState<"user" | "pasuk">("pasuk");
   const [sidePanelPasuk, setSidePanelPasuk] = useState<FlatPasuk | null>(null);
   const [chumashSelectedPasukId, setChumashSelectedPasukId] = useState<number | null>(null);
+  const currentSeferOptions = corpusMode === "torah" ? TORAH_SEFARIM : NEVIIM_SEFARIM;
+  // appTitle removed – no longer shown in mobile header
+  const appSubtitle = corpusMode === "torah" ? "חמישה חומשי תורה - שאלות ופירושים" : "נביאים - מגילת אסתר";
+
+  const toggleTextLanguage = useCallback(() => {
+    setTextLanguage(prev => {
+      const next: TextLanguage = prev === "he" ? "en" : "he";
+      localStorage.setItem("textLanguage", next);
+      toast.success(next === "he" ? "השפה הוחלפה לעברית" : "השפה הוחלפה לאנגלית");
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!currentSeferOptions.some(s => s.id === selectedSefer)) {
+      setSelectedSefer(currentSeferOptions[0].id);
+      setSelectedParsha(null);
+      setSelectedPerek(null);
+      setSelectedPasuk(null);
+      setSinglePasukMode(false);
+    }
+  }, [currentSeferOptions, selectedSefer]);
   
   // Enable pinch-to-zoom for dynamic font scaling
-  usePinchZoom({ minScale: 0.5, maxScale: 2.5, step: 0.1 });
+  usePinchZoom({ minScale: 0.6, maxScale: 1.8, step: 0.1 });
   
   
   // PRIORITY: Load weekly parsha FIRST - before sefer data loads
   useEffect(() => {
     if (initialLoadDone) return;
+
+    if (corpusMode === "neviim") {
+      setSelectedSefer(NEVIIM_SEFARIM[0].id);
+      setSelectedParsha(null);
+      setSelectedPerek(null);
+      setSelectedPasuk(null);
+      setSinglePasukMode(false);
+      setInitialLoadDone(true);
+      return;
+    }
     
     const hasUrlParams = searchParams.get('sefer') || searchParams.get('perek') || searchParams.get('pasuk');
     if (hasUrlParams) {
@@ -177,11 +245,12 @@ const Index = () => {
       }
     }
     setInitialLoadDone(true);
-  }, [searchParams, initialLoadDone, autoWeeklyParsha]);
+  }, [searchParams, initialLoadDone, autoWeeklyParsha, corpusMode]);
 
   // Save reading state to localStorage whenever it changes
   useEffect(() => {
     const stateToSave = {
+      corpusMode,
       selectedSefer,
       selectedParsha,
       selectedPerek,
@@ -190,7 +259,7 @@ const Index = () => {
       timestamp: Date.now()
     };
     localStorage.setItem('lastReadingState', JSON.stringify(stateToSave));
-  }, [selectedSefer, selectedParsha, selectedPerek, selectedPasuk, singlePasukMode]);
+  }, [corpusMode, selectedSefer, selectedParsha, selectedPerek, selectedPasuk, singlePasukMode]);
   
   // Handle URL parameters for direct navigation
   useEffect(() => {
@@ -201,7 +270,11 @@ const Index = () => {
 
     if (seferParam) {
       const sefer = parseInt(seferParam);
-      if (sefer >= 1 && sefer <= 5) {
+      const validIds = new Set([...TORAH_SEFARIM, ...NEVIIM_SEFARIM].map(s => s.id));
+      if (validIds.has(sefer)) {
+        const nextMode = getCorpusModeForSefer(sefer);
+        setCorpusMode(nextMode);
+        localStorage.setItem("corpusMode", nextMode);
         setSelectedSefer(sefer);
       }
     }
@@ -252,11 +325,19 @@ const Index = () => {
     let cancelled = false;
     
     const loadSefer = async () => {
+      const loadStartedAt = Date.now();
+
       // Check cache first
       if (seferCache.has(selectedSefer)) {
         if (!cancelled) {
           setSeferData(seferCache.get(selectedSefer)!);
           setLoading(false);
+          logInteraction("Index", "loadSefer-cache-hit", {
+            seferId: selectedSefer,
+            loadMs: Date.now() - loadStartedAt,
+            clickToReadyMs: seferClickStartedAtRef.current ? Date.now() - seferClickStartedAtRef.current : null,
+          });
+          seferClickStartedAtRef.current = null;
         }
         return;
       }
@@ -308,14 +389,27 @@ const Index = () => {
         
         setLoadingProgress(100);
         setLoading(false);
+        logInteraction("Index", "loadSefer-complete", {
+          seferId: selectedSefer,
+          loadMs: Date.now() - loadStartedAt,
+          clickToReadyMs: seferClickStartedAtRef.current ? Date.now() - seferClickStartedAtRef.current : null,
+        });
+        seferClickStartedAtRef.current = null;
         
         // Preload next sefer in background for smooth navigation
-        preloadNextSefer(selectedSefer);
+        if (corpusMode === "torah") {
+          preloadNextSefer(selectedSefer);
+        }
       } catch (err) {
         if (!cancelled) {
           console.error("Error loading sefer:", err);
           toast.error("שגיאה בטעינת החומש");
           setLoading(false);
+          logInteraction("Index", "loadSefer-error", {
+            seferId: selectedSefer,
+            loadMs: Date.now() - loadStartedAt,
+          });
+          seferClickStartedAtRef.current = null;
         }
       }
     };
@@ -323,7 +417,7 @@ const Index = () => {
     loadSefer();
     
     return () => { cancelled = true; };
-  }, [selectedSefer, seferCache]);
+  }, [selectedSefer, seferCache, corpusMode]);
   // Flatten pesukim from nested structure with batching to prevent blocking
   const flattenedPesukim = useMemo(() => {
     if (!seferData) return [];
@@ -342,6 +436,7 @@ const Index = () => {
             perek: perek.perek_num,
             pasuk_num: pasuk.pasuk_num,
             text: pasuk.text,
+            text_en: pasuk.text_en,
             content: pasuk.content || [],
             parsha_id: parsha.parsha_id,
             parsha_name: parsha.parsha_name
@@ -356,6 +451,49 @@ const Index = () => {
     
     return flat;
   }, [seferData]);
+
+  // Guard against stale persisted selection state that can lead to an empty view
+  useEffect(() => {
+    if (!seferData) return;
+
+    if (selectedParsha !== null) {
+      const parshaExists = seferData.parshiot.some(p => p.parsha_id === selectedParsha);
+      if (!parshaExists) {
+        setSelectedParsha(null);
+        setSelectedPerek(null);
+        setSelectedPasuk(null);
+        setSinglePasukMode(false);
+        return;
+      }
+    }
+
+    if (selectedPerek !== null) {
+      const perekExists = seferData.parshiot.some(parsha =>
+        (selectedParsha === null || parsha.parsha_id === selectedParsha) &&
+        parsha.perakim.some(perek => perek.perek_num === selectedPerek)
+      );
+
+      if (!perekExists) {
+        setSelectedPerek(null);
+        setSelectedPasuk(null);
+        setSinglePasukMode(false);
+        return;
+      }
+    }
+
+    if (selectedPasuk !== null && selectedPerek !== null) {
+      const hasPasukInCurrentScope = flattenedPesukim.some(pasuk =>
+        (selectedParsha === null || pasuk.parsha_id === selectedParsha) &&
+        pasuk.perek === selectedPerek &&
+        pasuk.pasuk_num === selectedPasuk
+      );
+
+      if (!hasPasukInCurrentScope) {
+        setSelectedPasuk(null);
+        setSinglePasukMode(false);
+      }
+    }
+  }, [seferData, flattenedPesukim, selectedParsha, selectedPerek, selectedPasuk]);
 
   // Get current parsha name and navigation info
   const currentParshaName = useMemo(() => {
@@ -442,7 +580,10 @@ const Index = () => {
     // 1. When in single pasuk mode (allows navigation between pesukim)
     // 2. When in compact mode (we want to show multiple pesukim starting from selected)
     if (selectedPasuk !== null && !singlePasukMode && displayMode !== "compact") {
-      pesukim = pesukim.filter(p => p.pasuk_num === selectedPasuk);
+      const byPasuk = pesukim.filter(p => p.pasuk_num === selectedPasuk);
+      if (byPasuk.length > 0) {
+        pesukim = byPasuk;
+      }
     }
 
     return pesukim;
@@ -469,6 +610,36 @@ const Index = () => {
     return filteredPesukim;
   }, [filteredPesukim, singlePasukMode, currentPasukIndex, displayMode, displaySettings?.pasukCount, selectedPasuk]);
 
+  const localizedDisplayedPesukim = useMemo(() => {
+    if (textLanguage === "he") return displayedPesukim;
+    return displayedPesukim.map((pasuk) => ({
+      ...pasuk,
+      text: pasuk.text_en || pasuk.text,
+    }));
+  }, [displayedPesukim, textLanguage]);
+
+  useEffect(() => {
+    logInteraction("Index", "selection-state", {
+      selectedSefer,
+      selectedParsha,
+      selectedPerek,
+      selectedPasuk,
+      displayMode,
+      singlePasukMode,
+      filteredCount: filteredPesukim.length,
+      displayedCount: displayedPesukim.length,
+    });
+  }, [
+    selectedSefer,
+    selectedParsha,
+    selectedPerek,
+    selectedPasuk,
+    displayMode,
+    singlePasukMode,
+    filteredPesukim.length,
+    displayedPesukim.length,
+  ]);
+
   const handleNavigate = useCallback((index: number) => {
     setCurrentPasukIndex(index);
   }, []);
@@ -479,9 +650,25 @@ const Index = () => {
   }, []);
 
   const handleSeferSelect = useCallback((seferId: number) => {
+    logInteraction("Index", "handleSeferSelect", { seferId, fromSefer: selectedSefer });
+    seferClickStartedAtRef.current = Date.now();
+
+    const nextMode = getCorpusModeForSefer(seferId);
+    if (nextMode !== corpusMode) {
+      setCorpusMode(nextMode);
+      localStorage.setItem("corpusMode", nextMode);
+    }
+
+    if (seferCache.has(seferId)) {
+      setSeferData(seferCache.get(seferId)!);
+      setLoading(false);
+      logInteraction("Index", "handleSeferSelect-immediate-cache", { seferId });
+    }
+
     // Clear old data immediately to prevent showing stale parshiot
-    if (seferId !== selectedSefer) {
+    if (seferId !== selectedSefer && !seferCache.has(seferId)) {
       setSeferData(null);
+      setLoading(true);
     }
     setSelectedSefer(seferId);
     setSelectedParsha(null);
@@ -489,9 +676,10 @@ const Index = () => {
     setSelectedPasuk(null);
     setSinglePasukMode(false);
     setCurrentPasukIndex(0);
-  }, [selectedSefer]);
+  }, [selectedSefer, seferCache, corpusMode]);
 
   const handleParshaSelect = useCallback((p: number | null) => {
+    logInteraction("Index", "handleParshaSelect", { parsha: p });
     setSelectedParsha(p);
     setSelectedPerek(null);
     setSelectedPasuk(null);
@@ -499,12 +687,19 @@ const Index = () => {
   }, [handleQuickSelectorChange]);
 
   const handlePerekSelect = useCallback((p: number | null) => {
+    logInteraction("Index", "handlePerekSelect", { perek: p });
     setSelectedPerek(p);
     setSelectedPasuk(null);
     handleQuickSelectorChange();
   }, [handleQuickSelectorChange]);
 
   const handlePasukSelect = useCallback((p: number | null) => {
+    logInteraction("Index", "handlePasukSelect", {
+      pasuk: p,
+      selectedPerek,
+      displayMode,
+      singlePasukMode,
+    });
     if (p === null) {
       setSelectedPasuk(null);
       return;
@@ -518,7 +713,7 @@ const Index = () => {
     }
     
     if (displayMode === "compact") {
-      setSelectedPasuk(p);
+      setSelectedPasuk(prev => (prev === p ? null : p));
       setSinglePasukMode(false);
     } else {
       const effectivePerek = selectedPerek;
@@ -548,11 +743,25 @@ const Index = () => {
 
   // Handler for ChumashView pasuk selection (opens side panel)
   const handleChumashPasukSelect = useCallback((_pasukId: number, pasuk: FlatPasuk) => {
+    logInteraction("Index", "handleChumashPasukSelect", {
+      pasukId: pasuk.id,
+      currentOpen: sidePanelOpen,
+      currentMode: sidePanelMode,
+      currentSelected: chumashSelectedPasukId,
+    });
+    // Clicking the same pasuk again toggles it closed.
+    if (sidePanelOpen && sidePanelMode === "pasuk" && chumashSelectedPasukId === pasuk.id) {
+      setSidePanelOpen(false);
+      setSidePanelPasuk(null);
+      setChumashSelectedPasukId(null);
+      return;
+    }
+
     setChumashSelectedPasukId(pasuk.id);
     setSidePanelPasuk(pasuk);
     setSidePanelMode("pasuk");
     setSidePanelOpen(true);
-  }, []);
+  }, [chumashSelectedPasukId, sidePanelMode, sidePanelOpen]);
 
   const toggleAutoWeeklyParsha = useCallback(() => {
     setAutoWeeklyParsha(prev => {
@@ -563,8 +772,30 @@ const Index = () => {
     });
   }, []);
 
+  const toggleCorpusMode = useCallback(() => {
+    setCorpusMode(prev => {
+      const next: CorpusMode = prev === "torah" ? "neviim" : "torah";
+      localStorage.setItem("corpusMode", next);
+      setSeferData(null);
+      setSelectedSefer(next === "torah" ? TORAH_SEFARIM[0].id : NEVIIM_SEFARIM[0].id);
+      setSelectedParsha(null);
+      setSelectedPerek(null);
+      setSelectedPasuk(null);
+      setSinglePasukMode(false);
+      setCurrentPasukIndex(0);
+      toast.success(next === "torah" ? "עבר למצב חומשים" : "עבר למצב נביאים (מגילת אסתר)");
+      return next;
+    });
+  }, []);
+
   // Handle navigation from search results
   const handleSearchNavigate = useCallback((seferId: number, perek: number, pasuk: number) => {
+    logInteraction("Index", "handleSearchNavigate", { seferId, perek, pasuk });
+    const nextMode = getCorpusModeForSefer(seferId);
+    if (nextMode !== corpusMode) {
+      setCorpusMode(nextMode);
+      localStorage.setItem("corpusMode", nextMode);
+    }
     // Store pending navigation so loadSefer effect won't reset selections
     pendingSearchNav.current = { perek, pasuk };
     
@@ -590,13 +821,23 @@ const Index = () => {
       setSeferData(null);
       setSelectedSefer(seferId);
     }
-  }, [seferCache, selectedSefer, seferData]);
+  }, [seferCache, selectedSefer, seferData, corpusMode]);
+
+  const handleOpenQuickNav = useCallback(() => {
+    logInteraction("Index", "handleOpenQuickNav");
+    const trigger = document.querySelector('[data-floating-quick-trigger]') as HTMLElement | null;
+    trigger?.click();
+  }, []);
 
   return (
     <SelectionProvider>
     <div
       className="min-h-screen bg-background pb-20 overflow-x-hidden"
-      style={{ paddingBottom: 'calc(5rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px))))' }}
+      style={{
+        paddingBottom: isMobile
+          ? 'max(calc(6rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px)))), 10rem)'
+          : 'calc(5rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px))))'
+      }}
     >
       {/* Header - Fully Responsive */}
       <header data-layout="header" data-layout-label="הדר ראשי" className="sticky top-0 z-50 bg-sidebar shadow-lg">
@@ -606,31 +847,45 @@ const Index = () => {
             className="flex flex-col gap-1 md:hidden"
             style={{ paddingTop: 'max(var(--safe-area-inset-top, var(--sai-top, env(safe-area-inset-top, 0px))), 28px)' }}
           >
-            {/* Top row: Title + Book icon + Action buttons all in one line */}
-            <div className="flex items-center justify-between gap-1 px-1">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Book className="h-4 w-4 text-accent flex-shrink-0" />
-                <h1 className="text-xs font-bold text-primary-foreground leading-tight truncate">
-                  חמישה חומשי תורה
-                </h1>
-              </div>
-              {/* Action buttons */}
+            {/* Top row: Action buttons */}
+            <div className="flex items-center justify-end gap-1 px-1">
               <div data-layout="header-actions-mobile" data-layout-label="כפתורי כותרת (מובייל)" className="flex items-center gap-0.5 flex-shrink-0">
+                <span data-layout="btn-lang" data-layout-label="🌐 שפה">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTextLanguage}
+                  className="h-8 w-8 text-muted-foreground"
+                  title={textLanguage === "he" ? "Switch to English" : "החלף לעברית"}
+                >
+                  <Languages className="h-4 w-4" />
+                </Button>
+                </span>
                 <span data-layout="btn-calendar" data-layout-label="📅 לוח שנה">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleAutoWeeklyParsha}
                   className={cn("h-8 w-8", autoWeeklyParsha ? "text-accent" : "text-muted-foreground")}
-                  title={autoWeeklyParsha ? "פרשת השבוע נטענת אוטומטית — לחץ לביטול" : "פרשת השבוע לא נטענת אוטומטית — לחץ להפעלה"}
+                  title={autoWeeklyParsha ? "פרשת השבוע אוטומטית: פעיל" : "פרשת השבוע אוטומטית: כבוי"}
                 >
                   {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
                 </Button>
                 </span>
-                <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+                <span data-layout="btn-corpus" data-layout-label="📚 חומשים/נביאים">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleCorpusMode}
+                  className={cn("h-8 w-8", corpusMode === "neviim" ? "text-accent" : "text-muted-foreground")}
+                  title={corpusMode === "torah" ? "מעבר לנביאים (מגילת אסתר)" : "מעבר לחומשים"}
+                >
+                  <ScrollText className="h-4 w-4" />
+                </Button>
+                </span>
                 <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
               </div>
             </div>
@@ -639,28 +894,28 @@ const Index = () => {
           {/* Desktop/Tablet Layout - Original horizontal layout */}
           <div data-layout="header-actions-desktop" data-layout-label="כפתורי כותרת (דסקטופ)" className="hidden md:flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 order-1">
-              <span data-layout="btn-calendar" data-layout-label="📅 לוח שנה">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleAutoWeeklyParsha}
-                className={cn("h-9 w-9", autoWeeklyParsha ? "text-accent" : "text-muted-foreground")}
-                title={autoWeeklyParsha ? "פרשת השבוע נטענת אוטומטית — לחץ לביטול" : "פרשת השבוע לא נטענת אוטומטית — לחץ להפעלה"}
-              >
-                {autoWeeklyParsha ? <CalendarCheck className="h-5 w-5" /> : <CalendarOff className="h-5 w-5" />}
-              </Button>
-              </span>
               <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
               {process.env.NODE_ENV === 'development' && <DevicePreview />}
               <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
               <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
               <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+              <span data-layout="btn-corpus" data-layout-label="📚 חומשים/נביאים">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleCorpusMode}
+                className={cn("h-9 w-9", corpusMode === "neviim" ? "text-accent" : "text-muted-foreground")}
+                title={corpusMode === "torah" ? "מעבר לנביאים (מגילת אסתר)" : "מעבר לחומשים"}
+              >
+                <ScrollText className="h-5 w-5" />
+              </Button>
+              </span>
               <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
             </div>
             <div className="flex items-center gap-3 order-2 lg:order-none flex-1 lg:flex-initial justify-center">
               <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
               <h1 className="text-2xl lg:text-3xl font-bold text-primary-foreground text-center leading-tight">
-                חמישה חומשי תורה - שאלות ופירושים
+                {appSubtitle}
               </h1>
               <Book className="h-8 w-8 text-accent flex-shrink-0" />
             </div>
@@ -685,6 +940,7 @@ const Index = () => {
         <SeferSelector 
           sefer={seferData}
           selectedSefer={selectedSefer} 
+          seferOptions={currentSeferOptions}
           onSeferSelect={handleSeferSelect} 
           selectedParsha={selectedParsha}
           onParshaSelect={handleParshaSelect}
@@ -811,37 +1067,9 @@ const Index = () => {
 
             {/* Mobile controls - ABOVE the grid */}
             {isMobile && (
-              <div data-layout="mobile-controls" data-layout-label="בקרות מובייל" className="flex items-center gap-1.5 flex-wrap">
-                {filteredPesukim.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedPasuk(null);
-                      setSelectedPerek(null);
-                      setSelectedParsha(null);
-                      setSinglePasukMode(false);
-                    }}
-                    className="gap-1.5 h-9"
-                  >
-                    <Book className="h-4 w-4" />
-                    חומשים
-                  </Button>
-                )}
+              <div data-layout="mobile-controls" data-layout-label="בקרות מובייל" className="mt-3 flex items-center gap-1.5 flex-wrap">
                 <TextDisplaySettings />
                 <ViewModeToggle seferId={selectedSefer} />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    setSidePanelMode("user");
-                    setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
-                  }}
-                  className={cn("h-9 w-9", sidePanelOpen && sidePanelMode === "user" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
-                  title="התוכן שלי"
-                >
-                  <User className="h-4 w-4" />
-                </Button>
                 {filteredPesukim.length > 0 && (
                   <MinimizeButton
                     variant="global"
@@ -854,7 +1082,7 @@ const Index = () => {
 
             {/* Navigation buttons - parsha & pasuk - BELOW controls */}
             {currentParshaName && parshaAllPesukim.length > 0 && (
-              <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
+              <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="mt-3 flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -942,18 +1170,18 @@ const Index = () => {
                       key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
                     >
                       {displayMode === "luxury" ? (
-                        <LuxuryTextView pesukim={displayedPesukim} />
+                        <LuxuryTextView pesukim={localizedDisplayedPesukim} />
                       ) : displayMode === "chumash" ? (
                         <ChumashView 
-                          pesukim={displayedPesukim} 
+                          pesukim={localizedDisplayedPesukim} 
                           seferId={selectedSefer}
                           selectedPasukId={chumashSelectedPasukId}
                           onPasukSelect={handleChumashPasukSelect}
                         />
                       ) : displayMode === "compact" ? (
-                        <CompactPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
+                        <CompactPasukView pesukim={localizedDisplayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
                       ) : (
-                        <PaginatedPasukList pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
+                        <PaginatedPasukList pesukim={localizedDisplayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
                       )}
                     </div>
                   </Suspense>
@@ -970,7 +1198,7 @@ const Index = () => {
                     onModeChange={setSidePanelMode}
                     selectedPasuk={sidePanelPasuk}
                     seferId={selectedSefer}
-                    availablePesukim={displayedPesukim}
+                    availablePesukim={localizedDisplayedPesukim}
                     onPasukSelect={(pasuk) => {
                       setSidePanelPasuk(pasuk);
                       setChumashSelectedPasukId(pasuk.id);
@@ -992,7 +1220,7 @@ const Index = () => {
                   onModeChange={setSidePanelMode}
                   selectedPasuk={sidePanelPasuk}
                   seferId={selectedSefer}
-                  availablePesukim={displayedPesukim}
+                  availablePesukim={localizedDisplayedPesukim}
                   onPasukSelect={(pasuk) => {
                     setSidePanelPasuk(pasuk);
                     setChumashSelectedPasukId(pasuk.id);
@@ -1004,10 +1232,28 @@ const Index = () => {
         )}
       </div>
 
-      {/* Floating Draggable Action Button (Search + Nav) */}
+      {/* Hidden trigger for quick selector, opened from floating action menu */}
+      {isMobile && (
+        <Suspense fallback={null}>
+          <FloatingQuickSelector
+            sefer={seferData}
+            selectedParsha={selectedParsha}
+            onParshaSelect={handleParshaSelect}
+            selectedPerek={selectedPerek}
+            onPerekSelect={handlePerekSelect}
+            totalPesukimInPerek={totalPesukimInPerek}
+            selectedPasuk={selectedPasuk}
+            onPasukSelect={handlePasukSelect}
+            hiddenTrigger={true}
+          />
+        </Suspense>
+      )}
+
+      {/* Floating Draggable Action Button */}
       <Suspense fallback={null}>
         <FloatingActionButton
           onNavigateToPasuk={handleSearchNavigate}
+          onOpenQuickNav={handleOpenQuickNav}
           currentSefer={selectedSefer}
           currentPerek={selectedPerek}
           currentPasuk={selectedPasuk}

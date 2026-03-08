@@ -7,6 +7,7 @@ import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { Sefer } from "@/types/torah";
 import { Circle, ArrowRight, Home } from "lucide-react";
 import { useDevice } from "@/contexts/DeviceContext";
+import { logInteraction } from "@/utils/interactionDebug";
 
 type SelectionLevel = "parsha" | "perek" | "pasuk";
 
@@ -19,6 +20,7 @@ interface FloatingQuickSelectorProps {
   totalPesukimInPerek: number;
   selectedPasuk: number | null;
   onPasukSelect: (pasuk: number | null) => void;
+  hiddenTrigger?: boolean;
 }
 
 export const FloatingQuickSelector = ({
@@ -30,6 +32,7 @@ export const FloatingQuickSelector = ({
   totalPesukimInPerek,
   selectedPasuk,
   onPasukSelect,
+  hiddenTrigger = false,
 }: FloatingQuickSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [currentLevel, setCurrentLevel] = useState<SelectionLevel>("parsha");
@@ -39,11 +42,19 @@ export const FloatingQuickSelector = ({
   useEffect(() => {
     setCurrentLevel("parsha");
     setOpen(false);
+    logInteraction("FloatingQuickSelector", "sefer-change-reset", { seferId: sefer?.sefer_id });
   }, [sefer?.sefer_id]);
 
   // Keep the dialog in sync with the actual selection state
   useEffect(() => {
     if (!open) return;
+
+    logInteraction("FloatingQuickSelector", "sync-level", {
+      selectedParsha,
+      selectedPerek,
+      selectedPasuk,
+      open,
+    });
 
     if (selectedParsha === null) {
       setCurrentLevel("parsha");
@@ -89,6 +100,7 @@ export const FloatingQuickSelector = ({
   }, [sefer, selectedPerek]);
 
   const handleParshaSelect = (parshaId: number) => {
+    logInteraction("FloatingQuickSelector", "parsha-click", { parshaId });
     onParshaSelect(parshaId);
     onPerekSelect(null);
     onPasukSelect(null);
@@ -96,17 +108,20 @@ export const FloatingQuickSelector = ({
   };
 
   const handlePerekSelect = (perekNum: number) => {
+    logInteraction("FloatingQuickSelector", "perek-click", { perekNum });
     onPerekSelect(perekNum);
     onPasukSelect(null);
     setCurrentLevel("pasuk");
   };
 
   const handlePasukSelect = (pasukNum: number) => {
+    logInteraction("FloatingQuickSelector", "pasuk-click", { pasukNum });
     onPasukSelect(pasukNum);
     setOpen(false); // Close popover after selecting a pasuk
   };
 
   const handleBack = () => {
+    logInteraction("FloatingQuickSelector", "back-click", { currentLevel });
     if (currentLevel === "pasuk") {
       setCurrentLevel("perek");
       onPasukSelect(null);
@@ -118,6 +133,7 @@ export const FloatingQuickSelector = ({
   };
 
   const handleReset = () => {
+    logInteraction("FloatingQuickSelector", "reset-click");
     setCurrentLevel("parsha");
     onParshaSelect(null);
     onPerekSelect(null);
@@ -143,13 +159,15 @@ export const FloatingQuickSelector = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          data-floating-quick-trigger
           size="icon"
           className={cn(
             "fixed bottom-4 rounded-full shadow-xl z-40 touch-manipulation",
             isMobile ? "right-4" : "left-4",
             "bg-accent hover:bg-accent/90 text-accent-foreground active:scale-95 border-2 border-accent",
             "transition-colors duration-200",
-            isMobile ? "h-14 w-14" : "h-11 w-11"
+            isMobile ? "h-14 w-14" : "h-11 w-11",
+            hiddenTrigger && "opacity-0 pointer-events-none"
           )}
           style={{ bottom: 'calc(1rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px))))' }}
           aria-label="פתח בחירה מהירה"
@@ -213,10 +231,10 @@ export const FloatingQuickSelector = ({
                   onClick={() => {
                     onPerekSelect(null);
                     onPasukSelect(null);
-                    setCurrentLevel("perek");
+                    setCurrentLevel("parsha");
                   }}
                   className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
-                  title="חזרה לבחירת פרק"
+                  title="חזרה לבחירת פרשה"
                 >
                   {selectedParshaName}
                 </Button>
@@ -231,10 +249,10 @@ export const FloatingQuickSelector = ({
                   size="sm"
                   onClick={() => {
                     onPasukSelect(null);
-                    setCurrentLevel("pasuk");
+                    setCurrentLevel("perek");
                   }}
                   className={cn("h-9 px-4 font-bold whitespace-nowrap", selectedButtonClass)}
-                  title="חזרה לבחירת פסוק"
+                  title="חזרה לבחירת פרק"
                 >
                   פרק {toHebrewNumber(selectedPerek)}
                 </Button>

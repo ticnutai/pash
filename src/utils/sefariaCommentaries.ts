@@ -9,12 +9,34 @@ const verseCache = new Map<string, string>();
 // ===== Concurrency control =====
 const MAX_CONCURRENT = 4; // max simultaneous API calls
 
+const sanitizeCommentaryText = (text: string): string => {
+  return text
+    .replace(/<[^>]*>/g, " ")
+    .replace(/;(thinsp|nbsp|amp|quot|lt|gt|apos|#\d+|#x[\da-f]+)&/gi, " ")
+    .replace(/&thinsp;|&#8201;|&#x2009;/gi, " ")
+    .replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
+    .replace(/&rlm;|&lrm;|&#8206;|&#8207;|&#x200e;|&#x200f;/gi, "")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s{2,}/g, " ")
+    .normalize("NFC")
+    .trim();
+};
+
 /**
  * Get the Sefaria book name from internal book ID
  */
 export const getSefariaSeferName = (seferId: number): string => {
   const seferMap: Record<number, string> = {
-    1: "Genesis", 2: "Exodus", 3: "Leviticus", 4: "Numbers", 5: "Deuteronomy"
+    1: "Genesis",
+    2: "Exodus",
+    3: "Leviticus",
+    4: "Numbers",
+    5: "Deuteronomy",
+    101: "Esther",
   };
   return seferMap[seferId] || "Genesis";
 };
@@ -24,7 +46,12 @@ export const getSefariaSeferName = (seferId: number): string => {
  */
 export const getEnglishSeferName = (seferId: number): string => {
   const seferMap: Record<number, string> = {
-    1: "bereishit", 2: "shemot", 3: "vayikra", 4: "bamidbar", 5: "devarim"
+    1: "bereishit",
+    2: "shemot",
+    3: "vayikra",
+    4: "bamidbar",
+    5: "devarim",
+    101: "esther",
   };
   return seferMap[seferId] || "bereishit";
 };
@@ -133,11 +160,13 @@ const loadSingleCommentary = async (
       const pasukText = perekData?.[pasuk - 1];
 
       if (pasukText) {
+        const normalized = sanitizeCommentaryText(Array.isArray(pasukText) ? pasukText.join(" ") : pasukText);
+        if (!normalized) return null;
         return {
           id: index + 1000,
           mefaresh: commentary.hebrew,
           mefareshEn: commentary.english,
-          text: Array.isArray(pasukText) ? pasukText.join(" ") : pasukText
+          text: normalized
         };
       }
     }
@@ -146,11 +175,13 @@ const loadSingleCommentary = async (
     const apiText = await fetchCommentaryFromAPI(sefer, commentary.english, perek, pasuk);
     
     if (apiText) {
+      const normalizedApiText = sanitizeCommentaryText(apiText);
+      if (!normalizedApiText) return null;
       return {
         id: index + 1000,
         mefaresh: commentary.hebrew,
         mefareshEn: commentary.english,
-        text: apiText
+        text: normalizedApiText
       };
     }
 

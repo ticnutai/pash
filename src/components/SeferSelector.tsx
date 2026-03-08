@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Sefer } from "@/types/torah";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
+import { logInteraction } from "@/utils/interactionDebug";
 
 interface SeferSelectorProps {
   sefer: Sefer | null;
   selectedSefer: number;
+  seferOptions?: Array<{ id: number; name: string }>;
   onSeferSelect: (seferId: number) => void;
   selectedParsha: number | null;
   onParshaSelect: (parshaId: number | null) => void;
@@ -30,6 +32,7 @@ type SelectionLevel = "sefer" | "parsha" | "perek" | "pasuk";
 export const SeferSelector = ({
   sefer,
   selectedSefer,
+  seferOptions,
   onSeferSelect,
   selectedParsha,
   onParshaSelect,
@@ -38,7 +41,10 @@ export const SeferSelector = ({
   selectedPasuk,
   onPasukSelect,
 }: SeferSelectorProps) => {
+    const currentSefarim = seferOptions ?? SEFARIM;
+
   const [level, setLevel] = useState<SelectionLevel>("sefer");
+  const keepParshaLevelOnNextSyncRef = useRef(false);
   const hasMountedRef = useRef(false);
   // Skip the first post-mount effect run — that's the parent's initial state
   // restore (weekly parsha / localStorage). We always want to open at "sefer" level.
@@ -54,8 +60,21 @@ export const SeferSelector = ({
       return;
     }
 
+    logInteraction("SeferSelector", "sync-level", {
+      selectedSefer,
+      selectedParsha,
+      selectedPerek,
+      selectedPasuk,
+      level,
+    });
+
     if (selectedParsha === null) {
-      setLevel("parsha");
+      if (keepParshaLevelOnNextSyncRef.current) {
+        keepParshaLevelOnNextSyncRef.current = false;
+        setLevel("parsha");
+        return;
+      }
+      setLevel("sefer");
       return;
     }
 
@@ -69,18 +88,21 @@ export const SeferSelector = ({
       return;
     }
 
-    setLevel("sefer");
-  }, [selectedParsha, selectedPerek, selectedPasuk]);
+    setLevel("pasuk");
+  }, [selectedSefer, selectedParsha, selectedPerek, selectedPasuk]);
 
   const handleSeferClick = useCallback((seferId: number) => {
+    logInteraction("SeferSelector", "sefer-click", { seferId, fromSefer: selectedSefer });
+    keepParshaLevelOnNextSyncRef.current = true;
     onSeferSelect(seferId);
     onParshaSelect(null);
     onPerekSelect(null);
     onPasukSelect(null);
     setLevel("parsha");
-  }, [onSeferSelect, onParshaSelect, onPerekSelect, onPasukSelect]);
+  }, [onSeferSelect, onParshaSelect, onPerekSelect, onPasukSelect, selectedSefer]);
 
   const handleParshaClick = useCallback((parshaId: number) => {
+    logInteraction("SeferSelector", "parsha-click", { parshaId });
     onParshaSelect(parshaId);
     onPerekSelect(null);
     onPasukSelect(null);
@@ -88,23 +110,26 @@ export const SeferSelector = ({
   }, [onParshaSelect, onPerekSelect, onPasukSelect]);
 
   const handlePerekClick = useCallback((perekNum: number) => {
+    logInteraction("SeferSelector", "perek-click", { perekNum });
     onPerekSelect(perekNum);
     onPasukSelect(null);
     setLevel("pasuk");
   }, [onPerekSelect, onPasukSelect]);
 
   const handlePasukClick = useCallback((pasukNum: number) => {
+    logInteraction("SeferSelector", "pasuk-click", { pasukNum });
     onPasukSelect(pasukNum);
-    setLevel("sefer");
+    setLevel("pasuk");
   }, [onPasukSelect]);
 
   // Build breadcrumb data
-  const selectedSeferName = SEFARIM.find((s) => s.id === selectedSefer)?.name;
+  const selectedSeferName = currentSefarim.find((s) => s.id === selectedSefer)?.name;
   const selectedParshaName = sefer?.parshiot.find((p) => p.parsha_id === selectedParsha)?.parsha_name;
   const selectedPerekLabel = selectedPerek ? toHebrewNumber(selectedPerek) : null;
   const selectedPasukLabel = selectedPasuk ? toHebrewNumber(selectedPasuk) : null;
 
   const handleBreadcrumbClick = useCallback((targetLevel: SelectionLevel) => {
+    logInteraction("SeferSelector", "breadcrumb-click", { targetLevel, level });
     if (targetLevel === "sefer") {
       setLevel("sefer");
       onParshaSelect(null);
@@ -121,23 +146,25 @@ export const SeferSelector = ({
     } else if (targetLevel === "pasuk") {
       setLevel("pasuk");
     }
-  }, [onParshaSelect, onPerekSelect, onPasukSelect]);
+  }, [onParshaSelect, onPerekSelect, onPasukSelect, level]);
 
   return (
     <div className="space-y-2 sm:space-y-4 bg-card rounded-lg shadow-md p-2 sm:p-4">
       <div className="flex items-center justify-between gap-2 mb-2" dir="rtl">
         <div className="flex items-center gap-2 flex-wrap text-sm sm:text-base font-bold min-w-0">
-          {/* Breadcrumb: חומש / שמות / יתרו / פרק כ"א / ד' */}
-          <button
-            onClick={() => handleBreadcrumbClick("sefer")}
-            className={cn(
-              "hover:text-primary transition-colors",
-              level === "sefer" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
-            )}
-          >
-            חומש
-          </button>
+          {/* Breadcrumb: שמות / יתרו / פרק כ"א / ד' */}
           {selectedSeferName && (
+            <button
+              onClick={() => handleBreadcrumbClick("sefer")}
+              className={cn(
+                "hover:text-primary transition-colors",
+                level === "sefer" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
+              )}
+            >
+              {selectedSeferName}
+            </button>
+          )}
+          {selectedParshaName && (
             <>
               <span className="text-muted-foreground/50">/</span>
               <button
@@ -145,20 +172,6 @@ export const SeferSelector = ({
                 className={cn(
                   "hover:text-primary transition-colors",
                   level === "parsha" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
-                )}
-              >
-                {selectedSeferName}
-              </button>
-            </>
-          )}
-          {selectedParshaName && (
-            <>
-              <span className="text-muted-foreground/50">/</span>
-              <button
-                onClick={() => handleBreadcrumbClick("perek")}
-                className={cn(
-                  "hover:text-primary transition-colors",
-                  level === "perek" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
                 )}
               >
                 {selectedParshaName}
@@ -169,10 +182,10 @@ export const SeferSelector = ({
             <>
               <span className="text-muted-foreground/50">/</span>
               <button
-                onClick={() => handleBreadcrumbClick("pasuk")}
+                onClick={() => handleBreadcrumbClick("perek")}
                 className={cn(
                   "hover:text-primary transition-colors",
-                  level === "pasuk" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
+                  level === "perek" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
                 )}
               >
                 פרק {selectedPerekLabel}
@@ -189,8 +202,11 @@ export const SeferSelector = ({
       </div>
 
       {level === "sefer" && (
-        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4 animate-fade-in">
-          {SEFARIM.map((s) => (
+        <div className={cn(
+          "gap-2 sm:gap-4 animate-fade-in",
+          currentSefarim.length <= 2 ? "grid grid-cols-1 sm:grid-cols-2" : "grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5"
+        )}>
+          {currentSefarim.map((s) => (
             <Button
               key={s.id}
               variant={selectedSefer === s.id ? "default" : "outline"}

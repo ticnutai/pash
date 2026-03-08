@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Bookmark as BookmarkIcon, 
@@ -30,9 +30,11 @@ import { parsePasukId } from "@/utils/names";
 import { FlatPasuk } from "@/types/torah";
 import { PasukDisplay } from "@/components/PasukDisplay";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
+import { getAvailableCommentariesProgressive } from "@/utils/sefariaCommentaries";
 import { Bookmark as BookmarkType } from "@/contexts/BookmarksContext";
 import { Note, PersonalQuestion } from "@/contexts/NotesContext";
 import { Highlight } from "@/contexts/HighlightsContext";
+import { SefariaCommentary } from "@/types/sefaria";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { NavigateFunction } from "react-router-dom";
 import { useDevice } from "@/contexts/DeviceContext";
@@ -244,6 +246,49 @@ const PasukContentView = ({
   pasuk: FlatPasuk | null; 
   seferId: number;
 }) => {
+  const [sefariaCommentaries, setSefariaCommentaries] = useState<SefariaCommentary[]>([]);
+  const [loadingSefaria, setLoadingSefaria] = useState(false);
+  const [expandedCommentaries, setExpandedCommentaries] = useState<Set<number>>(new Set());
+
+  const toggleCommentaryExpanded = (commentaryId: number) => {
+    setExpandedCommentaries((prev) => {
+      const next = new Set(prev);
+      if (next.has(commentaryId)) {
+        next.delete(commentaryId);
+      } else {
+        next.add(commentaryId);
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (!pasuk) return;
+
+    const controller = new AbortController();
+    setSefariaCommentaries([]);
+    setExpandedCommentaries(new Set());
+    setLoadingSefaria(true);
+
+    getAvailableCommentariesProgressive(
+      seferId,
+      pasuk.perek,
+      pasuk.pasuk_num,
+      (partialResults) => {
+        if (!controller.signal.aborted) {
+          setSefariaCommentaries(partialResults);
+        }
+      },
+      controller.signal
+    ).finally(() => {
+      if (!controller.signal.aborted) {
+        setLoadingSefaria(false);
+      }
+    });
+
+    return () => controller.abort();
+  }, [pasuk, seferId]);
+
   if (!pasuk) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-center h-full" dir="rtl">
@@ -271,18 +316,60 @@ const PasukContentView = ({
           </div>
         </div>
 
-        {/* Pasuk content (titles, questions, commentaries) */}
+        {/* Pasuk content (titles, questions, local commentaries) */}
         {pasuk.content && pasuk.content.length > 0 ? (
           <PasukDisplay 
             pasuk={pasuk} 
             seferId={seferId}
             forceMinimized={false}
           />
-        ) : (
-          <div className="text-center py-10 text-muted-foreground">
-            <p className="text-sm">אין תוכן לפסוק זה</p>
+        ) : null}
+
+        {/* Sefaria commentaries */}
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-primary">מפרשים מספריא</h4>
           </div>
-        )}
+
+          {loadingSefaria ? (
+            <div className="text-center py-4 text-sm text-muted-foreground">טוען מפרשים...</div>
+          ) : sefariaCommentaries.length > 0 ? (
+            <div className="space-y-2">
+              {sefariaCommentaries.map((commentary) => (
+                <Card key={`${commentary.mefareshEn}-${commentary.id}`} className="border border-border/60 overflow-hidden">
+                  <Collapsible
+                    open={expandedCommentaries.has(commentary.id)}
+                    onOpenChange={() => toggleCommentaryExpanded(commentary.id)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-full p-3 flex items-center justify-between gap-2 hover:bg-muted/40 transition-colors"
+                      >
+                        <span className="text-sm font-semibold text-accent">{commentary.mefaresh}</span>
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 text-muted-foreground transition-transform",
+                            expandedCommentaries.has(commentary.id) && "rotate-180"
+                          )}
+                        />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="px-3 pb-3 text-sm leading-relaxed border-t border-border/50">
+                        {commentary.text}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              אין מפרשים זמינים כרגע לפסוק זה
+            </div>
+          )}
+        </div>
       </div>
     </ScrollArea>
   );

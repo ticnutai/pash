@@ -126,6 +126,18 @@ export const Settings = () => {
   const [isIsrael, setIsIsrael] = useState(getCalendarPreference());
   const { settings: notifSettings, updateSettings: updateNotif, permission, requestPermission, sendTestNotification, supported: notifSupported } = useNotifications();
 
+  const resetTextSizesToDefault = () => {
+    updateSettings({
+      pasukSize: 18,
+      titleSize: 16,
+      questionSize: 16,
+      answerSize: 14,
+      commentarySize: 18,
+      fontScale: 1,
+    });
+    toast.success("גדלי הטקסט אופסו לברירת המחדל");
+  };
+
   const handleCalendarChange = (checked: boolean) => {
     setIsIsrael(checked);
     setCalendarPreference(checked);
@@ -138,10 +150,10 @@ export const Settings = () => {
           data-settings-trigger
           data-layout="floating-settings" data-layout-label="⚙️ הגדרות צפות"
           size="icon"
-          className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-40 bg-primary hover:bg-primary/90"
-          style={{ bottom: 'calc(1rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px))))' }}
+          className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-40 bg-primary hover:bg-primary/90"
+          style={{ bottom: 'max(calc(1rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px)))), 4rem)' }}
         >
-          <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+          <SettingsIcon className="h-5 w-5" />
         </Button>
       </DialogTrigger>
       <DialogContent data-layout="dialog-settings" data-layout-label="📦 דיאלוג: הגדרות" className="w-[95vw] sm:max-w-[650px] max-h-[85vh] overflow-y-auto text-right">
@@ -375,6 +387,16 @@ export const Settings = () => {
           </TabsContent>
 
           <TabsContent value="fonts" className="space-y-6">
+            <Card className="p-4">
+              <div className="flex items-center justify-between gap-3" dir="rtl">
+                <div className="text-right">
+                  <p className="font-semibold">איפוס גדלי טקסט</p>
+                  <p className="text-sm text-muted-foreground">מחזיר את כל הגדלים והזום לברירת המחדל</p>
+                </div>
+                <Button variant="outline" onClick={resetTextSizesToDefault}>איפוס</Button>
+              </div>
+            </Card>
+
             {/* Pasuk Settings */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">פסוקים</h3>
@@ -406,7 +428,7 @@ export const Settings = () => {
                   <Slider
                     value={[settings.pasukSize]}
                     onValueChange={([value]) => updateSettings({ pasukSize: value })}
-                    min={12}
+                    min={8}
                     max={32}
                     step={1}
                     className="w-full"
@@ -462,7 +484,7 @@ export const Settings = () => {
                   <Slider
                     value={[settings.titleSize]}
                     onValueChange={([value]) => updateSettings({ titleSize: value })}
-                    min={12}
+                    min={8}
                     max={28}
                     step={1}
                     className="w-full"
@@ -518,7 +540,7 @@ export const Settings = () => {
                   <Slider
                     value={[settings.questionSize]}
                     onValueChange={([value]) => updateSettings({ questionSize: value })}
-                    min={12}
+                    min={8}
                     max={28}
                     step={1}
                     className="w-full"
@@ -574,7 +596,7 @@ export const Settings = () => {
                   <Slider
                     value={[settings.answerSize]}
                     onValueChange={([value]) => updateSettings({ answerSize: value })}
-                    min={10}
+                    min={8}
                     max={24}
                     step={1}
                     className="w-full"
@@ -630,7 +652,7 @@ export const Settings = () => {
                   <Slider
                     value={[settings.commentarySize]}
                     onValueChange={([value]) => updateSettings({ commentarySize: value })}
-                    min={10}
+                    min={8}
                     max={24}
                     step={1}
                     className="w-full"

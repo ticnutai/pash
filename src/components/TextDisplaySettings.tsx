@@ -156,8 +156,8 @@ const TabContent = ({ sizeValue, onSizeChange, sizeLabel, fontValue, onFontChang
         valueBadge={`${sizeValue}px`}
         value={sizeValue}
         onChange={onSizeChange}
-        min={12} max={36} step={1}
-        marks={["36", "24", "12"]}
+        min={8} max={36} step={1}
+        marks={["36", "24", "8"]}
         icon={<Type className="h-3.5 w-3.5" />}
       />
 

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      rashi_commentary: {
+        Row: {
+          id: string
+          sefer_id: number
+          perek: number
+          pasuk: number
+          text: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sefer_id: number
+          perek: number
+          pasuk: number
+          text: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sefer_id?: number
+          perek?: number
+          pasuk?: number
+          text?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       learning_sessions: {
         Row: {
           created_at: string

@@ -7,17 +7,42 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // בדוק אם יש משתמש מחובר
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const ensureSession = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session) {
+          setUser(session.user);
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
+
+        setUser(data.user ?? null);
+      } catch (error) {
+        console.error("Failed to initialize auth session:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void ensureSession();
 
     // האזן לשינויים באימות
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      setLoading(false);
+
+      if (event === "SIGNED_OUT") {
+        void supabase.auth.signInAnonymously().catch((error) => {
+          console.error("Failed to create anonymous session after sign out:", error);
+        });
+      }
     });
 
     return () => subscription.unsubscribe();
