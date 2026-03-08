@@ -1,0 +1,174 @@
+import { useEffect, useState, useRef } from "react";
+import { FlatPasuk } from "@/types/torah";
+
+/** Map key: "seferId-perek-pasuk" → commentary text */
+export type CommentaryMap = Map<string, string>;
+
+export type CommentaryMode = "off" | "inline" | "click";
+
+export interface CommentatorConfig {
+  id: string;
+  hebrewName: string;
+  /** Display order (lower = first after pasuk) */
+  order: number;
+  mode: CommentaryMode;
+}
+
+/** All available commentators with their local file mappings */
+export const ALL_COMMENTATORS: Omit<CommentatorConfig, "mode" | "order">[] = [
+  { id: "Rashi",    hebrewName: "רש״י" },
+  { id: "Ramban",   hebrewName: "רמב״ן" },
+  { id: "Ibn_Ezra", hebrewName: "אבן עזרא" },
+  { id: "Sforno",   hebrewName: "ספורנו" },
+];
+
+/** Local JSON files available per commentator per sefer (1-based) */
+const LOCAL_FILES: Record<string, Record<number, string>> = {
+  Rashi: {
+    1: "Rashi_on_Genesis",
+    2: "Rashi_on_Exodus",
+    3: "Rashi_on_Leviticus",
+    4: "Rashi_on_Numbers",
+    5: "Rashi_on_Deuteronomy",
+  },
+  Ramban:   { 1: "Ramban_on_Genesis" },
+  Ibn_Ezra: { 1: "Ibn_Ezra_on_Genesis" },
+  Sforno:   { 1: "Sforno_on_Genesis" },
+};
+
+const commentaryKey = (seferId: number, perek: number, pasuk: number) =>
+  `${seferId}-${perek}-${pasuk}`;
+
+// Per-commentator in-memory cache: commentatorId → (chapterKey → CommentaryMap)
+const globalCommentaryCache = new Map<string, Map<string, CommentaryMap>>();
+const MAX_CHAPTER_ENTRIES = 50;
+
+function getOrCreateCommentaryCache(commentatorId: string): Map<string, CommentaryMap> {
+  if (!globalCommentaryCache.has(commentatorId)) {
+    globalCommentaryCache.set(commentatorId, new Map());
+  }
+  return globalCommentaryCache.get(commentatorId)!;
+}
+
+function setCachedChapter(commentatorId: string, chapterKey: string, value: CommentaryMap) {
+  const cache = getOrCreateCommentaryCache(commentatorId);
+  if (cache.size >= MAX_CHAPTER_ENTRIES) {
+    const firstKey = cache.keys().next().value;
+    if (firstKey !== undefined) cache.delete(firstKey);
+  }
+  cache.set(chapterKey, value);
+}
+
+async function loadChapterFromLocal(
+  commentatorId: string,
+  seferId: number,
+  perek: number
+): Promise<CommentaryMap | null> {
+  const fileName = LOCAL_FILES[commentatorId]?.[seferId];
+  if (!fileName) return null;
+  try {
+    const mod = await import(`@/data/sefaria/${fileName}.json`);
+    const textArr: (string | string[])[][] = (mod.default || mod).text;
+    const perekArr = textArr[perek - 1];
+    if (!Array.isArray(perekArr)) return null;
+
+    const result = new Map<string, string>();
+    for (let i = 0; i < perekArr.length; i++) {
+      const raw = perekArr[i];
+      const text = (Array.isArray(raw) ? raw.join(" ") : raw ?? "")
+        .replace(/<[^>]+>/g, " ")
+        .trim();
+      if (!text) continue;
+      result.set(commentaryKey(seferId, perek, i + 1), text);
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchChapter(
+  commentatorId: string,
+  seferId: number,
+  perek: number
+): Promise<CommentaryMap> {
+  const cache = getOrCreateCommentaryCache(commentatorId);
+  const ck = `${seferId}-${perek}`;
+
+  if (cache.has(ck)) return cache.get(ck)!;
+
+  // Try local JSON first (fastest, no network)
+  const local = await loadChapterFromLocal(commentatorId, seferId, perek);
+  if (local !== null) {
+    setCachedChapter(commentatorId, ck, local);
+    return local;
+  }
+
+  // Mark as empty so we don't re-fetch
+  setCachedChapter(commentatorId, ck, new Map());
+  return new Map();
+}
+
+/**
+ * Loads commentary text for all enabled commentators in the given pesukim.
+ * Returns a map: commentatorId → (pasukKey → text)
+ */
+export function useCommentaries(
+  pesukim: FlatPasuk[],
+  configs: CommentatorConfig[]
+): { maps: Record<string, CommentaryMap>; loading: boolean } {
+  const activeConfigs = configs.filter((c) => c.mode !== "off");
+  const [maps, setMaps] = useState<Record<string, CommentaryMap>>({});
+  const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // Stable key so we only re-fetch when sefer/perek or active commentators change
+  const depsKey = [
+    pesukim.map((p) => `${p.sefer}-${p.perek}`).join(","),
+    activeConfigs.map((c) => c.id).join(","),
+  ].join("|");
+
+  useEffect(() => {
+    if (pesukim.length === 0 || activeConfigs.length === 0) {
+      setMaps({});
+      return;
+    }
+
+    // Unique (sefer, perek) pairs visible right now
+    const pairs = new Map<string, { seferId: number; perek: number }>();
+    for (const p of pesukim) {
+      const k = `${p.sefer}-${p.perek}`;
+      if (!pairs.has(k)) pairs.set(k, { seferId: p.sefer, perek: p.perek });
+    }
+
+    setLoading(true);
+
+    const fetchAll = async () => {
+      const result: Record<string, CommentaryMap> = {};
+
+      for (const config of activeConfigs) {
+        const merged = new Map<string, string>();
+        for (const { seferId, perek } of pairs.values()) {
+          const chapterMap = await fetchChapter(config.id, seferId, perek);
+          chapterMap.forEach((v, k) => merged.set(k, v));
+        }
+        result[config.id] = merged;
+      }
+
+      if (mountedRef.current) {
+        setMaps(result);
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depsKey]);
+
+  return { maps, loading };
+}

@@ -7,9 +7,10 @@ import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext"
 import { useDevice } from "@/contexts/DeviceContext";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { sharePasukWhatsApp, sharePasukEmail, sharePasukLink } from "@/utils/shareUtils";
-import { useRashi, RashiMap } from "@/hooks/useRashi";
+import { useCommentaries, ALL_COMMENTATORS, CommentatorConfig, CommentaryMode, CommentaryMap } from "@/hooks/useCommentaries";
+import { CommentaryPickerDialog } from "@/components/CommentaryPickerDialog";
 import { Button } from "@/components/ui/button";
-import { Bookmark, BookmarkCheck, Settings2, X, ChevronDown, Share2, Mail, Link2, Eye, MoreHorizontal, BookOpen, Loader2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, Settings2, X, ChevronDown, Share2, Mail, Link2, Eye, MoreHorizontal, BookOpen, Loader2, Library } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
@@ -131,9 +132,15 @@ const PerekHeader = ({ perek, style }: { perek: number; style: Template["perekSt
 
 // ─── Pasuk Row ────────────────────────────────────────────────────────────────
 
-type RashiMode = "off" | "inline" | "click";
-
-const RashiBlock = ({ text, fontSize }: { text: string; fontSize: number }) => (
+const CommentaryBlock = ({
+  label,
+  text,
+  fontSize,
+}: {
+  label: string;
+  text: string;
+  fontSize: number;
+}) => (
   <div
     dir="rtl"
     className="mt-3 mb-1 border-r-2 border-[#c8a04d]/60 pr-3 animate-fade-in"
@@ -143,11 +150,18 @@ const RashiBlock = ({ text, fontSize }: { text: string; fontSize: number }) => (
       className="inline-block text-[10px] font-bold tracking-widest text-[#c8a04d] mb-1 ml-2"
       style={{ fontFamily: "serif" }}
     >
-      רש״י:
+      {label}:
     </span>
     <span className="text-foreground/80">{text}</span>
   </div>
 );
+
+interface CommentaryEntry {
+  id: string;
+  hebrewName: string;
+  text: string;
+  mode: CommentaryMode;
+}
 
 const PasukRow = ({
   pasuk,
@@ -157,8 +171,7 @@ const PasukRow = ({
   onToggleBookmark,
   seferId,
   templateId,
-  rashiText,
-  rashiMode,
+  commentaries,
   isMobile,
 }: {
   pasuk: FlatPasuk;
@@ -168,12 +181,11 @@ const PasukRow = ({
   onToggleBookmark: (pasuk: FlatPasuk) => void;
   seferId: number;
   templateId: TemplateId;
-  rashiText?: string;
-  rashiMode: RashiMode;
+  commentaries: CommentaryEntry[];
   isMobile: boolean;
 }) => {
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [rashiOpen, setRashiOpen] = useState(false);
+  const [openCommentaries, setOpenCommentaries] = useState<Set<string>>(new Set());
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTouchStart = () => {
@@ -185,10 +197,15 @@ const PasukRow = ({
   };
   const isOrnate = templateId === "classic" || templateId === "scroll";
   const isMinimal = templateId === "minimal";
-  const hasRashi = !!rashiText;
-  const showRashiInline = rashiMode === "inline" && hasRashi;
-  const showRashiToggle = rashiMode === "click" && hasRashi;
   const pasukMarker = toHebrewNumber(pasuk.pasuk_num).replace(/[׳״]/g, "");
+
+  const toggleCommentary = (id: string) => {
+    setOpenCommentaries((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   return (
     <div
@@ -338,29 +355,42 @@ const PasukRow = ({
         {formatTorahText(pasuk.text)}
       </p>
 
-      {/* Rashi click-toggle button — kept outside <p> to avoid inline bidi collision with pasuk number */}
-      {showRashiToggle && (
-        <div dir="rtl" className="mt-0.5 flex justify-end">
-          <button
-            onClick={() => setRashiOpen((p) => !p)}
-            className={cn(
-              "inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold border transition-colors",
-              rashiOpen
-                ? "bg-[#c8a04d]/20 border-[#c8a04d] text-[#c8a04d]"
-                : "border-[#c8a04d]/40 text-[#c8a04d]/70 hover:border-[#c8a04d] hover:text-[#c8a04d]"
-            )}
-            title={rashiOpen ? "הסתר רש״י" : "הצג רש״י"}
-          >
-            רש״י
-          </button>
+      {/* Click-mode toggle buttons — outside <p> to avoid bidi collision */}
+      {commentaries.some((c) => c.mode === "click") && (
+        <div dir="rtl" className="mt-0.5 flex flex-wrap gap-1 justify-end">
+          {commentaries
+            .filter((c) => c.mode === "click")
+            .map((c) => (
+              <button
+                key={c.id}
+                onClick={() => toggleCommentary(c.id)}
+                className={cn(
+                  "inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold border transition-colors",
+                  openCommentaries.has(c.id)
+                    ? "bg-[#c8a04d]/20 border-[#c8a04d] text-[#c8a04d]"
+                    : "border-[#c8a04d]/40 text-[#c8a04d]/70 hover:border-[#c8a04d] hover:text-[#c8a04d]"
+                )}
+                title={openCommentaries.has(c.id) ? `הסתר ${c.hebrewName}` : `הצג ${c.hebrewName}`}
+              >
+                {c.hebrewName}
+              </button>
+            ))}
         </div>
       )}
 
-      {/* Rashi block — inline mode */}
-      {showRashiInline && <RashiBlock text={rashiText!} fontSize={fontSize} />}
-
-      {/* Rashi block — click mode */}
-      {showRashiToggle && rashiOpen && <RashiBlock text={rashiText!} fontSize={fontSize} />}
+      {/* Commentary blocks */}
+      {commentaries.map((c) => {
+        const show = c.mode === "inline" || (c.mode === "click" && openCommentaries.has(c.id));
+        if (!show) return null;
+        return (
+          <CommentaryBlock
+            key={c.id}
+            label={c.hebrewName}
+            text={c.text}
+            fontSize={fontSize}
+          />
+        );
+      })}
     </div>
   );
 };
@@ -471,14 +501,38 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const [fontSizeOverride, setFontSizeOverride] = useState<number | null>(null);
   const [lineHeightOverride, setLineHeightOverride] = useState<number | null>(null);
-  const [rashiMode, setRashiMode] = useState<RashiMode>(() => {
+  const [showCommentaryPicker, setShowCommentaryPicker] = useState(false);
+
+  /** Commentator configs — persisted in localStorage */
+  const [commentaryConfigs, setCommentaryConfigs] = useState<CommentatorConfig[]>(() => {
     try {
-      const saved = localStorage.getItem("rashiMode");
-      return (saved === "inline" || saved === "click" || saved === "off") ? saved : "inline";
-    } catch {
-      return "inline";
-    }
+      const saved = localStorage.getItem("commentaryConfigs");
+      if (saved) {
+        const parsed: CommentatorConfig[] = JSON.parse(saved);
+        const ids = new Set(parsed.map((c) => c.id));
+        const extras = ALL_COMMENTATORS
+          .filter((c) => !ids.has(c.id))
+          .map((c, i) => ({ ...c, mode: "off" as CommentaryMode, order: parsed.length + i }));
+        return [...parsed, ...extras].sort((a, b) => a.order - b.order);
+      }
+    } catch {}
+    return ALL_COMMENTATORS.map((c, i) => ({
+      ...c,
+      mode: c.id === "Rashi" ? ("inline" as CommentaryMode) : ("off" as CommentaryMode),
+      order: i,
+    }));
   });
+
+  const saveCommentaryConfigs = useCallback((configs: CommentatorConfig[]) => {
+    setCommentaryConfigs(configs);
+    try { localStorage.setItem("commentaryConfigs", JSON.stringify(configs)); } catch {}
+  }, []);
+
+  const activeConfigs = useMemo(
+    () => commentaryConfigs.filter((c) => c.mode !== "off"),
+    [commentaryConfigs]
+  );
+
   const [displayedCount, setDisplayedCount] = useState(10);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -488,15 +542,11 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
   const loadMore = useCallback(() => {
     setDisplayedCount((prev) => Math.min(prev + loadMoreStep, pesukim.length));
   }, [loadMoreStep, pesukim.length]);
-  const { rashiMap, loading: rashiLoading } = useRashi(displayedPesukim, rashiMode !== "off");
 
-  const cycleRashiMode = useCallback(() => {
-    setRashiMode((prev) => {
-      const next: RashiMode = prev === "off" ? "inline" : prev === "inline" ? "click" : "off";
-      const labels: Record<RashiMode, string> = { off: "רש״י כבוי", inline: "רש״י מוצג תמיד", click: "רש״י בלחיצה" };      try { localStorage.setItem("rashiMode", next); } catch {}      toast.success(labels[next]);
-      return next;
-    });
-  }, []);
+  const { maps: commentaryMaps, loading: commentaryLoading } = useCommentaries(
+    displayedPesukim,
+    commentaryConfigs
+  );
 
   const template = TEMPLATES.find((t) => t.id === templateId)!;
 
@@ -600,31 +650,37 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
             הגדרות
             <ChevronDown className={cn("h-3 w-3 transition-transform", showSettings && "rotate-180")} />
           </Button>
-          {/* Rashi toggle button */}
+          {/* Commentaries picker button */}
           <Button
             variant="outline"
             size="sm"
-            onClick={cycleRashiMode}
+            onClick={() => setShowCommentaryPicker(true)}
             className={cn(
               "gap-1.5 border-accent/50 font-bold text-xs",
-              rashiMode !== "off" && "bg-[#c8a04d]/15 border-[#c8a04d] text-[#c8a04d]"
+              activeConfigs.length > 0 && "bg-[#c8a04d]/15 border-[#c8a04d] text-[#c8a04d]"
             )}
-            title={rashiMode === "off" ? "הצג רש״י" : rashiMode === "inline" ? "עבור למצב לחיצה" : "כבה רש״י"}
+            title="בחר מפרשים"
           >
-            {rashiLoading ? (
+            {commentaryLoading ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <BookOpen className="h-3.5 w-3.5" />
+              <Library className="h-3.5 w-3.5" />
             )}
-            רש״י
-            {rashiMode !== "off" && (
-              <span className="text-[10px] opacity-70">
-                {rashiMode === "inline" ? "(תמיד)" : "(לחיצה)"}
-              </span>
+            מפרשים
+            {activeConfigs.length > 0 && (
+              <span className="text-[10px] opacity-70">({activeConfigs.length})</span>
             )}
           </Button>
         </div>
       </div>
+
+      {/* Commentary Picker Dialog */}
+      <CommentaryPickerDialog
+        open={showCommentaryPicker}
+        onOpenChange={setShowCommentaryPicker}
+        configs={commentaryConfigs}
+        onSave={saveCommentaryConfigs}
+      />
 
       {/* Settings Panel */}
       {showSettings && (
@@ -684,8 +740,15 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
                         onToggleBookmark={handleToggleBookmark}
                         seferId={pasuk.sefer}
                         templateId={template.id}
-                        rashiText={rashiMap.get(pasukId)}
-                        rashiMode={rashiMode}
+                        commentaries={commentaryConfigs
+                          .filter((c) => c.mode !== "off")
+                          .map((c) => ({
+                            id: c.id,
+                            hebrewName: c.hebrewName,
+                            text: commentaryMaps[c.id]?.get(pasukId) ?? "",
+                            mode: c.mode,
+                          }))
+                          .filter((c) => c.text !== "")}
                         isMobile={isMobile}
                       />
                     );
@@ -724,8 +787,15 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
                         onToggleBookmark={handleToggleBookmark}
                         seferId={pasuk.sefer}
                         templateId={template.id}
-                        rashiText={rashiMap.get(pasukId)}
-                        rashiMode={rashiMode}
+                        commentaries={commentaryConfigs
+                          .filter((c) => c.mode !== "off")
+                          .map((c) => ({
+                            id: c.id,
+                            hebrewName: c.hebrewName,
+                            text: commentaryMaps[c.id]?.get(pasukId) ?? "",
+                            mode: c.mode,
+                          }))
+                          .filter((c) => c.text !== "")}
                         isMobile={isMobile}
                       />
                     );
