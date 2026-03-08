@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSiddurCategories, useSiddurSections, useTehillimData } from "@/hooks/useSiddurData";
@@ -254,6 +254,96 @@ const CategoryPane = ({
   );
 };
 
+/* ─── CategorySectionsBlock (used by FullContinuousPane) ─── */
+const SERIF = "'Noto Serif Hebrew', 'David Libre', serif";
+
+const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: string; name: string } }) => {
+  const { sections, loading } = useSiddurSections(nusach, cat.id);
+  if (loading)
+    return (
+      <div className="flex justify-center py-6">
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: GOLD }} />
+      </div>
+    );
+  if (!sections?.length) return null;
+  return (
+    <div className="mb-10">
+      <OrnamentTitle text={cat.name} />
+      <Divider />
+      <div className="mt-4 space-y-6">
+        {sections.map((sec, i) => (
+          <div key={i}>
+            <h3
+              className="font-semibold text-base mb-1 flex items-center gap-2"
+              style={{ color: GOLD, fontFamily: SERIF }}
+            >
+              <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
+              {sec.title}
+            </h3>
+            <div className="space-y-1.5 mt-2">
+              {sec.lines.map((line, j) => (
+                <p
+                  key={j}
+                  className="text-base sm:text-lg leading-relaxed text-foreground text-justify"
+                  style={{ fontFamily: SERIF, fontWeight: j === 0 ? 600 : 400 }}
+                >
+                  {line.replace(/<[^>]*>/g, "")}
+                </p>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ─── FullContinuousPane ─────────────────────────────────── */
+// Renders ALL categories in a single infinite scroll, loading one category at a time
+const FullContinuousPane = ({ nusach }: { nusach: string }) => {
+  const { categories, loading: catsLoading } = useSiddurCategories(nusach);
+  const [visibleCount, setVisibleCount] = useState(1);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setVisibleCount(1); }, [nusach]);
+
+  useEffect(() => {
+    if (visibleCount >= categories.length) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisibleCount(v => Math.min(v + 1, categories.length)); },
+      { rootMargin: "400px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [visibleCount, categories.length]);
+
+  if (catsLoading)
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+        <p className="text-sm text-muted-foreground" style={{ fontFamily: SERIF }}>טוען סידור...</p>
+      </div>
+    );
+
+  return (
+    <div className="pb-8" dir="rtl">
+      {categories.slice(0, visibleCount).map(cat => (
+        <CategorySectionsBlock key={cat.id} nusach={nusach} cat={cat} />
+      ))}
+      {visibleCount < categories.length && (
+        <div ref={sentinelRef} className="flex justify-center items-center py-6 gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" style={{ color: GOLD }} />
+          <span className="text-sm" style={{ fontFamily: SERIF }}>
+            טוען {categories[visibleCount]?.name}...
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ─── TehillimPane ───────────────────────────────────────── */
 const TehillimPane = () => {
   const { tehillim, loading } = useTehillimData();
@@ -481,8 +571,8 @@ export const Siddur = () => {
   const navigate                = useNavigate();
   const [nusach, setNusach]    = useState("sefard");
   const [catId, setCatId]      = useState("shacharit");
-  const [viewMode, setViewMode] = useState<"accordion" | "continuous">(() =>
-    (localStorage.getItem("siddur-view-mode") as "accordion" | "continuous") ?? "accordion"
+  const [viewMode, setViewMode] = useState<"accordion" | "continuous" | "scroll">(() =>
+    (localStorage.getItem("siddur-view-mode") as "accordion" | "continuous" | "scroll") ?? "accordion"
   );
 
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
@@ -495,13 +585,16 @@ export const Siddur = () => {
     }
   }, [categories, catId, isSpecial]);
 
-  const toggleViewMode = () => {
-    setViewMode(v => {
-      const next = v === "accordion" ? "continuous" : "accordion";
-      localStorage.setItem("siddur-view-mode", next);
-      return next;
-    });
+  const setMode = (mode: "accordion" | "continuous" | "scroll") => {
+    localStorage.setItem("siddur-view-mode", mode);
+    setViewMode(mode);
   };
+
+  const VIEW_MODES: { id: "accordion" | "continuous" | "scroll"; icon: React.ReactNode; title: string }[] = [
+    { id: "accordion",  icon: <LayoutList  className="h-4 w-4" />, title: "תצוגת מקטעים" },
+    { id: "continuous", icon: <AlignJustify className="h-4 w-4" />, title: "תצוגה רציפה" },
+    { id: "scroll",     icon: <ScrollText  className="h-4 w-4" />, title: "גלילה כוללת" },
+  ];
 
   return (
     <div
@@ -576,7 +669,13 @@ export const Siddur = () => {
       {/* ── Category tabs ── */}
       <div
         className="border-b border-border/40 overflow-x-auto [&::-webkit-scrollbar]:hidden"
-        style={{ background: "hsl(var(--card))", scrollbarWidth: "none" }}
+        style={{
+          background: "hsl(var(--card))",
+          scrollbarWidth: "none",
+          opacity: (!isSpecial && viewMode === "scroll") ? 0.4 : 1,
+          pointerEvents: (!isSpecial && viewMode === "scroll") ? "none" : "auto",
+          transition: "opacity 0.2s",
+        }}
       >
         <div className="flex gap-0 min-w-max px-2 py-1 max-w-4xl mx-auto items-center">
           {/* Loading spinner placeholder */}
@@ -628,20 +727,29 @@ export const Siddur = () => {
             </button>
           ))}
 
-          {/* Spacer + view mode toggle (only for siddur panes, not tehillim/kria) */}
+          {/* View mode segmented control (only for siddur panes, not tehillim/kria) */}
           {!isSpecial && (
             <div className="ml-auto pl-2 flex-shrink-0">
-              <button
-                onClick={toggleViewMode}
-                title={viewMode === "accordion" ? "עבור לתצוגה רציפה" : "עבור לתצוגת מקטעים"}
-                className="p-1.5 rounded-md transition-colors hover:bg-accent/20"
-                style={{ color: viewMode === "continuous" ? GOLD : "hsl(var(--muted-foreground))" }}
+              <div
+                className="flex items-center gap-0.5 rounded-lg p-0.5"
+                style={{ background: "hsl(var(--muted))" }}
               >
-                {viewMode === "accordion"
-                  ? <LayoutList className="h-4 w-4" />
-                  : <AlignJustify className="h-4 w-4" />
-                }
-              </button>
+                {VIEW_MODES.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => setMode(m.id)}
+                    title={m.title}
+                    className="p-1.5 rounded-md transition-all"
+                    style={{
+                      color:      viewMode === m.id ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
+                      background: viewMode === m.id ? GOLD : "transparent",
+                      boxShadow:  viewMode === m.id ? "0 1px 3px rgba(0,0,0,0.2)" : "none",
+                    }}
+                  >
+                    {m.icon}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -654,8 +762,11 @@ export const Siddur = () => {
         {catId === "kria"     && <KriaPane onNavigate={() => navigate("/")} />}
 
         {/* Regular siddur prayer content */}
-        {!isSpecial && (
+        {!isSpecial && viewMode !== "scroll" && (
           <CategoryPane nusach={nusach} catId={catId} viewMode={viewMode} />
+        )}
+        {!isSpecial && viewMode === "scroll" && (
+          <FullContinuousPane nusach={nusach} />
         )}
       </main>
     </div>
