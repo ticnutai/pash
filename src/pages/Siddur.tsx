@@ -117,13 +117,13 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
       {/* Prayer lines */}
       {open && (
         <div
-          className="px-5 pb-4 pt-1 space-y-1.5 animate-fade-in border-t border-border/40"
+          className="px-4 sm:px-6 pb-4 pt-1 space-y-1.5 animate-fade-in border-t border-border/40"
           style={{ direction: "rtl" }}
         >
           {section.lines.map((line, i) => (
             <p
               key={i}
-              className="text-base leading-relaxed text-foreground text-justify"
+              className="text-base sm:text-lg leading-relaxed text-foreground text-justify"
               style={{
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
                 fontWeight: i === 0 ? 600 : 400,
@@ -221,17 +221,16 @@ const TehillimPane = () => {
         </button>
       </div>
 
-      {/* Chapter grid — 10 columns */}
+      {/* Chapter grid — 10 cols mobile / 15 cols sm+ */}
       <div
-        className="grid gap-1 mb-4 justify-items-center"
-        style={{ gridTemplateColumns: "repeat(10, minmax(0, 1fr))" }}
+        className="grid gap-1 mb-4 justify-items-center grid-cols-10 sm:grid-cols-[repeat(15,minmax(0,1fr))]"
       >
         {Array.from({ length: 150 }, (_, i) => i + 1).map(ch => (
           <button
             key={ch}
             onClick={() => setChapter(ch)}
             title={`פרק ${ch}`}
-            className="w-full aspect-square flex items-center justify-center rounded text-[10px] font-medium transition-all leading-none"
+            className="w-full aspect-square flex items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-all leading-none"
             style={
               ch === chapter
                 ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 0 0 2px ${GOLD}` }
@@ -261,7 +260,7 @@ const TehillimPane = () => {
             {current.lines.map((line, i) => (
               <p
                 key={i}
-                className="text-base leading-relaxed text-foreground text-justify"
+                className="text-base sm:text-lg leading-relaxed text-foreground text-justify"
                 style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
               >
                 {line.replace(/<[^>]*>/g, "")}
@@ -466,7 +465,7 @@ export const Siddur = () => {
           paddingTop: "max(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)), 28px)",
         }}
       >
-        <div className="w-full px-3 py-2">
+        <div className="w-full px-3 sm:px-6 py-2 max-w-4xl mx-auto">
           <div className="flex items-center justify-between gap-2">
             {/* Back button */}
             <Button
@@ -497,7 +496,7 @@ export const Siddur = () => {
 
           {/* ── Nusach tabs ── */}
           <div
-            className="flex gap-1 mt-2 overflow-x-auto pb-1 justify-center flex-wrap"
+            className="flex gap-1 mt-2 overflow-x-auto pb-1 justify-center flex-wrap [&::-webkit-scrollbar]:hidden"
             style={{ scrollbarWidth: "none", opacity: isSpecial ? 0.45 : 1, transition: "opacity 0.2s" }}
           >
             {NUSACHOT.map(n => (
@@ -525,10 +524,10 @@ export const Siddur = () => {
 
       {/* ── Category tabs ── */}
       <div
-        className="border-b border-border/40 overflow-x-auto"
+        className="border-b border-border/40 overflow-x-auto [&::-webkit-scrollbar]:hidden"
         style={{ background: "hsl(var(--card))", scrollbarWidth: "none" }}
       >
-        <div className="flex gap-0 min-w-max px-2 py-1">
+        <div className="flex gap-0 min-w-max px-2 py-1 max-w-4xl mx-auto">
           {/* Loading spinner placeholder */}
           {loading && (
             <div className="px-4 py-2 flex items-center gap-2 text-muted-foreground text-sm">
@@ -581,7 +580,7 @@ export const Siddur = () => {
       </div>
 
       {/* ── Content area ── */}
-      <main className="flex-1 flex flex-col px-3 pt-4 max-w-2xl mx-auto w-full">
+      <main className="flex-1 flex flex-col px-3 sm:px-6 pt-4 sm:pt-6 max-w-2xl mx-auto w-full">
         {/* Siddur loading spinner */}
         {!isSpecial && loading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
