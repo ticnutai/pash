@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { FlatPasuk } from "@/types/torah";
+import { supabase } from "@/integrations/supabase/client";
 
 /** Map key: "seferId-perek-pasuk" → commentary text */
 export type CommentaryMap = Map<string, string>;
@@ -16,13 +17,19 @@ export interface CommentatorConfig {
 
 /** All available commentators with their local file mappings */
 export const ALL_COMMENTATORS: Omit<CommentatorConfig, "mode" | "order">[] = [
-  { id: "Rashi",    hebrewName: "רש״י" },
-  { id: "Ramban",   hebrewName: "רמב״ן" },
-  { id: "Ibn_Ezra", hebrewName: "אבן עזרא" },
-  { id: "Sforno",   hebrewName: "ספורנו" },
+  { id: "Rashi",       hebrewName: "רש״י" },
+  { id: "Ramban",      hebrewName: "רמב״ן" },
+  { id: "Ibn_Ezra",   hebrewName: "אבן עזרא" },
+  { id: "Sforno",     hebrewName: "ספורנו" },
+  { id: "Or_HaChaim", hebrewName: "אור החיים" },
+  { id: "Kli_Yakar",  hebrewName: "כלי יקר" },
+  { id: "Chizkuni",   hebrewName: "חזקוני" },
+  { id: "Malbim",     hebrewName: "מלב״ים" },
 ];
 
-/** Local JSON files available per commentator per sefer (1-based) */
+/** Local JSON files available per commentator per sefer (1-based).
+ * These are bundled in the app and work offline.
+ * Supabase is always tried first (online), local is the fallback. */
 const LOCAL_FILES: Record<string, Record<number, string>> = {
   Rashi: {
     1: "Rashi_on_Genesis",
@@ -31,9 +38,55 @@ const LOCAL_FILES: Record<string, Record<number, string>> = {
     4: "Rashi_on_Numbers",
     5: "Rashi_on_Deuteronomy",
   },
-  Ramban:   { 1: "Ramban_on_Genesis" },
-  Ibn_Ezra: { 1: "Ibn_Ezra_on_Genesis" },
-  Sforno:   { 1: "Sforno_on_Genesis" },
+  Ramban: {
+    1: "Ramban_on_Genesis",
+    2: "Ramban_on_Exodus",
+    3: "Ramban_on_Leviticus",
+    4: "Ramban_on_Numbers",
+    5: "Ramban_on_Deuteronomy",
+  },
+  Ibn_Ezra: {
+    1: "Ibn_Ezra_on_Genesis",
+    2: "Ibn_Ezra_on_Exodus",
+    3: "Ibn_Ezra_on_Leviticus",
+    4: "Ibn_Ezra_on_Numbers",
+    5: "Ibn_Ezra_on_Deuteronomy",
+  },
+  Sforno: {
+    1: "Sforno_on_Genesis",
+    2: "Sforno_on_Exodus",
+    3: "Sforno_on_Leviticus",
+    4: "Sforno_on_Numbers",
+    5: "Sforno_on_Deuteronomy",
+  },
+  Or_HaChaim: {
+    1: "Or_HaChaim_on_Genesis",
+    2: "Or_HaChaim_on_Exodus",
+    3: "Or_HaChaim_on_Leviticus",
+    4: "Or_HaChaim_on_Numbers",
+    5: "Or_HaChaim_on_Deuteronomy",
+  },
+  Kli_Yakar: {
+    1: "Kli_Yakar_on_Genesis",
+    2: "Kli_Yakar_on_Exodus",
+    3: "Kli_Yakar_on_Leviticus",
+    4: "Kli_Yakar_on_Numbers",
+    5: "Kli_Yakar_on_Deuteronomy",
+  },
+  Chizkuni: {
+    1: "Chizkuni_on_Genesis",
+    2: "Chizkuni_on_Exodus",
+    3: "Chizkuni_on_Leviticus",
+    4: "Chizkuni_on_Numbers",
+    5: "Chizkuni_on_Deuteronomy",
+  },
+  Malbim: {
+    1: "Malbim_on_Genesis",
+    2: "Malbim_on_Exodus",
+    // Malbim on Leviticus is not available on Sefaria
+    4: "Malbim_on_Numbers",
+    5: "Malbim_on_Deuteronomy",
+  },
 };
 
 const commentaryKey = (seferId: number, perek: number, pasuk: number) =>
@@ -97,14 +150,35 @@ async function fetchChapter(
 
   if (cache.has(ck)) return cache.get(ck)!;
 
-  // Try local JSON first (fastest, no network)
+  // 1. Try Supabase (cloud, fast, all books)
+  try {
+    const { data, error } = await supabase
+      .from("commentaries")
+      .select("pasuk, text")
+      .eq("commentator", commentatorId)
+      .eq("sefer_id", seferId)
+      .eq("perek", perek);
+
+    if (!error && data && data.length > 0) {
+      const result = new Map<string, string>();
+      for (const row of data) {
+        result.set(commentaryKey(seferId, perek, row.pasuk), row.text);
+      }
+      setCachedChapter(commentatorId, ck, result);
+      return result;
+    }
+  } catch {
+    // fall through to local JSON
+  }
+
+  // 2. Fall back to local bundled JSON (always works offline)
   const local = await loadChapterFromLocal(commentatorId, seferId, perek);
   if (local !== null) {
     setCachedChapter(commentatorId, ck, local);
     return local;
   }
 
-  // Mark as empty so we don't re-fetch
+  // Mark as empty so we don’t re-fetch this chapter
   setCachedChapter(commentatorId, ck, new Map());
   return new Map();
 }
