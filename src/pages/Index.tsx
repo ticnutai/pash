@@ -1242,11 +1242,6 @@ const Index = () => {
                   onModeChange={setSidePanelMode}
                   selectedPasuk={sidePanelPasuk}
                   seferId={selectedSefer}
-                  availablePesukim={localizedDisplayedPesukim}
-                  onPasukSelect={(pasuk) => {
-                    setSidePanelPasuk(pasuk);
-                    setChumashSelectedPasukId(pasuk.id);
-                  }}
                 />
               </Suspense>
             )}
