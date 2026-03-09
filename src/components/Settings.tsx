@@ -949,6 +949,10 @@ export const Settings = () => {
               </ul>
             </div>
           </TabsContent>
+
+          <TabsContent value="dev" className="space-y-4">
+            <MigrationManager />
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
