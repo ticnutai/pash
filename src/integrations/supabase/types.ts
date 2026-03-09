@@ -14,63 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      commentaries: {
-        Row: {
-          id: string
-          commentator: string
-          sefer_id: number
-          perek: number
-          pasuk: number
-          text: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          commentator: string
-          sefer_id: number
-          perek: number
-          pasuk: number
-          text: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          commentator?: string
-          sefer_id?: number
-          perek?: number
-          pasuk?: number
-          text?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      rashi_commentary: {
-        Row: {
-          id: string
-          sefer_id: number
-          perek: number
-          pasuk: number
-          text: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          sefer_id: number
-          perek: number
-          pasuk: number
-          text: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          sefer_id?: number
-          perek?: number
-          pasuk?: number
-          text?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
       learning_sessions: {
         Row: {
           created_at: string
@@ -441,60 +384,6 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      siddur: {
-        Row: {
-          id: string
-          nusach: string
-          category: string
-          cat_name: string
-          section_idx: number
-          title: string
-          lines: Json
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          nusach: string
-          category: string
-          cat_name: string
-          section_idx: number
-          title: string
-          lines: Json
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          nusach?: string
-          category?: string
-          cat_name?: string
-          section_idx?: number
-          title?: string
-          lines?: Json
-          created_at?: string
-        }
-        Relationships: []
-      }
-      tehillim: {
-        Row: {
-          chapter: number
-          title: string
-          lines: Json
-          created_at: string
-        }
-        Insert: {
-          chapter: number
-          title: string
-          lines: Json
-          created_at?: string
-        }
-        Update: {
-          chapter?: number
-          title?: string
-          lines?: Json
-          created_at?: string
         }
         Relationships: []
       }

@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTheme, Theme } from "@/contexts/ThemeContext";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { DataManager } from "@/components/DataManager";
+import { MigrationManager } from "@/components/MigrationManager";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -165,7 +166,7 @@ export const Settings = () => {
         </DialogHeader>
 
         <Tabs defaultValue="calendar" className="w-full" dir="rtl">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 mb-4 sm:mb-6 gap-0.5 sm:gap-1">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 mb-4 sm:mb-6 gap-0.5 sm:gap-1">
             <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2">
               <span className="hidden sm:inline">לוח</span>
               <span className="sm:hidden">לוח</span>
@@ -200,6 +201,11 @@ export const Settings = () => {
               <span className="hidden sm:inline">ניהול נתונים</span>
               <span className="sm:hidden">נתונים</span>
               <Database className="h-3 w-3 sm:h-4 sm:w-4" />
+            </TabsTrigger>
+            <TabsTrigger value="dev" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2">
+              <span className="hidden sm:inline">פיתוח</span>
+              <span className="sm:hidden">פיתוח</span>
+              <Code className="h-3 w-3 sm:h-4 sm:w-4" />
             </TabsTrigger>
           </TabsList>
 
@@ -942,6 +948,10 @@ export const Settings = () => {
                 <li>תוכן חדש שיצרת (שאלות, תשובות, כותרות)</li>
               </ul>
             </div>
+          </TabsContent>
+
+          <TabsContent value="dev" className="space-y-4">
+            <MigrationManager />
           </TabsContent>
         </Tabs>
       </DialogContent>
