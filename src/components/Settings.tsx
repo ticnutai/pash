@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTheme, Theme } from "@/contexts/ThemeContext";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { DataManager } from "@/components/DataManager";
+import { MigrationManager } from "@/components/MigrationManager";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
