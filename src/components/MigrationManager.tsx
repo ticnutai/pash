@@ -183,11 +183,11 @@ export const MigrationManager = () => {
 
     try {
       for (const stmt of statements) {
-        const { error } = await supabase.rpc("exec_sql" as any, { query: stmt } as any);
-        if (error) {
-          // Try as direct query via edge function or fallback
-          throw new Error(error.message);
-        }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)("exec_sql", { query: stmt });
+      if (error) {
+        throw new Error(error.message);
+      }
       }
 
       setMigrations((prev) =>
