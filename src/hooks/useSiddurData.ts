@@ -227,7 +227,7 @@ export function useTehillimData() {
     async function load() {
       // ── Try Supabase ──────────────────────────────────────────
       try {
-        const { data: rows, error: sbErr } = await supabase
+        const { data: rows, error: sbErr } = await (supabase as any)
           .from("tehillim")
           .select("chapter, title, lines")
           .order("chapter");
