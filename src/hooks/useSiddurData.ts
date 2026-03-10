@@ -48,7 +48,7 @@ export function useSiddurSections(nusach: string, catId: string) {
     async function load() {
       // ── Try Supabase ──────────────────────────────────────────
       try {
-        const { data: rows, error: sbErr } = await supabase
+        const { data: rows, error: sbErr } = await (supabase as any)
           .from("siddur")
           .select("title, lines, cat_name, section_idx")
           .eq("nusach", nusach)
