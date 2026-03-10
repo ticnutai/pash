@@ -152,7 +152,7 @@ async function fetchChapter(
 
   // 1. Try Supabase (cloud, fast, all books)
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("commentaries")
       .select("pasuk, text")
       .eq("commentator", commentatorId)

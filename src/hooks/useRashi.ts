@@ -77,7 +77,7 @@ export function useRashi(pesukim: FlatPasuk[], enabled: boolean) {
 
         // Try Supabase
         try {
-          const { data, error } = await supabase
+          const { data, error } = await (supabase as any)
             .from("rashi_commentary")
             .select("pasuk, text")
             .eq("sefer_id", seferId)

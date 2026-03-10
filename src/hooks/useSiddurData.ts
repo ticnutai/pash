@@ -48,7 +48,7 @@ export function useSiddurSections(nusach: string, catId: string) {
     async function load() {
       // ── Try Supabase ──────────────────────────────────────────
       try {
-        const { data: rows, error: sbErr } = await supabase
+        const { data: rows, error: sbErr } = await (supabase as any)
           .from("siddur")
           .select("title, lines, cat_name, section_idx")
           .eq("nusach", nusach)
@@ -146,7 +146,7 @@ export function useSiddurCategories(nusach: string) {
     async function load() {
       // ── Try Supabase ──────────────────────────────────────────
       try {
-        const { data: rows } = await supabase
+        const { data: rows } = await (supabase as any)
           .from("siddur")
           .select("category, cat_name, section_idx")
           .eq("nusach", nusach)
@@ -227,7 +227,7 @@ export function useTehillimData() {
     async function load() {
       // ── Try Supabase ──────────────────────────────────────────
       try {
-        const { data: rows, error: sbErr } = await supabase
+        const { data: rows, error: sbErr } = await (supabase as any)
           .from("tehillim")
           .select("chapter, title, lines")
           .order("chapter");
