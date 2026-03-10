@@ -146,7 +146,7 @@ export function useSiddurCategories(nusach: string) {
     async function load() {
       // ── Try Supabase ──────────────────────────────────────────
       try {
-        const { data: rows } = await supabase
+        const { data: rows } = await (supabase as any)
           .from("siddur")
           .select("category, cat_name, section_idx")
           .eq("nusach", nusach)
