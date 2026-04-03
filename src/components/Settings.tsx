@@ -168,8 +168,50 @@ export const Settings = () => {
   const [devFloatingEnabled, setDevFloatingEnabled] = useState(() => getDevFeatureEnabled(DEV_FLOATING_ENABLED_KEY, true));
   const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
   const [devScreenshotEnabled, setDevScreenshotEnabled] = useState(() => getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true));
+  const [apiKeys, setApiKeys] = useState<ApiKeys>(loadLocalApiKeys);
 
-  // Sync dev floating state from cloud on mount
+  // Load API keys from cloud on mount
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('user_settings')
+        .select('api_keys')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data?.api_keys && typeof data.api_keys === 'object') {
+        const cloud = data.api_keys as ApiKeys;
+        // Merge cloud → local (cloud wins)
+        for (const [k, v] of Object.entries(cloud)) {
+          if (v) {
+            localStorage.setItem(k, v);
+          }
+        }
+        setApiKeys({ ...loadLocalApiKeys(), ...cloud });
+      }
+    })();
+  }, [user]);
+
+  const handleApiKeyChange = useCallback((key: string, value: string) => {
+    saveApiKeyLocal(key, value);
+    setApiKeys(prev => ({ ...prev, [key]: value || undefined }));
+    // Debounced cloud save
+    if (user) {
+      const allKeys = { ...loadLocalApiKeys(), [key]: value || undefined };
+      // Remove empty keys
+      const cleaned: ApiKeys = {};
+      for (const [k, v] of Object.entries(allKeys)) {
+        if (v) cleaned[k] = v;
+      }
+      (supabase as any)
+        .from('user_settings')
+        .update({ api_keys: cleaned })
+        .eq('user_id', user.id)
+        .then(() => {});
+    }
+  }, [user]);
+
+
   useEffect(() => {
     if (!user) return;
     const cloudVal = user.user_metadata?.dev_floating_enabled;
