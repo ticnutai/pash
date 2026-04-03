@@ -1082,302 +1082,85 @@ export const Settings = () => {
               <Separator />
 
               {/* OpenAI */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">OpenAI</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  חיבור ל-ChatGPT לפירושים, שאלות ותשובות ותרגומים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="sk-..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_openai_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_openai_key', e.target.value);
-                      else localStorage.removeItem('api_openai_key');
-                    }}
-                  />
-                </div>
-              </div>
+              {renderApiService('OpenAI', 'חיבור ל-ChatGPT לפירושים, שאלות ותשובות ותרגומים', [
+                { key: 'api_openai_key', label: 'API Key', placeholder: 'sk-...', type: 'password' },
+              ])}
 
               {/* Google Cloud */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">Google Cloud</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  טקסט לדיבור (TTS), תרגום ושירותי AI נוספים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="AIza..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_google_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_google_key', e.target.value);
-                      else localStorage.removeItem('api_google_key');
-                    }}
-                  />
-                </div>
-              </div>
+              {renderApiService('Google Cloud', 'טקסט לדיבור (TTS), תרגום ושירותי AI נוספים', [
+                { key: 'api_google_key', label: 'API Key', placeholder: 'AIza...', type: 'password' },
+              ])}
 
-              {/* Sefaria API */}
+              {/* Sefaria API - always connected */}
               <div className="p-4 rounded-lg border space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-xs text-green-600">זמין (ציבורי)</span>
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="text-xs text-primary">זמין (ציבורי)</span>
                   </div>
                   <h4 className="font-semibold">Sefaria API</h4>
                 </div>
                 <p className="text-sm text-muted-foreground text-right">
                   גישה לספריית ספרות יהודית — טקסטים, תרגומים ומפרשים
                 </p>
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg text-right">
-                  <p className="text-sm text-green-700 dark:text-green-400">
-                    ✓ שירות ציבורי — לא דורש מפתח API
-                  </p>
+                <div className="p-3 bg-primary/5 rounded-lg text-right">
+                  <p className="text-sm text-primary">✓ שירות ציבורי — לא דורש מפתח API</p>
                 </div>
               </div>
 
-              {/* Supabase */}
+              {/* Supabase - always connected */}
               <div className="p-4 rounded-lg border space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-xs text-green-600">מחובר</span>
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="text-xs text-primary">מחובר</span>
                   </div>
-                  <h4 className="font-semibold">Supabase</h4>
+                  <h4 className="font-semibold">בסיס נתונים</h4>
                 </div>
                 <p className="text-sm text-muted-foreground text-right">
                   בסיס הנתונים, אימות משתמשים וסנכרון
                 </p>
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg text-right">
-                  <p className="text-sm text-green-700 dark:text-green-400">
-                    ✓ מחובר ופעיל
-                  </p>
+                <div className="p-3 bg-primary/5 rounded-lg text-right">
+                  <p className="text-sm text-primary">✓ מחובר ופעיל</p>
                 </div>
               </div>
 
-              {/* Eleven Labs */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">ElevenLabs</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  הקראת טקסט קדוש בקול טבעי ואיכותי
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="xi-..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_elevenlabs_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_elevenlabs_key', e.target.value);
-                      else localStorage.removeItem('api_elevenlabs_key');
-                    }}
-                  />
-                </div>
-              </div>
+              {/* ElevenLabs */}
+              {renderApiService('ElevenLabs', 'הקראת טקסט קדוש בקול טבעי ואיכותי', [
+                { key: 'api_elevenlabs_key', label: 'API Key', placeholder: 'xi-...', type: 'password' },
+              ])}
 
               {/* Anthropic */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">Anthropic (Claude)</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  AI מתקדם לניתוח טקסטים, פירושים וסיכומים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="sk-ant-..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_anthropic_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_anthropic_key', e.target.value);
-                      else localStorage.removeItem('api_anthropic_key');
-                    }}
-                  />
-                </div>
-              </div>
+              {renderApiService('Anthropic (Claude)', 'AI מתקדם לניתוח טקסטים, פירושים וסיכומים', [
+                { key: 'api_anthropic_key', label: 'API Key', placeholder: 'sk-ant-...', type: 'password' },
+              ])}
 
               <Separator className="my-2" />
               <h3 className="font-semibold text-base text-right">הודעות ותקשורת</h3>
 
-              {/* Twilio - WhatsApp & SMS */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">Twilio</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  שליחת הודעות WhatsApp ו-SMS — פרשת שבוע, תזכורות ושיתוף תכנים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">Account SID</Label>
-                  <Input
-                    type="password"
-                    placeholder="AC..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_twilio_sid') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_twilio_sid', e.target.value);
-                      else localStorage.removeItem('api_twilio_sid');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Auth Token</Label>
-                  <Input
-                    type="password"
-                    placeholder="token..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_twilio_token') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_twilio_token', e.target.value);
-                      else localStorage.removeItem('api_twilio_token');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">מספר WhatsApp (לדוג׳ +14155238886)</Label>
-                  <Input
-                    type="text"
-                    placeholder="+1..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_twilio_whatsapp_number') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_twilio_whatsapp_number', e.target.value);
-                      else localStorage.removeItem('api_twilio_whatsapp_number');
-                    }}
-                  />
-                </div>
-              </div>
+              {/* Twilio */}
+              {renderApiService('Twilio', 'שליחת הודעות WhatsApp ו-SMS — פרשת שבוע, תזכורות ושיתוף תכנים', [
+                { key: 'api_twilio_sid', label: 'Account SID', placeholder: 'AC...', type: 'password' },
+                { key: 'api_twilio_token', label: 'Auth Token', placeholder: 'token...', type: 'password' },
+                { key: 'api_twilio_whatsapp_number', label: 'מספר WhatsApp (לדוג׳ +14155238886)', placeholder: '+1...', type: 'text' },
+              ])}
 
-              {/* SendGrid - Email */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">SendGrid</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  שליחת מיילים — סיכום שבועי, שיתוף פרשה ועדכונים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="SG..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_sendgrid_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_sendgrid_key', e.target.value);
-                      else localStorage.removeItem('api_sendgrid_key');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">כתובת שולח (From Email)</Label>
-                  <Input
-                    type="email"
-                    placeholder="noreply@example.com"
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_sendgrid_from') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_sendgrid_from', e.target.value);
-                      else localStorage.removeItem('api_sendgrid_from');
-                    }}
-                  />
-                </div>
-              </div>
+              {/* SendGrid */}
+              {renderApiService('SendGrid', 'שליחת מיילים — סיכום שבועי, שיתוף פרשה ועדכונים', [
+                { key: 'api_sendgrid_key', label: 'API Key', placeholder: 'SG...', type: 'password' },
+                { key: 'api_sendgrid_from', label: 'כתובת שולח (From Email)', placeholder: 'noreply@example.com', type: 'email' },
+              ])}
 
               {/* Mailgun */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">Mailgun</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  חלופה לשליחת מיילים — תמיכה ברשימות תפוצה ותבניות
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="key-..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_mailgun_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_mailgun_key', e.target.value);
-                      else localStorage.removeItem('api_mailgun_key');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Domain</Label>
-                  <Input
-                    type="text"
-                    placeholder="mg.example.com"
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_mailgun_domain') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_mailgun_domain', e.target.value);
-                      else localStorage.removeItem('api_mailgun_domain');
-                    }}
-                  />
-                </div>
-              </div>
+              {renderApiService('Mailgun', 'חלופה לשליחת מיילים — תמיכה ברשימות תפוצה ותבניות', [
+                { key: 'api_mailgun_key', label: 'API Key', placeholder: 'key-...', type: 'password' },
+                { key: 'api_mailgun_domain', label: 'Domain', placeholder: 'mg.example.com', type: 'text' },
+              ])}
             </Card>
 
             <div className="text-sm text-muted-foreground text-right p-4 bg-muted/30 rounded-lg space-y-2">
-              <p className="font-semibold">🔒 אבטחה</p>
-              <p>מפתחות ה-API נשמרים מקומית על המכשיר בלבד ואינם נשלחים לשרתים שלנו.</p>
+              <p className="font-semibold">☁️ סנכרון ענן</p>
+              <p>מפתחות ה-API נשמרים בענן ומסונכרנים בין כל המכשירים שלך. {!user && '(יש להתחבר כדי לסנכרן)'}</p>
             </div>
           </TabsContent>
 
