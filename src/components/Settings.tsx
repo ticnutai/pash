@@ -28,8 +28,31 @@ import { Input } from "@/components/ui/input";
 import { getRememberedCredentials, getAutoLoginEnabled, setAutoLoginEnabled, clearRememberedCredentials } from "@/pages/Auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+
+// ── API Keys cloud sync helpers ──────────────────────────
+const API_KEY_FIELDS = [
+  'api_openai_key', 'api_google_key', 'api_elevenlabs_key', 'api_anthropic_key',
+  'api_twilio_sid', 'api_twilio_token', 'api_twilio_whatsapp_number',
+  'api_sendgrid_key', 'api_sendgrid_from', 'api_mailgun_key', 'api_mailgun_domain',
+] as const;
+
+type ApiKeys = Partial<Record<string, string>>;
+
+const loadLocalApiKeys = (): ApiKeys => {
+  const keys: ApiKeys = {};
+  for (const k of API_KEY_FIELDS) {
+    const v = localStorage.getItem(k);
+    if (v) keys[k] = v;
+  }
+  return keys;
+};
+
+const saveApiKeyLocal = (key: string, value: string) => {
+  if (value) localStorage.setItem(key, value);
+  else localStorage.removeItem(key);
+};
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
@@ -145,8 +168,50 @@ export const Settings = () => {
   const [devFloatingEnabled, setDevFloatingEnabled] = useState(() => getDevFeatureEnabled(DEV_FLOATING_ENABLED_KEY, true));
   const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
   const [devScreenshotEnabled, setDevScreenshotEnabled] = useState(() => getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true));
+  const [apiKeys, setApiKeys] = useState<ApiKeys>(loadLocalApiKeys);
 
-  // Sync dev floating state from cloud on mount
+  // Load API keys from cloud on mount
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('user_settings')
+        .select('api_keys')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data?.api_keys && typeof data.api_keys === 'object') {
+        const cloud = data.api_keys as ApiKeys;
+        // Merge cloud → local (cloud wins)
+        for (const [k, v] of Object.entries(cloud)) {
+          if (v) {
+            localStorage.setItem(k, v);
+          }
+        }
+        setApiKeys({ ...loadLocalApiKeys(), ...cloud });
+      }
+    })();
+  }, [user]);
+
+  const handleApiKeyChange = useCallback((key: string, value: string) => {
+    saveApiKeyLocal(key, value);
+    setApiKeys(prev => ({ ...prev, [key]: value || undefined }));
+    // Debounced cloud save
+    if (user) {
+      const allKeys = { ...loadLocalApiKeys(), [key]: value || undefined };
+      // Remove empty keys
+      const cleaned: ApiKeys = {};
+      for (const [k, v] of Object.entries(allKeys)) {
+        if (v) cleaned[k] = v;
+      }
+      (supabase as any)
+        .from('user_settings')
+        .update({ api_keys: cleaned })
+        .eq('user_id', user.id)
+        .then(() => {});
+    }
+  }, [user]);
+
+
   useEffect(() => {
     if (!user) return;
     const cloudVal = user.user_metadata?.dev_floating_enabled;
@@ -200,6 +265,37 @@ export const Settings = () => {
     }
   };
 
+  const renderApiService = (name: string, description: string, fields: { key: string; label: string; placeholder: string; type: string }[]) => {
+    const hasAnyKey = fields.some(f => !!apiKeys[f.key]);
+    return (
+      <div className="p-4 rounded-lg border space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`h-2 w-2 rounded-full ${hasAnyKey ? 'bg-primary' : 'bg-muted-foreground'}`} />
+            <span className={`text-xs ${hasAnyKey ? 'text-primary' : 'text-muted-foreground'}`}>
+              {hasAnyKey ? 'מחובר ☁️' : 'לא מחובר'}
+            </span>
+          </div>
+          <h4 className="font-semibold">{name}</h4>
+        </div>
+        <p className="text-sm text-muted-foreground text-right">{description}</p>
+        {fields.map(f => (
+          <div key={f.key} className="space-y-2">
+            <Label className="text-sm">{f.label}</Label>
+            <Input
+              type={f.type}
+              placeholder={f.placeholder}
+              dir="ltr"
+              className="font-mono text-sm"
+              value={apiKeys[f.key] || ''}
+              onChange={(e) => handleApiKeyChange(f.key, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -222,41 +318,41 @@ export const Settings = () => {
         </DialogHeader>
 
         <Tabs defaultValue="calendar" className="w-full" dir="rtl">
-          <TabsList className="grid w-full grid-cols-5 sm:flex sm:flex-nowrap sm:justify-center h-auto mb-4 sm:mb-6 gap-0.5 sm:gap-1 p-1">
-            <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+          <TabsList className="flex flex-wrap justify-center h-auto mb-4 sm:mb-6 gap-0.5 sm:gap-1 p-1">
+            <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
               <span className="truncate">לוח</span>
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="hidden sm:inline truncate">תזכורות</span>
+            <TabsTrigger value="notifications" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">תזכורות</span>
               <Bell className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="themes" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="hidden sm:inline truncate">נושא</span>
+            <TabsTrigger value="themes" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">נושא</span>
               <Palette className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="fonts" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="hidden sm:inline truncate">גופן</span>
+            <TabsTrigger value="fonts" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">גופן</span>
               <Type className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="display" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="hidden sm:inline truncate">תצוגה</span>
+            <TabsTrigger value="display" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">תצוגה</span>
               <Layout className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="sefaria" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="hidden sm:inline truncate">אחסון</span>
+            <TabsTrigger value="sefaria" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">אחסון</span>
               <HardDrive className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="data" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="hidden sm:inline truncate">נתונים</span>
+            <TabsTrigger value="data" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">נתונים</span>
               <Database className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="api" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="hidden sm:inline">API</span>
+            <TabsTrigger value="api" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">API</span>
               <Plug className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="dev" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="hidden sm:inline truncate">פיתוח</span>
+            <TabsTrigger value="dev" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">פיתוח</span>
               <Code className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
           </TabsList>
@@ -1017,302 +1113,85 @@ export const Settings = () => {
               <Separator />
 
               {/* OpenAI */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">OpenAI</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  חיבור ל-ChatGPT לפירושים, שאלות ותשובות ותרגומים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="sk-..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_openai_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_openai_key', e.target.value);
-                      else localStorage.removeItem('api_openai_key');
-                    }}
-                  />
-                </div>
-              </div>
+              {renderApiService('OpenAI', 'חיבור ל-ChatGPT לפירושים, שאלות ותשובות ותרגומים', [
+                { key: 'api_openai_key', label: 'API Key', placeholder: 'sk-...', type: 'password' },
+              ])}
 
               {/* Google Cloud */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">Google Cloud</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  טקסט לדיבור (TTS), תרגום ושירותי AI נוספים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="AIza..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_google_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_google_key', e.target.value);
-                      else localStorage.removeItem('api_google_key');
-                    }}
-                  />
-                </div>
-              </div>
+              {renderApiService('Google Cloud', 'טקסט לדיבור (TTS), תרגום ושירותי AI נוספים', [
+                { key: 'api_google_key', label: 'API Key', placeholder: 'AIza...', type: 'password' },
+              ])}
 
-              {/* Sefaria API */}
+              {/* Sefaria API - always connected */}
               <div className="p-4 rounded-lg border space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-xs text-green-600">זמין (ציבורי)</span>
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="text-xs text-primary">זמין (ציבורי)</span>
                   </div>
                   <h4 className="font-semibold">Sefaria API</h4>
                 </div>
                 <p className="text-sm text-muted-foreground text-right">
                   גישה לספריית ספרות יהודית — טקסטים, תרגומים ומפרשים
                 </p>
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg text-right">
-                  <p className="text-sm text-green-700 dark:text-green-400">
-                    ✓ שירות ציבורי — לא דורש מפתח API
-                  </p>
+                <div className="p-3 bg-primary/5 rounded-lg text-right">
+                  <p className="text-sm text-primary">✓ שירות ציבורי — לא דורש מפתח API</p>
                 </div>
               </div>
 
-              {/* Supabase */}
+              {/* Supabase - always connected */}
               <div className="p-4 rounded-lg border space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-xs text-green-600">מחובר</span>
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="text-xs text-primary">מחובר</span>
                   </div>
-                  <h4 className="font-semibold">Supabase</h4>
+                  <h4 className="font-semibold">בסיס נתונים</h4>
                 </div>
                 <p className="text-sm text-muted-foreground text-right">
                   בסיס הנתונים, אימות משתמשים וסנכרון
                 </p>
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg text-right">
-                  <p className="text-sm text-green-700 dark:text-green-400">
-                    ✓ מחובר ופעיל
-                  </p>
+                <div className="p-3 bg-primary/5 rounded-lg text-right">
+                  <p className="text-sm text-primary">✓ מחובר ופעיל</p>
                 </div>
               </div>
 
-              {/* Eleven Labs */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">ElevenLabs</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  הקראת טקסט קדוש בקול טבעי ואיכותי
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="xi-..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_elevenlabs_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_elevenlabs_key', e.target.value);
-                      else localStorage.removeItem('api_elevenlabs_key');
-                    }}
-                  />
-                </div>
-              </div>
+              {/* ElevenLabs */}
+              {renderApiService('ElevenLabs', 'הקראת טקסט קדוש בקול טבעי ואיכותי', [
+                { key: 'api_elevenlabs_key', label: 'API Key', placeholder: 'xi-...', type: 'password' },
+              ])}
 
               {/* Anthropic */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">Anthropic (Claude)</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  AI מתקדם לניתוח טקסטים, פירושים וסיכומים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="sk-ant-..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_anthropic_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_anthropic_key', e.target.value);
-                      else localStorage.removeItem('api_anthropic_key');
-                    }}
-                  />
-                </div>
-              </div>
+              {renderApiService('Anthropic (Claude)', 'AI מתקדם לניתוח טקסטים, פירושים וסיכומים', [
+                { key: 'api_anthropic_key', label: 'API Key', placeholder: 'sk-ant-...', type: 'password' },
+              ])}
 
               <Separator className="my-2" />
               <h3 className="font-semibold text-base text-right">הודעות ותקשורת</h3>
 
-              {/* Twilio - WhatsApp & SMS */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">Twilio</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  שליחת הודעות WhatsApp ו-SMS — פרשת שבוע, תזכורות ושיתוף תכנים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">Account SID</Label>
-                  <Input
-                    type="password"
-                    placeholder="AC..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_twilio_sid') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_twilio_sid', e.target.value);
-                      else localStorage.removeItem('api_twilio_sid');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Auth Token</Label>
-                  <Input
-                    type="password"
-                    placeholder="token..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_twilio_token') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_twilio_token', e.target.value);
-                      else localStorage.removeItem('api_twilio_token');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">מספר WhatsApp (לדוג׳ +14155238886)</Label>
-                  <Input
-                    type="text"
-                    placeholder="+1..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_twilio_whatsapp_number') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_twilio_whatsapp_number', e.target.value);
-                      else localStorage.removeItem('api_twilio_whatsapp_number');
-                    }}
-                  />
-                </div>
-              </div>
+              {/* Twilio */}
+              {renderApiService('Twilio', 'שליחת הודעות WhatsApp ו-SMS — פרשת שבוע, תזכורות ושיתוף תכנים', [
+                { key: 'api_twilio_sid', label: 'Account SID', placeholder: 'AC...', type: 'password' },
+                { key: 'api_twilio_token', label: 'Auth Token', placeholder: 'token...', type: 'password' },
+                { key: 'api_twilio_whatsapp_number', label: 'מספר WhatsApp (לדוג׳ +14155238886)', placeholder: '+1...', type: 'text' },
+              ])}
 
-              {/* SendGrid - Email */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">SendGrid</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  שליחת מיילים — סיכום שבועי, שיתוף פרשה ועדכונים
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="SG..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_sendgrid_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_sendgrid_key', e.target.value);
-                      else localStorage.removeItem('api_sendgrid_key');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">כתובת שולח (From Email)</Label>
-                  <Input
-                    type="email"
-                    placeholder="noreply@example.com"
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_sendgrid_from') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_sendgrid_from', e.target.value);
-                      else localStorage.removeItem('api_sendgrid_from');
-                    }}
-                  />
-                </div>
-              </div>
+              {/* SendGrid */}
+              {renderApiService('SendGrid', 'שליחת מיילים — סיכום שבועי, שיתוף פרשה ועדכונים', [
+                { key: 'api_sendgrid_key', label: 'API Key', placeholder: 'SG...', type: 'password' },
+                { key: 'api_sendgrid_from', label: 'כתובת שולח (From Email)', placeholder: 'noreply@example.com', type: 'email' },
+              ])}
 
               {/* Mailgun */}
-              <div className="p-4 rounded-lg border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">לא מחובר</span>
-                  </div>
-                  <h4 className="font-semibold">Mailgun</h4>
-                </div>
-                <p className="text-sm text-muted-foreground text-right">
-                  חלופה לשליחת מיילים — תמיכה ברשימות תפוצה ותבניות
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="key-..."
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_mailgun_key') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_mailgun_key', e.target.value);
-                      else localStorage.removeItem('api_mailgun_key');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Domain</Label>
-                  <Input
-                    type="text"
-                    placeholder="mg.example.com"
-                    dir="ltr"
-                    className="font-mono text-sm"
-                    value={localStorage.getItem('api_mailgun_domain') || ''}
-                    onChange={(e) => {
-                      if (e.target.value) localStorage.setItem('api_mailgun_domain', e.target.value);
-                      else localStorage.removeItem('api_mailgun_domain');
-                    }}
-                  />
-                </div>
-              </div>
+              {renderApiService('Mailgun', 'חלופה לשליחת מיילים — תמיכה ברשימות תפוצה ותבניות', [
+                { key: 'api_mailgun_key', label: 'API Key', placeholder: 'key-...', type: 'password' },
+                { key: 'api_mailgun_domain', label: 'Domain', placeholder: 'mg.example.com', type: 'text' },
+              ])}
             </Card>
 
             <div className="text-sm text-muted-foreground text-right p-4 bg-muted/30 rounded-lg space-y-2">
-              <p className="font-semibold">🔒 אבטחה</p>
-              <p>מפתחות ה-API נשמרים מקומית על המכשיר בלבד ואינם נשלחים לשרתים שלנו.</p>
+              <p className="font-semibold">☁️ סנכרון ענן</p>
+              <p>מפתחות ה-API נשמרים בענן ומסונכרנים בין כל המכשירים שלך. {!user && '(יש להתחבר כדי לסנכרן)'}</p>
             </div>
           </TabsContent>
 
