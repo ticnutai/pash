@@ -265,6 +265,37 @@ export const Settings = () => {
     }
   };
 
+  const renderApiService = (name: string, description: string, fields: { key: string; label: string; placeholder: string; type: string }[]) => {
+    const hasAnyKey = fields.some(f => !!apiKeys[f.key]);
+    return (
+      <div className="p-4 rounded-lg border space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`h-2 w-2 rounded-full ${hasAnyKey ? 'bg-primary' : 'bg-muted-foreground'}`} />
+            <span className={`text-xs ${hasAnyKey ? 'text-primary' : 'text-muted-foreground'}`}>
+              {hasAnyKey ? 'מחובר ☁️' : 'לא מחובר'}
+            </span>
+          </div>
+          <h4 className="font-semibold">{name}</h4>
+        </div>
+        <p className="text-sm text-muted-foreground text-right">{description}</p>
+        {fields.map(f => (
+          <div key={f.key} className="space-y-2">
+            <Label className="text-sm">{f.label}</Label>
+            <Input
+              type={f.type}
+              placeholder={f.placeholder}
+              dir="ltr"
+              className="font-mono text-sm"
+              value={apiKeys[f.key] || ''}
+              onChange={(e) => handleApiKeyChange(f.key, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
