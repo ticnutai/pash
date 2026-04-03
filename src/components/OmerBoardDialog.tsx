@@ -280,7 +280,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName }: OmerBoardDia
                       <Share2 className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" dir="rtl">
+                  <DropdownMenuContent align="start" className="direction-rtl">
                     <DropdownMenuItem onClick={() => {
                       const text = board.currentDay
                         ? `🕯️ היום ${todayHebrewDay} לעומר\n\nספירת העומר - ${board.startGregorian} עד ${board.endGregorian}`
