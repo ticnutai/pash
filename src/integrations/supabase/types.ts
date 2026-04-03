@@ -320,6 +320,7 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          api_keys: Json | null
           created_at: string
           display_settings: Json | null
           display_settings_mobile: Json | null
@@ -332,6 +333,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          api_keys?: Json | null
           created_at?: string
           display_settings?: Json | null
           display_settings_mobile?: Json | null
@@ -344,6 +346,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          api_keys?: Json | null
           created_at?: string
           display_settings?: Json | null
           display_settings_mobile?: Json | null
