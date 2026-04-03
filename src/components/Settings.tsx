@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +27,23 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { Input } from "@/components/ui/input";
 import { getRememberedCredentials, getAutoLoginEnabled, setAutoLoginEnabled, clearRememberedCredentials } from "@/pages/Auth";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+
+const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
+const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
+const DEV_FLOATING_ENABLED_KEY = "dev-floating-buttons-enabled";
+const DEV_FEATURES_EVENT = "dev-features:changed";
+
+const getDevFeatureEnabled = (key: string, defaultValue: boolean): boolean => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return defaultValue;
+    return raw === "true";
+  } catch {
+    return defaultValue;
+  }
+};
 
 const AutoLoginSetting = () => {
   const remembered = getRememberedCredentials();
@@ -126,6 +140,9 @@ export const Settings = () => {
   const { settings, updateSettings } = useFontAndColorSettings();
   const [isIsrael, setIsIsrael] = useState(getCalendarPreference());
   const { settings: notifSettings, updateSettings: updateNotif, permission, requestPermission, sendTestNotification, supported: notifSupported } = useNotifications();
+  const [devFloatingEnabled, setDevFloatingEnabled] = useState(() => getDevFeatureEnabled(DEV_FLOATING_ENABLED_KEY, true));
+  const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
+  const [devScreenshotEnabled, setDevScreenshotEnabled] = useState(() => getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true));
 
   const resetTextSizesToDefault = () => {
     updateSettings({
@@ -142,6 +159,27 @@ export const Settings = () => {
   const handleCalendarChange = (checked: boolean) => {
     setIsIsrael(checked);
     setCalendarPreference(checked);
+  };
+
+  const handleDevChatToggle = (checked: boolean) => {
+    setDevChatEnabled(checked);
+    localStorage.setItem(DEV_CHAT_ENABLED_KEY, String(checked));
+    window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+    toast.success(checked ? "צ'אט פיתוח הופעל" : "צ'אט פיתוח כובה");
+  };
+
+  const handleDevScreenshotToggle = (checked: boolean) => {
+    setDevScreenshotEnabled(checked);
+    localStorage.setItem(DEV_SCREENSHOT_ENABLED_KEY, String(checked));
+    window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+    toast.success(checked ? "צילום מסך פיתוח הופעל" : "צילום מסך פיתוח כובה");
+  };
+
+  const handleDevFloatingToggle = (checked: boolean) => {
+    setDevFloatingEnabled(checked);
+    localStorage.setItem(DEV_FLOATING_ENABLED_KEY, String(checked));
+    window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+    toast.success(checked ? "כל כפתורי הפיתוח הופעלו" : "כל כפתורי הפיתוח כובו");
   };
 
   return (
@@ -166,7 +204,7 @@ export const Settings = () => {
         </DialogHeader>
 
         <Tabs defaultValue="calendar" className="w-full" dir="rtl">
-          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 mb-4 sm:mb-6 gap-0.5 sm:gap-1">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 h-auto mb-4 sm:mb-6 gap-0.5 sm:gap-1">
             <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2">
               <span className="hidden sm:inline">לוח</span>
               <span className="sm:hidden">לוח</span>
@@ -951,6 +989,82 @@ export const Settings = () => {
           </TabsContent>
 
           <TabsContent value="dev" className="space-y-4">
+            <Card className="p-6 space-y-6">
+              <div>
+                <h3 className="font-semibold text-lg mb-2">אייקוני פיתוח</h3>
+                <p className="text-sm text-muted-foreground">
+                  הפעלה וכיבוי של כפתורי הפיתוח במסך הראשי, עם שמירת המצב האחרון
+                </p>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                <Switch
+                  id="dev-floating-toggle"
+                  checked={devFloatingEnabled}
+                  onCheckedChange={handleDevFloatingToggle}
+                />
+                <div className="flex-1 text-right mr-3">
+                  <Label htmlFor="dev-floating-toggle" className="text-base font-semibold cursor-pointer">
+                    כל כפתורי הפיתוח המסומנים
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    כיבוי אחד שסוגר את כל הכפתורים הצפים שסימנת
+                  </p>
+                </div>
+                <div className="ml-2 text-muted-foreground">
+                  {devFloatingEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                <Switch
+                  id="dev-chat-toggle"
+                  checked={devChatEnabled}
+                  onCheckedChange={handleDevChatToggle}
+                  disabled={!devFloatingEnabled}
+                />
+                <div className="flex-1 text-right mr-3">
+                  <Label htmlFor="dev-chat-toggle" className="text-base font-semibold cursor-pointer">
+                    אייקון צ'אט פיתוח
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    מציג/מסתיר את כפתור הצ'אט הצף בצד שמאל
+                  </p>
+                </div>
+                <div className="ml-2 text-primary">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <div className="ml-2 text-muted-foreground">
+                  {devChatEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                <Switch
+                  id="dev-screenshot-toggle"
+                  checked={devScreenshotEnabled}
+                  onCheckedChange={handleDevScreenshotToggle}
+                  disabled={!devFloatingEnabled}
+                />
+                <div className="flex-1 text-right mr-3">
+                  <Label htmlFor="dev-screenshot-toggle" className="text-base font-semibold cursor-pointer">
+                    אייקון צילום פיתוח
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    מציג/מסתיר את כפתור הצילום הצף בצד שמאל
+                  </p>
+                </div>
+                <div className="ml-2 text-primary">
+                  <Camera className="h-5 w-5" />
+                </div>
+                <div className="ml-2 text-muted-foreground">
+                  {devScreenshotEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </div>
+              </div>
+            </Card>
+
             <MigrationManager />
           </TabsContent>
         </Tabs>

@@ -137,18 +137,18 @@ export const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-2 border-amber-500 shadow-lg shadow-amber-100">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Book className="h-12 w-12 text-primary" />
+            <Book className="h-12 w-12 text-amber-500" />
           </div>
-          <CardTitle className="text-2xl">
-            {isLogin ? "התחברות" : "הרשמה"}
+          <CardTitle className="text-2xl text-[#1b2a4a]">
+            {isLogin ? "כניסה למערכת" : "הרשמה"}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-[#1b2a4a]/70">
             {isLogin
-              ? "הכנס את הפרטים שלך להתחברות"
+              ? "לכל משתמש נשמרים נתונים נפרדים. התחבר כדי לעבוד על המרחב האישי שלך."
               : "צור חשבון חדש כדי להתחיל"}
           </CardDescription>
         </CardHeader>
@@ -157,34 +157,34 @@ export const Auth = () => {
           <CardContent className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="displayName">שם תצוגה</Label>
+                <Label htmlFor="displayName" className="text-[#1b2a4a] font-semibold">שם תצוגה</Label>
                 <Input
                   id="displayName"
                   type="text"
                   placeholder="השם שיוצג באפליקציה"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="text-right"
+                  className="text-right border-amber-300 focus:border-amber-500 focus:ring-amber-500 text-[#1b2a4a]"
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">אימייל</Label>
+              <Label htmlFor="email" className="text-[#1b2a4a] font-semibold">אימייל</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="text-right"
+                className="text-right border-amber-300 focus:border-amber-500 focus:ring-amber-500 text-[#1b2a4a]"
                 disabled={isLoading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">סיסמה</Label>
+              <Label htmlFor="password" className="text-[#1b2a4a] font-semibold">סיסמה</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -194,13 +194,13 @@ export const Auth = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="text-right pl-10"
+                  className="text-right pl-10 border-amber-300 focus:border-amber-500 focus:ring-amber-500 text-[#1b2a4a]"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-amber-400 hover:text-[#1b2a4a] transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -211,7 +211,7 @@ export const Auth = () => {
                 </button>
               </div>
               {!isLogin && (
-                <p className="text-xs text-muted-foreground text-right">
+                <p className="text-xs text-[#1b2a4a]/60 text-right">
                   לפחות 6 תווים
                 </p>
               )}
@@ -219,13 +219,14 @@ export const Auth = () => {
 
             {isLogin && (
               <div className="flex items-center gap-2 justify-end">
-                <Label htmlFor="remember-me" className="text-sm cursor-pointer">
+                <Label htmlFor="remember-me" className="text-sm cursor-pointer text-[#1b2a4a]">
                   זכור אותי
                 </Label>
                 <Checkbox
                   id="remember-me"
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  className="border-amber-400 data-[state=checked]:bg-[#1b2a4a] data-[state=checked]:border-[#1b2a4a]"
                 />
               </div>
             )}
@@ -234,7 +235,7 @@ export const Auth = () => {
           <CardFooter className="flex flex-col gap-4">
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-[#1b2a4a] hover:bg-[#152240] text-white font-bold"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -256,17 +257,17 @@ export const Auth = () => {
                   setIsLogin(!isLogin);
                   setDisplayName("");
                 }}
-                className="text-primary hover:underline"
+                className="text-[#1b2a4a] hover:underline font-medium"
                 disabled={isLoading}
               >
                 {isLogin
-                  ? "אין לך חשבון? הירשם כאן"
+                  ? "אין חשבון? יצירת משתמש חדש"
                   : "כבר יש לך חשבון? התחבר כאן"}
               </button>
             </div>
 
             <div className="text-center">
-              <Link to="/" className="text-sm text-muted-foreground hover:underline">
+              <Link to="/" className="text-sm text-[#1b2a4a]/60 hover:underline">
                 חזרה לדף הבית
               </Link>
             </div>

@@ -41,12 +41,24 @@ export interface FontAndColorSettings {
   siddurFont: string;
   siddurSize: number;
   siddurBold: boolean;
+  siddurTextAlignment: "right" | "center" | "left" | "justify";
+  siddurLineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
+  siddurLineHeightCustom: number;
+  siddurContentWidth: "narrow" | "normal" | "wide" | "full";
 
   // Tehillim
   tehillimFont: string;
   tehillimSize: number;
   tehillimBold: boolean;
-  
+  tehillimTextAlignment: "right" | "center" | "left" | "justify";
+  tehillimLineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
+  tehillimLineHeightCustom: number;
+  tehillimContentWidth: "narrow" | "normal" | "wide" | "full";
+
+  // Text filters
+  showNikud: boolean;
+  showTaamim: boolean;
+
   // Display Settings
   textAlignment: "right" | "center" | "left" | "justify";
   contentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
@@ -93,9 +105,19 @@ const defaultSettings: FontAndColorSettings = {
   siddurFont: "Noto Serif Hebrew",
   siddurSize: 18,
   siddurBold: false,
+  siddurTextAlignment: "right",
+  siddurLineHeight: "normal",
+  siddurLineHeightCustom: 1.5,
+  siddurContentWidth: "normal",
   tehillimFont: "Noto Serif Hebrew",
   tehillimSize: 18,
   tehillimBold: false,
+  tehillimTextAlignment: "right",
+  tehillimLineHeight: "normal",
+  tehillimLineHeightCustom: 1.5,
+  tehillimContentWidth: "normal",
+  showNikud: true,
+  showTaamim: true,
   textAlignment: "right",
   contentSpacing: "normal",
   contentSpacingCustom: 1,
@@ -118,6 +140,8 @@ const normalizeSettings = (settings: FontAndColorSettings): FontAndColorSettings
   commentarySize: clamp(Number(settings.commentarySize || defaultSettings.commentarySize), 8, 24),
   siddurSize: clamp(Number(settings.siddurSize || defaultSettings.siddurSize), 8, 36),
   tehillimSize: clamp(Number(settings.tehillimSize || defaultSettings.tehillimSize), 8, 36),
+  siddurLineHeightCustom: clamp(Number(settings.siddurLineHeightCustom || defaultSettings.siddurLineHeightCustom), 1, 3),
+  tehillimLineHeightCustom: clamp(Number(settings.tehillimLineHeightCustom || defaultSettings.tehillimLineHeightCustom), 1, 3),
   fontScale: clamp(Number(settings.fontScale || defaultSettings.fontScale), 0.6, 1.8),
 });
 

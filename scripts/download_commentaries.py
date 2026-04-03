@@ -70,7 +70,7 @@ def fetch_text(sefaria_ref: str) -> list | None:
     Fetch Hebrew text from Sefaria API.
     Returns the Hebrew text array (list-of-lists) or None on failure.
     """
-    url = f"https://www.sefaria.org/api/texts/{sefaria_ref}?context=0&pad=0&commentary=0&langue=he"
+    url = f"https://www.sefaria.org/api/texts/{sefaria_ref}?context=0&pad=0&commentary=0&language=he"
     print(f"    GET {url}")
     try:
         r = requests.get(url, timeout=90)

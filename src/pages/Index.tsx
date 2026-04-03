@@ -35,6 +35,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { SidePanelTrigger } from "@/components/SidePanelTrigger";
 import { LayoutOverlay } from "@/components/LayoutOverlay";
 import { logInteraction } from "@/utils/interactionDebug";
+import { OmerBoardDialog } from "@/components/OmerBoardDialog";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
@@ -877,6 +878,9 @@ const Index = () => {
                   {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
                 </Button>
                 </span>
+                <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר">
+                  <OmerBoardDialog buttonClassName="h-8 w-8" iconClassName="h-4 w-4" />
+                </span>
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
@@ -915,6 +919,9 @@ const Index = () => {
               <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
               <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
               <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+              <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר">
+                <OmerBoardDialog buttonClassName="h-9 w-9" iconClassName="h-5 w-5" />
+              </span>
               <span data-layout="btn-siddur" data-layout-label="🕍 סידור">
               <Button
                 variant="ghost"

@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS public.rashi_commentary (
   perek integer NOT NULL,
   pasuk integer NOT NULL,
   text text NOT NULL,
-  created_at timestamptz DEFAULT now() NOT NULL
+  created_at timestamptz DEFAULT now() NOT NULL,
+  CONSTRAINT rashi_unique UNIQUE (sefer_id, perek, pasuk)
 );
 
 -- Index for fast lookups by verse
@@ -20,12 +21,18 @@ CREATE POLICY "Allow public read of rashi"
   FOR SELECT
   USING (true);
 
-CREATE POLICY "Allow public insert of rashi"
+-- Writes restricted to service_role (server-side upload scripts only)
+CREATE POLICY "rashi_service_insert"
   ON public.rashi_commentary
   FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (auth.role() = 'service_role');
 
-CREATE POLICY "Allow public delete of rashi"
+CREATE POLICY "rashi_service_delete"
   ON public.rashi_commentary
   FOR DELETE
-  USING (true);
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "rashi_service_update"
+  ON public.rashi_commentary
+  FOR UPDATE
+  USING (auth.role() = 'service_role');

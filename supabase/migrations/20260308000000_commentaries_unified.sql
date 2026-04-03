@@ -22,14 +22,19 @@ CREATE INDEX IF NOT EXISTS idx_commentaries_chapter
 -- Row Level Security — public-domain historical texts, open read
 ALTER TABLE public.commentaries ENABLE ROW LEVEL SECURITY;
 
+-- Public read — anyone can SELECT (public-domain texts)
 CREATE POLICY "commentaries_public_read"
   ON public.commentaries FOR SELECT USING (true);
 
-CREATE POLICY "commentaries_public_insert"
-  ON public.commentaries FOR INSERT WITH CHECK (true);
+-- Writes restricted to service_role (server-side upload scripts only)
+CREATE POLICY "commentaries_service_insert"
+  ON public.commentaries FOR INSERT
+  WITH CHECK (auth.role() = 'service_role');
 
-CREATE POLICY "commentaries_public_delete"
-  ON public.commentaries FOR DELETE USING (true);
+CREATE POLICY "commentaries_service_delete"
+  ON public.commentaries FOR DELETE
+  USING (auth.role() = 'service_role');
 
-CREATE POLICY "commentaries_public_update"
-  ON public.commentaries FOR UPDATE USING (true);
+CREATE POLICY "commentaries_service_update"
+  ON public.commentaries FOR UPDATE
+  USING (auth.role() = 'service_role');

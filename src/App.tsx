@@ -20,6 +20,31 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Loader2, WifiOff } from "lucide-react";
 import { PWAReloadPrompt } from "@/components/PWAReloadPrompt";
 
+const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
+const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
+const DEV_FLOATING_ENABLED_KEY = "dev-floating-buttons-enabled";
+const DEV_FEATURES_EVENT = "dev-features:changed";
+
+const readDevFeatureFlag = (key: string, fallback: boolean) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return raw === "true";
+  } catch {
+    return fallback;
+  }
+};
+
+// Dev-only chat widget (lazy loaded, tree-shaken in production)
+const DevChatWidget = import.meta.env.DEV
+  ? lazy(() => import("@/components/DevChatWidget").then(m => ({ default: m.DevChatWidget })))
+  : null;
+
+// Dev-only screenshot tool (lazy loaded, tree-shaken in production)
+const ScreenshotTool = import.meta.env.DEV
+  ? lazy(() => import("@/components/ScreenshotTool").then(m => ({ default: m.ScreenshotTool })))
+  : null;
+
 // Lazy load ALL pages for optimal initial bundle size
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth").then(m => ({ default: m.Auth })));
@@ -56,8 +81,29 @@ function OfflineBanner() {
   );
 }
 
-const App = () => (
-  <ErrorBoundary fallbackTitle="שגיאה כללית באפליקציה">
+const App = () => {
+  const [showDevFloating, setShowDevFloating] = useState(() => readDevFeatureFlag(DEV_FLOATING_ENABLED_KEY, true));
+  const [showDevChat, setShowDevChat] = useState(() => readDevFeatureFlag(DEV_CHAT_ENABLED_KEY, true));
+  const [showScreenshotTool, setShowScreenshotTool] = useState(() => readDevFeatureFlag(DEV_SCREENSHOT_ENABLED_KEY, true));
+
+  useEffect(() => {
+    const syncDevFeatures = () => {
+      setShowDevFloating(readDevFeatureFlag(DEV_FLOATING_ENABLED_KEY, true));
+      setShowDevChat(readDevFeatureFlag(DEV_CHAT_ENABLED_KEY, true));
+      setShowScreenshotTool(readDevFeatureFlag(DEV_SCREENSHOT_ENABLED_KEY, true));
+    };
+
+    window.addEventListener("storage", syncDevFeatures);
+    window.addEventListener(DEV_FEATURES_EVENT, syncDevFeatures as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", syncDevFeatures);
+      window.removeEventListener(DEV_FEATURES_EVENT, syncDevFeatures as EventListener);
+    };
+  }, []);
+
+  return (
+    <ErrorBoundary fallbackTitle="שגיאה כללית באפליקציה">
     <AuthProvider>
       <DeviceProvider>
         <ThemeProvider>
@@ -72,7 +118,14 @@ const App = () => (
                       <Sonner />
                       <PWAReloadPrompt />
                       <OfflineBanner />
-                      <Router>
+                      {DevChatWidget && showDevFloating && showDevChat && <Suspense fallback={null}><DevChatWidget /></Suspense>}
+                      {ScreenshotTool && showDevFloating && showScreenshotTool && <Suspense fallback={null}><ScreenshotTool /></Suspense>}
+                      <Router
+                        future={{
+                          v7_startTransition: true,
+                          v7_relativeSplatPath: true,
+                        }}
+                      >
                         <ErrorBoundary fallbackTitle="שגיאה בטעינת הדף">
                           <Suspense fallback={<LoadingFallback />}>
                             <Routes>
@@ -99,6 +152,7 @@ const App = () => (
       </DeviceProvider>
     </AuthProvider>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

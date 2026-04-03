@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { AlignRight, AlignCenter, AlignLeft, AlignJustify, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -14,6 +15,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+
+type TextSettingsTab = "pasuk" | "titles" | "questions" | "commentary" | "siddur" | "tehillim";
 
 const hebrewFonts = [
   { value: "David Libre", label: "דוד ליברה", sample: "אבגד" },
@@ -259,11 +262,50 @@ const TabContent = ({ sizeValue, onSizeChange, sizeLabel, fontValue, onFontChang
   );
 };
 
-export const TextDisplaySettings = () => {
+export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: TextSettingsTab }) => {
   const { settings, updateSettings } = useFontAndColorSettings();
+  const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TextSettingsTab>(initialTab);
+
+  const scopedSettings = (scope: "siddur" | "tehillim") => ({
+    ...settings,
+    textAlignment: scope === "siddur" ? settings.siddurTextAlignment : settings.tehillimTextAlignment,
+    lineHeight: scope === "siddur" ? settings.siddurLineHeight : settings.tehillimLineHeight,
+    lineHeightCustom: scope === "siddur" ? settings.siddurLineHeightCustom : settings.tehillimLineHeightCustom,
+    contentWidth: scope === "siddur" ? settings.siddurContentWidth : settings.tehillimContentWidth,
+  });
+
+  const scopedUpdater = (scope: "siddur" | "tehillim") => (patch: Partial<typeof settings>) => {
+    const out: Partial<typeof settings> = {};
+    if (patch.textAlignment) {
+      if (scope === "siddur") out.siddurTextAlignment = patch.textAlignment;
+      else out.tehillimTextAlignment = patch.textAlignment;
+    }
+    if (patch.lineHeight) {
+      if (scope === "siddur") out.siddurLineHeight = patch.lineHeight;
+      else out.tehillimLineHeight = patch.lineHeight;
+    }
+    if (typeof patch.lineHeightCustom === "number") {
+      if (scope === "siddur") out.siddurLineHeightCustom = patch.lineHeightCustom;
+      else out.tehillimLineHeightCustom = patch.lineHeightCustom;
+    }
+    if (patch.contentWidth) {
+      if (scope === "siddur") out.siddurContentWidth = patch.contentWidth;
+      else out.tehillimContentWidth = patch.contentWidth;
+    }
+
+    // Keep generic controls available where relevant.
+    if (patch.contentSpacing) out.contentSpacing = patch.contentSpacing;
+    if (typeof patch.contentSpacingCustom === "number") out.contentSpacingCustom = patch.contentSpacingCustom;
+    updateSettings(out);
+  };
+
+  useEffect(() => {
+    if (open) setActiveTab(initialTab);
+  }, [open, initialTab]);
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -286,7 +328,7 @@ export const TextDisplaySettings = () => {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="pasuk" dir="rtl" className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TextSettingsTab)} dir="rtl" className="w-full">
           <TabsList className="w-full grid grid-cols-3 h-auto gap-1 bg-muted/40 p-1 rounded-xl">
             <TabsTrigger value="pasuk" className="text-xs sm:text-sm py-2 rounded-lg data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
               פסוקים
@@ -382,8 +424,8 @@ export const TextDisplaySettings = () => {
               fontLabel="גופן תפילות"
               boldValue={settings.siddurBold}
               onBoldChange={(b) => updateSettings({ siddurBold: b })}
-              settings={settings}
-              updateSettings={updateSettings}
+              settings={scopedSettings("siddur")}
+              updateSettings={scopedUpdater("siddur")}
               previewText="בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם"
             />
           </TabsContent>
@@ -398,8 +440,8 @@ export const TextDisplaySettings = () => {
               fontLabel="גופן תהילים"
               boldValue={settings.tehillimBold}
               onBoldChange={(b) => updateSettings({ tehillimBold: b })}
-              settings={settings}
-              updateSettings={updateSettings}
+              settings={scopedSettings("tehillim")}
+              updateSettings={scopedUpdater("tehillim")}
               previewText="מִזְמוֹר לְדָוִד — יְיָ רֹעִי לֹא אֶחְסָר"
             />
           </TabsContent>

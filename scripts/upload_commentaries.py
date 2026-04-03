@@ -22,9 +22,8 @@ from pathlib import Path
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL = "https://mocukhvfqqzkekphifsr.supabase.co"
-ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vY3VraHZmcXF6a2VrcGhpZnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1ODQ5MDgsImV4cCI6MjA4MDE2MDkwOH0.7whrGNQK4_ByacsLF4qWn3lObBL9bQyhy1vk6C4KxQw"
 
-# Try service role key (has more permissions)
+# Requires service_role key — get from dashboard > project > settings > API
 API_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 if not API_KEY:
     env_path = Path(__file__).parent.parent / ".env"
@@ -35,8 +34,10 @@ if not API_KEY:
                 break
 
 if not API_KEY:
-    print("ℹ️  No SERVICE_ROLE_KEY found — using anon key (public insert must be enabled).")
-    API_KEY = ANON_KEY
+    print("ERROR: SUPABASE_SERVICE_ROLE_KEY is required (RLS restricts writes to service_role).")
+    print("Set it via:  $env:SUPABASE_SERVICE_ROLE_KEY='eyJ...'")
+    print("Get it from: https://supabase.com/dashboard/project/mocukhvfqqzkekphifsr/settings/api")
+    sys.exit(1)
 
 HEADERS = {
     "apikey":        API_KEY,

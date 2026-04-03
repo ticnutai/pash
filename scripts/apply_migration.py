@@ -1,6 +1,7 @@
 """
 apply_migration.py
-Applies the commentaries table migration to Supabase.
+Applies the commentaries + rashi_commentary table migrations to Supabase.
+Also locks down RLS policies (public read only, writes require service_role).
 
 Tries multiple auth methods in order:
   1. SUPABASE_ACCESS_TOKEN env var  - uses Management API (easiest)
@@ -36,7 +37,9 @@ from pathlib import Path
 SUPABASE_PROJECT_REF = "mocukhvfqqzkekphifsr"
 
 MIGRATION_SQL = """
--- Unified commentaries table for all mefarshim
+-- ═══════════════════════════════════════════════════════════
+-- 1. COMMENTARIES TABLE (unified, all mefarshim)
+-- ═══════════════════════════════════════════════════════════
 CREATE TABLE IF NOT EXISTS public.commentaries (
   id           uuid    DEFAULT gen_random_uuid() PRIMARY KEY,
   commentator  text    NOT NULL,
@@ -56,6 +59,12 @@ CREATE INDEX IF NOT EXISTS idx_commentaries_chapter
 
 ALTER TABLE public.commentaries ENABLE ROW LEVEL SECURITY;
 
+-- Drop old permissive policies if they exist (security fix)
+DROP POLICY IF EXISTS commentaries_public_insert ON public.commentaries;
+DROP POLICY IF EXISTS commentaries_public_delete ON public.commentaries;
+DROP POLICY IF EXISTS commentaries_public_update ON public.commentaries;
+
+-- Create correct policies (read = public, writes = service_role only)
 DO $$ 
 BEGIN
   IF NOT EXISTS (
@@ -65,23 +74,141 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename='commentaries' AND policyname='commentaries_public_insert'
+    SELECT 1 FROM pg_policies WHERE tablename='commentaries' AND policyname='commentaries_service_insert'
   ) THEN
-    EXECUTE 'CREATE POLICY commentaries_public_insert ON public.commentaries FOR INSERT WITH CHECK (true)';
+    EXECUTE 'CREATE POLICY commentaries_service_insert ON public.commentaries FOR INSERT WITH CHECK (auth.role() = ''service_role'')';
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename='commentaries' AND policyname='commentaries_public_delete'
+    SELECT 1 FROM pg_policies WHERE tablename='commentaries' AND policyname='commentaries_service_delete'
   ) THEN
-    EXECUTE 'CREATE POLICY commentaries_public_delete ON public.commentaries FOR DELETE USING (true)';
+    EXECUTE 'CREATE POLICY commentaries_service_delete ON public.commentaries FOR DELETE USING (auth.role() = ''service_role'')';
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename='commentaries' AND policyname='commentaries_public_update'
+    SELECT 1 FROM pg_policies WHERE tablename='commentaries' AND policyname='commentaries_service_update'
   ) THEN
-    EXECUTE 'CREATE POLICY commentaries_public_update ON public.commentaries FOR UPDATE USING (true)';
+    EXECUTE 'CREATE POLICY commentaries_service_update ON public.commentaries FOR UPDATE USING (auth.role() = ''service_role'')';
   END IF;
 END $$;
+
+-- ═══════════════════════════════════════════════════════════
+-- 2. RASHI_COMMENTARY TABLE (legacy, kept for backward compat)
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.rashi_commentary (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  sefer_id   integer NOT NULL,
+  perek      integer NOT NULL,
+  pasuk      integer NOT NULL,
+  text       text NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- Add UNIQUE constraint if missing (prevents duplicate rows on re-upload)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'rashi_unique'
+  ) THEN
+    -- Remove any duplicate rows first (keep the newest)
+    DELETE FROM public.rashi_commentary a USING public.rashi_commentary b
+      WHERE a.sefer_id = b.sefer_id AND a.perek = b.perek AND a.pasuk = b.pasuk
+        AND a.created_at < b.created_at;
+    ALTER TABLE public.rashi_commentary ADD CONSTRAINT rashi_unique UNIQUE (sefer_id, perek, pasuk);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_rashi_sefer_perek_pasuk
+  ON public.rashi_commentary (sefer_id, perek, pasuk);
+
+ALTER TABLE public.rashi_commentary ENABLE ROW LEVEL SECURITY;
+
+-- Drop old permissive policies if they exist (security fix)
+DROP POLICY IF EXISTS "Allow public insert of rashi" ON public.rashi_commentary;
+DROP POLICY IF EXISTS "Allow public delete of rashi" ON public.rashi_commentary;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename='rashi_commentary' AND policyname='Allow public read of rashi'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Allow public read of rashi" ON public.rashi_commentary FOR SELECT USING (true)';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename='rashi_commentary' AND policyname='rashi_service_insert'
+  ) THEN
+    EXECUTE 'CREATE POLICY rashi_service_insert ON public.rashi_commentary FOR INSERT WITH CHECK (auth.role() = ''service_role'')';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename='rashi_commentary' AND policyname='rashi_service_delete'
+  ) THEN
+    EXECUTE 'CREATE POLICY rashi_service_delete ON public.rashi_commentary FOR DELETE USING (auth.role() = ''service_role'')';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename='rashi_commentary' AND policyname='rashi_service_update'
+  ) THEN
+    EXECUTE 'CREATE POLICY rashi_service_update ON public.rashi_commentary FOR UPDATE USING (auth.role() = ''service_role'')';
+  END IF;
+END $$;
+
+-- ═══════════════════════════════════════════════════════════
+-- 3. EXEC_SQL FUNCTION (dev tool — run migrations from the app)
+-- ═══════════════════════════════════════════════════════════
+CREATE OR REPLACE FUNCTION public.exec_sql(query text)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  caller_email text;
+  t_start      timestamptz;
+  t_end        timestamptz;
+  row_count    bigint;
+  stmt_type    text;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  SELECT email INTO caller_email
+  FROM auth.users
+  WHERE id = auth.uid();
+
+  IF caller_email IS NULL OR caller_email NOT IN ('jj1212t@gmail.com') THEN
+    RAISE EXCEPTION 'Admin access required';
+  END IF;
+
+  stmt_type := upper(split_part(ltrim(regexp_replace(query, '/\\*.*?\\*/', '', 'g')), ' ', 1));
+
+  t_start := clock_timestamp();
+  EXECUTE query;
+  GET DIAGNOSTICS row_count = ROW_COUNT;
+  t_end := clock_timestamp();
+
+  RETURN json_build_object(
+    'success', true,
+    'rows_affected', row_count,
+    'duration_ms', round(extract(epoch from (t_end - t_start)) * 1000),
+    'statement_type', stmt_type
+  );
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', SQLERRM,
+      'detail', SQLSTATE,
+      'hint', concat('Statement type: ', upper(split_part(ltrim(query), ' ', 1)))
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.exec_sql(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.exec_sql(text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.exec_sql(text) TO authenticated;
 """
 
 

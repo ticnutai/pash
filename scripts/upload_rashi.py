@@ -16,6 +16,7 @@ The table must already exist — run the migration first:
 """
 import json
 import os
+import re
 import sys
 import time
 import requests
@@ -23,9 +24,8 @@ from pathlib import Path
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL = "https://mocukhvfqqzkekphifsr.supabase.co"
-ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vY3VraHZmcXF6a2VrcGhpZnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1ODQ5MDgsImV4cCI6MjA4MDE2MDkwOH0.7whrGNQK4_ByacsLF4qWn3lObBL9bQyhy1vk6C4KxQw"
 
-# Try service role key first (more permissions), fall back to anon key
+# Requires service_role key — get from dashboard > project > settings > API
 API_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 if not API_KEY:
@@ -37,8 +37,10 @@ if not API_KEY:
                 break
 
 if not API_KEY:
-    print("No SUPABASE_SERVICE_ROLE_KEY found, using anon key (table must allow public inserts)")
-    API_KEY = ANON_KEY
+    print("ERROR: SUPABASE_SERVICE_ROLE_KEY is required (RLS restricts writes to service_role).")
+    print("Set it via:  $env:SUPABASE_SERVICE_ROLE_KEY='eyJ...'")
+    print("Get it from: https://supabase.com/dashboard/project/mocukhvfqqzkekphifsr/settings/api")
+    sys.exit(1)
 
 DATA_DIR = Path(__file__).parent.parent / "src" / "data" / "sefaria"
 
@@ -63,7 +65,6 @@ BATCH_SIZE = 500
 
 def clean_text(text) -> str:
     """Strip HTML tags and normalize whitespace. Accepts str or list."""
-    import re
     if isinstance(text, list):
         # Recursively join list sub-entries
         text = " ".join(clean_text(item) for item in text)
@@ -88,7 +89,8 @@ def clear_sefer(sefer_id: int):
     url = f"{SUPABASE_URL}/rest/v1/rashi_commentary?sefer_id=eq.{sefer_id}"
     r = requests.delete(url, headers=HEADERS, timeout=30)
     if r.status_code not in (200, 204):
-        print(f"  Warning: could not clear sefer {sefer_id}: {r.status_code}")
+        print(f"  ERROR: could not clear sefer {sefer_id}: {r.status_code} — aborting to prevent duplicates")
+        sys.exit(1)
 
 def upload_sefer(sefer_id: int, filename: str):
     path = DATA_DIR / f"{filename}.json"

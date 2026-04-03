@@ -16,6 +16,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const isAnonDisabledError = (error: unknown) => {
+      const msg = String(error ?? "").toLowerCase();
+      return msg.includes("anonymous sign-ins are disabled");
+    };
+
     const ensureSession = async () => {
       try {
         const {
@@ -29,7 +34,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) throw error;
+        if (error) {
+          if (!isAnonDisabledError(error)) {
+            throw error;
+          }
+          return;
+        }
 
         setSession(data.session ?? null);
         setUser(data.user ?? null);
@@ -50,7 +60,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (event === "SIGNED_OUT") {
         void supabase.auth.signInAnonymously().catch((error) => {
-          console.error("Failed to create anonymous session after sign out:", error);
+          if (!isAnonDisabledError(error)) {
+            console.error("Failed to create anonymous session after sign out:", error);
+          }
         });
       }
     });

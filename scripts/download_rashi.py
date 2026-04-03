@@ -25,7 +25,7 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "src", "data", "sefar
 
 def fetch_rashi(sefaria_name: str) -> dict | None:
     """Fetch entire Rashi text from Sefaria API."""
-    url = f"https://www.sefaria.org/api/texts/{sefaria_name}?context=0&pad=0&commentary=0&langue=he"
+    url = f"https://www.sefaria.org/api/texts/{sefaria_name}?context=0&pad=0&commentary=0&language=he"
     print(f"  Fetching {url} ...")
     try:
         r = requests.get(url, timeout=60)

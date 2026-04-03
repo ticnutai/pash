@@ -1,3 +1,7 @@
+# Environment / secrets
+.env
+.env.*
+
 # Logs
 logs
 *.log
@@ -46,3 +50,18 @@ release-all/
 # Google Play service account keys (sensitive!)
 scripts/google-play-service-account.json
 scripts/play-store-*.json
+
+# Dev chat messages (Copilot bridge)
+.dev-chat/
+.playwright-mcp/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Backup files
+*.bak
+backups/
+
+# Test artifacts
+test-results/

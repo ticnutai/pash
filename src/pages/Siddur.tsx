@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
@@ -21,6 +21,17 @@ type SiddurCategory  = { name: string; sections: SiddurSection[]; total_lines: n
 type SiddurData      = Record<string, SiddurCategory>;
 type TehillimChapter = { chapter: number; title: string; lines: string[] };
 type TehillimMap     = Record<string, TehillimChapter>;
+type DisplayStyle    = "classic" | "ornate";
+
+const SiddurDisplayStyleContext = createContext<{
+  displayStyle: DisplayStyle;
+  setDisplayStyle: (style: DisplayStyle) => void;
+} | null>(null);
+
+const useSiddurDisplayStyle = () => {
+  const ctx = useContext(SiddurDisplayStyleContext);
+  return ctx ?? { displayStyle: "classic" as DisplayStyle, setDisplayStyle: () => {} };
+};
 
 /* ─── Nusach list ────────────────────────────────────────── */
 const NUSACHOT = [
@@ -44,6 +55,13 @@ const STATIC_TABS = [
 ];
 const NUSACH_INDEP = new Set(["tehillim", "kria"]);
 
+function readingGutter(width: "narrow" | "normal" | "wide" | "full"): string {
+  if (width === "narrow") return "clamp(18px, 5.5vw, 32px)";
+  if (width === "wide") return "clamp(10px, 3.3vw, 18px)";
+  if (width === "full") return "clamp(6px, 2.2vw, 12px)";
+  return "clamp(14px, 4.2vw, 24px)";
+}
+
 /* ─── Hebrew numeral helper (1–150) ───────────────────────── */
 function heNum(n: number): string {
   const ones = ["","א","ב","ג","ד","ה","ו","ז","ח","ט"];
@@ -56,8 +74,19 @@ function heNum(n: number): string {
 }
 
 /* ─── HTML line cleaner ──────────────────────────────────── */
-function cleanLine(html: string): string {
+function sanitizeHebrewMarkup(html: string): string {
   return html
+    .normalize("NFKC")
+    .replace(/<\s*big\s*>/gi, "<b>")
+    .replace(/<\s*\/\s*big\s*>/gi, "</b>")
+    .replace(/<\s*big\s*\/\s*>/gi, "")
+    .replace(/<\s*br\s*\/??\s*>/gi, "\n")
+    // Keep only supported inline tags to avoid raw tag names in the UI.
+    .replace(/<\/?(?!b\b|small\b)[a-z0-9:-]+[^>]*>/gi, "");
+}
+
+function cleanLine(html: string): string {
+  return sanitizeHebrewMarkup(html)
     .replace(/<[^>]*>/g, "")
     .replace(/&thinsp;/g, "\u2009")
     .replace(/&nbsp;/g, "\u00a0")
@@ -67,6 +96,64 @@ function cleanLine(html: string): string {
     .replace(/\{[פסנ]\}/g, "")
     .trim();
 }
+
+/* ─── Siddur line classification ───────────────────────────
+   Three types:
+   "heading"     — <b>short-title</b>  e.g. <b>קדושה</b>
+   "instruction" — <small>...</small>  rubric / stage-direction
+   "prayer"      — regular / bold-first-word prayer text
+──────────────────────────────────────────────────────────── */
+const NIKUD_RE   = /[\u05B0-\u05C7\u05F0-\u05F4\uFB1D-\uFB4E]/g;
+const TAAMIM_RE  = /[\u0591-\u05AF]/g;
+const NIKUD_STRIP = /[\u05B0-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/g;
+
+function stripText(text: string, showNikud: boolean, showTaamim: boolean): string {
+  // Normalize Hebrew presentation forms (e.g. שׁ) to standard letters + marks.
+  // This keeps glyph metrics consistent across words in the same font.
+  let t = text.normalize("NFKC");
+  if (!showTaamim) t = t.replace(TAAMIM_RE, "");
+  if (!showNikud)  t = t.replace(NIKUD_STRIP, "");
+  return t;
+}
+
+function classifyLine(html: string): "heading" | "instruction" | "prayer" {
+  const t = html.trim();
+  if (t.startsWith("<small>")) return "instruction";
+  const m = t.match(/^<b>([^<]+)<\/b>$/);
+  if (m && m[1].replace(NIKUD_RE, "").replace(/\s/g, "").length <= 20) return "heading";
+  return "prayer";
+}
+
+/* Parses <b> and inline <small> tags inside a prayer line into React nodes */
+function renderLineContent(html: string): React.ReactNode {
+  const h = sanitizeHebrewMarkup(html)
+    .replace(/&thinsp;/g, "\u2009")
+    .replace(/&nbsp;/g, "\u00a0")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\{[פסנ]\}/g, "");
+  const parts: React.ReactNode[] = [];
+  const re = /<(b|small)>([\s\S]*?)<\/(b|small)>/g;
+  let last = 0, key = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(h)) !== null) {
+    if (match.index > last) parts.push(h.slice(last, match.index));
+    if (match[1] === "b") {
+      parts.push(<strong key={key++} style={{ fontWeight: 700 }}>{match[2]}</strong>);
+    } else {
+      parts.push(
+        <span key={key++} style={{ fontSize: "0.77em", opacity: 0.65, fontStyle: "italic" }}>
+          {match[2]}
+        </span>
+      );
+    }
+    last = re.lastIndex;
+  }
+  if (last < h.length) parts.push(h.slice(last));
+  return parts.length === 0 ? "" : parts.length === 1 && typeof parts[0] === "string" ? parts[0] : <>{parts}</>;
+}
+
 /* Maps lineHeight setting token → CSS value (generous for nikud) */
 function lineHeightCSS(lh: string, custom?: number): string {
   if (lh === "tight")    return "1.6";
@@ -75,6 +162,19 @@ function lineHeightCSS(lh: string, custom?: number): string {
   if (lh === "loose")    return "2.8";
   if (lh === "custom" && custom) return String(custom);
   return "2.0";
+}
+
+function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: boolean): React.CSSProperties {
+  if (!showNikud) return { fontFamily, lineHeight };
+  const parsed = Number(lineHeight);
+  const stableLineHeight = Number.isFinite(parsed) ? String(Math.max(parsed, 2.2)) : lineHeight;
+  return {
+    // Prefer Hebrew fonts with strong niqqud/mark anchoring when nikud is visible.
+    fontFamily: `'Noto Serif Hebrew', 'Noto Sans Hebrew', 'David Libre', ${fontFamily}, serif`,
+    lineHeight: stableLineHeight,
+    fontFeatureSettings: '"mark" 1, "mkmk" 1',
+    textRendering: 'optimizeLegibility',
+  };
 }
 /* ─── Gold decoration helpers ───────────────────────────── */
 const GOLD = "#c8a04d";
@@ -102,25 +202,89 @@ const Divider = () => (
     background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`
   }} />
 );
-const OrnamentTitle = ({ text }: { text: string }) => (
+const OrnamentTitle = ({ text, fontSize }: { text: string; fontSize?: number }) => (
   <div className="flex items-center justify-center gap-2 my-2">
     <span style={{ color: GOLD, fontSize: "0.9em" }}>❧</span>
-    <span className="font-bold tracking-wide text-sm" style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}>
+    <span className="font-bold tracking-wide" style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif", fontSize: fontSize ? `${fontSize}px` : "0.9em" }}>
       {text}
     </span>
     <span style={{ color: GOLD, fontSize: "0.9em", transform: "scaleX(-1)", display: "inline-block" }}>❧</span>
   </div>
 );
 
+/* ─── SiddurLine — renders one siddur line with semantic styling ─── */
+type SiddurLineSettings = { siddurFont: string; siddurSize: number; siddurBold: boolean; textAlignment: string; lineHeight: string; lineHeightCustom: number; showNikud: boolean; showTaamim: boolean };
+
+const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
+  html = stripText(html, s.showNikud, s.showTaamim);
+  const type = classifyLine(html);
+  const lh = lineHeightCSS(s.lineHeight, s.lineHeightCustom);
+  const nikudStyle = withNikudTypography(s.siddurFont, lh, s.showNikud);
+
+  if (type === "heading") {
+    return (
+      <div className="flex items-center gap-2 mt-3 mb-0.5" style={{ direction: "rtl" }}>
+        <span className="inline-block h-3 w-0.5 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
+        <span style={{
+          ...nikudStyle,
+          fontSize: `${Math.round(s.siddurSize * 0.82)}px`,
+          fontWeight: 700,
+          color: GOLD,
+          letterSpacing: "0.04em",
+        }}>
+          {renderLineContent(html)}
+        </span>
+      </div>
+    );
+  }
+
+  if (type === "instruction") {
+    return (
+      <p className="text-foreground/60" style={{
+        ...nikudStyle,
+        fontSize: `${Math.round(s.siddurSize * 0.72)}px`,
+        fontStyle: "italic",
+        textAlign: s.textAlignment as React.CSSProperties["textAlign"],
+        direction: "rtl",
+        opacity: 0.7,
+      }}>
+        {renderLineContent(html)}
+      </p>
+    );
+  }
+
+  return (
+    <p className="text-foreground" style={{
+      ...nikudStyle,
+      fontSize: `${s.siddurSize}px`,
+      fontWeight: s.siddurBold ? 700 : 400,
+      textAlign: s.textAlignment as React.CSSProperties["textAlign"],
+      direction: "rtl",
+    }}>
+      {renderLineContent(html)}
+    </p>
+  );
+};
+
 /* ─── SectionCard ────────────────────────────────────────── */
 const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection; initialOpen?: boolean }) => {
   const [open, setOpen] = useState(initialOpen);
   const { settings: siddurSettings } = useFontAndColorSettings();
+  const { displayStyle } = useSiddurDisplayStyle();
+  const ornate = displayStyle === "ornate";
+  const gutter = readingGutter(siddurSettings.siddurContentWidth);
+  const lineSettings: SiddurLineSettings = {
+    ...siddurSettings,
+    textAlignment: siddurSettings.siddurTextAlignment,
+    lineHeight: siddurSettings.siddurLineHeight,
+    lineHeightCustom: siddurSettings.siddurLineHeightCustom,
+  };
 
   return (
     <div className="rounded-lg border border-border/50 overflow-hidden mb-2" style={{
-      background: "hsl(var(--card))",
-      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+      background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : "hsl(var(--card))",
+      borderColor: ornate ? `${GOLD}44` : undefined,
+      boxShadow: ornate ? `0 4px 16px ${GOLD}1f, inset 0 1px 0 #ffffff` : "0 1px 4px rgba(0,0,0,0.06)",
     }}>
       {/* Section header / toggle */}
       <button
@@ -131,10 +295,11 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
         <div className="flex items-center gap-2">
           <span className="inline-block w-1.5 h-4 rounded-full" style={{ background: GOLD, opacity: 0.7 }} />
           <span
-            className="font-semibold text-foreground"
+            className="text-foreground"
             style={{
               fontFamily: siddurSettings.siddurFont,
               fontSize: `${siddurSettings.siddurSize}px`,
+              fontWeight: siddurSettings.siddurBold ? 700 : 600,
             }}
           >
             {section.title}
@@ -148,23 +313,11 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
       {/* Prayer lines */}
       {open && (
         <div
-          className="px-4 sm:px-6 pb-4 pt-1 space-y-1.5 animate-fade-in border-t border-border/40"
-          style={{ direction: "rtl" }}
+          className="pb-4 pt-2 space-y-1.5 animate-fade-in border-t border-border/40"
+          style={{ direction: "rtl", paddingInline: gutter }}
         >
           {section.lines.map((line, i) => (
-            <p
-              key={i}
-              className="text-foreground"
-              style={{
-                fontFamily: siddurSettings.siddurFont,
-                fontSize: `${siddurSettings.siddurSize}px`,
-                fontWeight: siddurSettings.siddurBold ? 700 : 400,
-                textAlign: siddurSettings.textAlignment as React.CSSProperties["textAlign"],
-                lineHeight: lineHeightCSS(siddurSettings.lineHeight, siddurSettings.lineHeightCustom),
-              }}
-            >
-              {cleanLine(line)}
-            </p>
+            <SiddurLine key={i} html={line} s={lineSettings} />
           ))}
         </div>
       )}
@@ -177,6 +330,13 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
   const [visibleCount, setVisibleCount] = useState(8);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const { settings: siddurSettings } = useFontAndColorSettings();
+  const gutter = readingGutter(siddurSettings.siddurContentWidth);
+  const lineSettings: SiddurLineSettings = {
+    ...siddurSettings,
+    textAlignment: siddurSettings.siddurTextAlignment,
+    lineHeight: siddurSettings.siddurLineHeight,
+    lineHeightCustom: siddurSettings.siddurLineHeightCustom,
+  };
 
   // Reset when sections array changes (e.g. tab switch)
   useEffect(() => { setVisibleCount(8); }, [sections]);
@@ -198,32 +358,24 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
       {sections.slice(0, visibleCount).map((sec, i) => (
         <div key={i}>
           <h3
-            className="font-semibold mb-1 flex items-center gap-2"
+            className="mb-1 flex items-center gap-2"
             style={{
               color: GOLD,
               fontFamily: siddurSettings.siddurFont,
               fontSize: `${siddurSettings.siddurSize}px`,
+              fontWeight: siddurSettings.siddurBold ? 700 : 600,
             }}
           >
             <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
             {sec.title}
           </h3>
           <Divider />
-          <div className="space-y-1.5 mt-2">
+          <div
+            className="space-y-1.5 mt-2 rounded-xl border border-border/40 bg-card/60 py-3"
+            style={{ paddingInline: gutter }}
+          >
             {sec.lines.map((line, j) => (
-              <p
-                key={j}
-                className="text-foreground"
-                style={{
-                  fontFamily: siddurSettings.siddurFont,
-                  fontSize: `${siddurSettings.siddurSize}px`,
-                  fontWeight: siddurSettings.siddurBold ? 700 : 400,
-                  textAlign: siddurSettings.textAlignment as React.CSSProperties["textAlign"],
-                  lineHeight: lineHeightCSS(siddurSettings.lineHeight, siddurSettings.lineHeightCustom),
-                }}
-              >
-                {cleanLine(line)}
-              </p>
+              <SiddurLine key={j} html={line} s={lineSettings} />
             ))}
           </div>
         </div>
@@ -251,6 +403,7 @@ const CategoryPane = ({
   viewMode: "accordion" | "continuous";
 }) => {
   const { sections, catName, loading, error } = useSiddurSections(nusach, catId);
+  const { settings: siddurSettings } = useFontAndColorSettings();
 
   if (loading)
     return (
@@ -285,7 +438,7 @@ const CategoryPane = ({
 
   return (
     <div className="pb-8">
-      <OrnamentTitle text={catName} />
+      <OrnamentTitle text={catName} fontSize={siddurSettings.siddurSize} />
       <Divider />
       <div className="mt-4">
         {viewMode === "continuous"
@@ -309,6 +462,13 @@ const SERIF = "'Noto Serif Hebrew', 'David Libre', serif";
 const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: string; name: string } }) => {
   const { sections, loading } = useSiddurSections(nusach, cat.id);
   const { settings: siddurSettings } = useFontAndColorSettings();
+  const gutter = readingGutter(siddurSettings.siddurContentWidth);
+  const lineSettings: SiddurLineSettings = {
+    ...siddurSettings,
+    textAlignment: siddurSettings.siddurTextAlignment,
+    lineHeight: siddurSettings.siddurLineHeight,
+    lineHeightCustom: siddurSettings.siddurLineHeightCustom,
+  };
   if (loading)
     return (
       <div className="flex justify-center py-6">
@@ -318,37 +478,29 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
   if (!sections?.length) return null;
   return (
     <div className="mb-10">
-      <OrnamentTitle text={cat.name} />
+      <OrnamentTitle text={cat.name} fontSize={siddurSettings.siddurSize} />
       <Divider />
       <div className="mt-4 space-y-6">
         {sections.map((sec, i) => (
           <div key={i}>
             <h3
-              className="font-bold mb-1 flex items-center gap-2"
+              className="mb-1 flex items-center gap-2"
               style={{
                 color: GOLD,
                 fontFamily: siddurSettings.siddurFont,
                 fontSize: `${siddurSettings.siddurSize}px`,
+                fontWeight: siddurSettings.siddurBold ? 700 : 600,
               }}
             >
               <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
               {sec.title}
             </h3>
-            <div className="space-y-1.5 mt-2">
+            <div
+              className="space-y-1.5 mt-2 rounded-xl border border-border/40 bg-card/60 py-3"
+              style={{ paddingInline: gutter }}
+            >
               {sec.lines.map((line, j) => (
-                <p
-                  key={j}
-                  className="text-foreground"
-                  style={{
-                    fontFamily: siddurSettings.siddurFont,
-                    fontSize: `${siddurSettings.siddurSize}px`,
-                    fontWeight: siddurSettings.siddurBold ? 700 : 400,
-                    textAlign: siddurSettings.textAlignment as React.CSSProperties["textAlign"],
-                    lineHeight: lineHeightCSS(siddurSettings.lineHeight, siddurSettings.lineHeightCustom),
-                  }}
-                >
-                  {cleanLine(line)}
-                </p>
+                <SiddurLine key={j} html={line} s={lineSettings} />
               ))}
             </div>
           </div>
@@ -404,12 +556,57 @@ const FullContinuousPane = ({ nusach }: { nusach: string }) => {
   );
 };
 
+/* ─── TextFiltersBar (nikud / taamim toggles) ───────────── */
+const TextFiltersBar = ({ scope }: { scope: "siddur" | "tehillim" }) => {
+  const { settings, updateSettings } = useFontAndColorSettings();
+  const { displayStyle, setDisplayStyle } = useSiddurDisplayStyle();
+  const showNikud  = settings.showNikud  ?? true;
+  const showTaamim = settings.showTaamim ?? true;
+  const widthOrder: Array<"narrow" | "normal" | "wide" | "full"> = ["narrow", "normal", "wide", "full"];
+  const widthLabels: Record<"narrow" | "normal" | "wide" | "full", string> = {
+    narrow: "צר",
+    normal: "רגיל",
+    wide: "רחב",
+    full: "מלא",
+  };
+  const scopedWidth = scope === "tehillim" ? settings.tehillimContentWidth : settings.siddurContentWidth;
+  const scopedNextWidth = widthOrder[(widthOrder.indexOf(scopedWidth) + 1) % widthOrder.length];
+
+  const pill = (active: boolean, onClick: () => void, label: string, example: string) => (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all select-none"
+      style={{
+        background: active ? GOLD : "hsl(var(--muted))",
+        color:      active ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
+        boxShadow:  active ? `0 2px 8px ${GOLD}44` : "none",
+        fontFamily: "'Noto Serif Hebrew', serif",
+        opacity:    active ? 1 : 0.6,
+      }}
+    >
+      <span style={{ fontSize: "0.85em", opacity: active ? 1 : 0.5 }}>{example}</span>
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="flex justify-center gap-2 mb-3">
+      {pill(showNikud,  () => updateSettings({ showNikud:  !showNikud  }), "ניקוד",  "בָּ")}
+      {pill(showTaamim, () => updateSettings({ showTaamim: !showTaamim }), "טעמים", "֑")}
+      {pill(true, () => updateSettings(scope === "tehillim" ? { tehillimContentWidth: scopedNextWidth } : { siddurContentWidth: scopedNextWidth }), `שוליים: ${widthLabels[scopedWidth]}`, "↔")}
+      {pill(displayStyle === "ornate", () => setDisplayStyle(displayStyle === "ornate" ? "classic" : "ornate"), "תצוגה מפוארת", "✦")}
+    </div>
+  );
+};
+
 /* ─── TehillimPane ───────────────────────────────────────── */
 const TEHILLIM_DAILY: Record<number, number>   = { 0: 24, 1: 48, 2: 82, 3: 94, 4: 81, 5: 93, 6: 92 };
 const TEHILLIM_DAY_HEB: Record<number, string> = { 0: "ראשון", 1: "שני", 2: "שלישי", 3: "רביעי", 4: "חמישי", 5: "שישי", 6: "שבת" };
 
 const TehillimPane = () => {
   const { tehillim, loading } = useTehillimData();
+  const { displayStyle } = useSiddurDisplayStyle();
+  const ornate = displayStyle === "ornate";
   const [chapter, setChapter] = useState(1);
   const [pasuk,   setPasuk]   = useState<number | null>(null);  // 1-based
   const [level,   setLevel]   = useState<"chapter" | "text">("chapter");
@@ -486,9 +683,18 @@ const TehillimPane = () => {
     fontFamily: tehillimSettings.tehillimFont,
     fontSize:   `${tehillimSettings.tehillimSize}px`,
     fontWeight: tehillimSettings.tehillimBold ? 700 : 400,
-    textAlign:  tehillimSettings.textAlignment as React.CSSProperties["textAlign"],
-    lineHeight: lineHeightCSS(tehillimSettings.lineHeight, tehillimSettings.lineHeightCustom),
+    textAlign:  tehillimSettings.tehillimTextAlignment as React.CSSProperties["textAlign"],
+    lineHeight: lineHeightCSS(tehillimSettings.tehillimLineHeight, tehillimSettings.tehillimLineHeightCustom),
   };
+
+  const showNikud  = tehillimSettings.showNikud  ?? true;
+  const showTaamim = tehillimSettings.showTaamim ?? true;
+  const gutter = readingGutter(tehillimSettings.tehillimContentWidth);
+  const nikudTextStyle = withNikudTypography(
+    tehillimSettings.tehillimFont,
+    lineHeightCSS(tehillimSettings.tehillimLineHeight, tehillimSettings.tehillimLineHeightCustom),
+    showNikud
+  );
 
   const verseNumStyle: React.CSSProperties = {
     color: GOLD, fontSize: "0.7em", opacity: 0.9,
@@ -498,7 +704,12 @@ const TehillimPane = () => {
   };
 
   const renderVerseCard = (lines: string[], highlightPasuk: number | null, trackRefs = false) => (
-    <div className="rounded-xl border border-border/50 px-5 py-5 space-y-3" style={{ background: "hsl(var(--card))" }}>
+    <div className="rounded-xl border border-border/50 py-5 space-y-3" style={{
+      background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fff8eb 100%)" : "hsl(var(--card))",
+      borderColor: ornate ? `${GOLD}44` : undefined,
+      boxShadow: ornate ? `0 6px 18px ${GOLD}1f` : undefined,
+      paddingInline: gutter,
+    }}>
       {lines.map((line, i) => (
         <p
           key={i}
@@ -506,13 +717,14 @@ const TehillimPane = () => {
           className="leading-relaxed text-foreground transition-all rounded-lg"
           style={{
             ...textStyle,
+            ...nikudTextStyle,
             background:  highlightPasuk === i + 1 ? `${GOLD}18` : "transparent",
             padding:     highlightPasuk === i + 1 ? "2px 6px" : "0",
             borderRight: highlightPasuk === i + 1 ? `3px solid ${GOLD}` : "3px solid transparent",
           }}
         >
           <span style={verseNumStyle}>{heNum(i + 1)}</span>
-          {cleanLine(line)}
+          {stripText(cleanLine(line), showNikud, showTaamim)}
         </p>
       ))}
     </div>
@@ -520,7 +732,7 @@ const TehillimPane = () => {
 
   return (
     <div className="pb-10 px-1" dir="rtl">
-      <OrnamentTitle text="תהילים" />
+      <OrnamentTitle text="תהילים" fontSize={tehillimSettings.tehillimSize} />
       <Divider />
 
       {/* ── Mode toggle — 3 pills ── */}
@@ -632,7 +844,7 @@ const TehillimPane = () => {
                 </div>
               </div>
 
-              <OrnamentTitle text={`פרק ${heNum(chapter)} — ${current.title || "תהלים"}`} />
+              <OrnamentTitle text={`פרק ${heNum(chapter)} — ${current.title || "תהלים"}`} fontSize={tehillimSettings.tehillimSize} />
               <div ref={textRef}>
                 {renderVerseCard(current.lines, pasuk, true)}
               </div>
@@ -682,7 +894,7 @@ const TehillimPane = () => {
               {`מזמור של יום ${todayDayName} — פרק ${heNum(todayChapter)}`}
             </span>
           </div>
-          <OrnamentTitle text={`פרק ${heNum(todayChapter)} — ${dailyCurrent.title || "תהלים"}`} />
+          <OrnamentTitle text={`פרק ${heNum(todayChapter)} — ${dailyCurrent.title || "תהלים"}`} fontSize={tehillimSettings.tehillimSize} />
           {renderVerseCard(dailyCurrent.lines, null, false)}
         </div>
       )}
@@ -693,17 +905,18 @@ const TehillimPane = () => {
           {allChapters.slice(0, visibleCount).map(ch => (
             <div key={ch.chapter}>
               <h3
-                className="font-bold mb-2 flex items-center gap-2"
+                className="mb-2 flex items-center gap-2"
                 style={{
                   color:      GOLD,
-                  fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                  fontFamily: tehillimSettings.tehillimFont,
                   fontSize:   `${tehillimSettings.tehillimSize}px`,
+                  fontWeight: tehillimSettings.tehillimBold ? 700 : 600,
                 }}
               >
                 <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
                 {`פרק ${heNum(ch.chapter)}`}
                 {ch.title && ch.title !== "תהילים" && (
-                  <span className="text-xs font-normal opacity-70">— {ch.title}</span>
+                  <span style={{ fontSize: "0.7em", fontWeight: 400, opacity: 0.7 }}>— {ch.title}</span>
                 )}
               </h3>
               <Divider />
@@ -857,9 +1070,13 @@ export const Siddur = () => {
   const [viewMode, setViewMode] = useState<"accordion" | "continuous" | "scroll">(() =>
     (localStorage.getItem("siddur-view-mode") as "accordion" | "continuous" | "scroll") ?? "accordion"
   );
+  const [displayStyle, setDisplayStyleState] = useState<DisplayStyle>(() =>
+    (localStorage.getItem("siddur-display-style") as DisplayStyle) ?? "classic"
+  );
 
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
   const isSpecial = NUSACH_INDEP.has(catId);
+  const settingsTab = catId === "tehillim" ? "tehillim" : catId === "kria" ? "pasuk" : "siddur";
 
   // If active category disappeared in new nusach, fall back to first
   useEffect(() => {
@@ -873,6 +1090,11 @@ export const Siddur = () => {
     setViewMode(mode);
   };
 
+  const setDisplayStyle = (style: DisplayStyle) => {
+    localStorage.setItem("siddur-display-style", style);
+    setDisplayStyleState(style);
+  };
+
   const VIEW_MODES: { id: "accordion" | "continuous" | "scroll"; icon: React.ReactNode; title: string }[] = [
     { id: "accordion",  icon: <LayoutList  className="h-4 w-4" />, title: "תצוגת מקטעים" },
     { id: "continuous", icon: <AlignJustify className="h-4 w-4" />, title: "תצוגה רציפה" },
@@ -880,15 +1102,23 @@ export const Siddur = () => {
   ];
 
   return (
+    <SiddurDisplayStyleContext.Provider value={{ displayStyle, setDisplayStyle }}>
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: "hsl(var(--background))", direction: "rtl" }}
+      style={{
+        background: displayStyle === "ornate"
+          ? "linear-gradient(180deg, #fffefb 0%, #fff7e9 52%, #fffdf7 100%)"
+          : "hsl(var(--background))",
+        direction: "rtl",
+      }}
     >
       {/* ── Header ── */}
       <header
         className="sticky top-0 z-40 shadow-lg"
         style={{
-          background: "hsl(var(--sidebar-background))",
+          background: displayStyle === "ornate"
+            ? "linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, #1a2f63 100%)"
+            : "hsl(var(--sidebar-background))",
           paddingTop: "max(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)), 28px)",
         }}
       >
@@ -954,7 +1184,7 @@ export const Siddur = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <TextDisplaySettings />
+              <TextDisplaySettings initialTab={settingsTab} />
             </div>
           </div>
 
@@ -1065,7 +1295,10 @@ export const Siddur = () => {
       </div>
 
       {/* ── Content area ── */}
-      <main className="flex-1 flex flex-col px-4 sm:px-6 pt-4 sm:pt-6 max-w-2xl mx-auto w-full">
+      <main className="flex-1 flex flex-col px-5 sm:px-7 pt-4 sm:pt-6 max-w-2xl mx-auto w-full">
+        {/* ── Text filter toggles (nikud / taamim) ── */}
+        <TextFiltersBar scope={catId === "tehillim" ? "tehillim" : "siddur"} />
+
         {/* Special — nusach-independent panes */}
         {catId === "tehillim" && <TehillimPane />}
         {catId === "kria"     && <KriaPane onNavigate={() => navigate("/")} />}
@@ -1079,6 +1312,7 @@ export const Siddur = () => {
         )}
       </main>
     </div>
+    </SiddurDisplayStyleContext.Provider>
   );
 };
 

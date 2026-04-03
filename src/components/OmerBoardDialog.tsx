@@ -1,0 +1,554 @@
+import { useEffect, useMemo, useState } from "react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { getCalendarPreference } from "@/utils/parshaUtils";
+import { getOmerBoardData } from "@/utils/omerUtils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toHebrewNumber } from "@/utils/hebrewNumbers";
+
+interface OmerBoardDialogProps {
+  buttonClassName?: string;
+  iconClassName?: string;
+}
+
+type OmerViewMode = "grid" | "table" | "compact" | "weekly";
+type OmerNusach = "sefarad" | "ashkenaz" | "edot";
+type OmerDesignMode = "classic" | "parchment" | "clean";
+
+const OMER_NUSACH_KEY = "omer-nusach";
+
+const normalizeNusach = (value: unknown): OmerNusach => {
+  if (value === "ashkenaz" || value === "edot" || value === "sefarad") return value;
+  return "sefarad";
+};
+
+const parseNusach = (value: unknown): OmerNusach | null => {
+  if (value === "ashkenaz" || value === "edot" || value === "sefarad") return value;
+  return null;
+};
+
+export function OmerBoardDialog({ buttonClassName, iconClassName }: OmerBoardDialogProps) {
+  const board = useMemo(() => getOmerBoardData(getCalendarPreference()), []);
+  const [viewMode, setViewMode] = useState<OmerViewMode>("grid");
+  const [designMode, setDesignMode] = useState<OmerDesignMode>("classic");
+  const { user } = useAuth();
+  const [nusach, setNusach] = useState<OmerNusach>(() => {
+    try {
+      return normalizeNusach(localStorage.getItem(OMER_NUSACH_KEY));
+    } catch {
+      return "sefarad";
+    }
+  });
+  const [selectedDay, setSelectedDay] = useState<(typeof board.days)[number] | null>(null);
+  const [prayerDialogOpen, setPrayerDialogOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(OMER_NUSACH_KEY, nusach);
+    } catch {
+      // Ignore storage write errors.
+    }
+  }, [nusach]);
+
+  useEffect(() => {
+    const cloudNusach = parseNusach(user?.user_metadata?.omer_nusach);
+    if (user && cloudNusach && cloudNusach !== nusach) {
+      setNusach(cloudNusach);
+      return;
+    }
+
+    if (!user) {
+      try {
+        const saved = normalizeNusach(localStorage.getItem(OMER_NUSACH_KEY));
+        if (saved !== nusach) setNusach(saved);
+      } catch {
+        // Ignore storage read errors.
+      }
+    }
+  }, [user, nusach]);
+
+  useEffect(() => {
+    const syncNusachToCloud = async () => {
+      if (!user) return;
+      const cloudNusach = parseNusach(user.user_metadata?.omer_nusach);
+      if (cloudNusach === nusach) return;
+
+      const nextMetadata = {
+        ...(user.user_metadata ?? {}),
+        omer_nusach: nusach,
+      };
+
+      const { error } = await supabase.auth.updateUser({ data: nextMetadata });
+      if (error) {
+        console.error("Failed to sync omer nusach to cloud:", error);
+      }
+    };
+
+    void syncNusachToCloud();
+  }, [user, nusach]);
+
+  const todayHebrewDay = board.currentDay
+    ? board.days.find((day) => day.day === board.currentDay)?.hebrewDay ?? ""
+    : "";
+
+  const cycleViewMode = () => {
+    setViewMode((prev) => {
+      if (prev === "grid") return "table";
+      if (prev === "table") return "compact";
+      if (prev === "compact") return "weekly";
+      return "grid";
+    });
+  };
+
+  const cycleDesignMode = () => {
+    setDesignMode((prev) => {
+      if (prev === "classic") return "parchment";
+      if (prev === "parchment") return "clean";
+      return "classic";
+    });
+  };
+
+  const currentViewIcon =
+    viewMode === "grid" ? <LayoutGrid className="h-4 w-4" /> :
+    viewMode === "table" ? <Table2 className="h-4 w-4" /> :
+    viewMode === "compact" ? <Rows3 className="h-4 w-4" /> :
+    <CalendarDays className="h-4 w-4" />;
+
+  const currentViewLabel =
+    viewMode === "grid" ? "רשת" :
+    viewMode === "table" ? "טבלה" :
+    viewMode === "compact" ? "קומפקטי" :
+    "שבועי";
+
+  const currentDesignLabel =
+    designMode === "classic" ? "קלאסי" :
+    designMode === "parchment" ? "קלף" :
+    "נקי";
+
+  const viewOptions: Array<{ value: OmerViewMode; label: string }> = [
+    { value: "grid", label: "רשת" },
+    { value: "table", label: "טבלה" },
+    { value: "compact", label: "קומפקטי" },
+    { value: "weekly", label: "שבועי" },
+  ];
+
+  const designOptions: Array<{ value: OmerDesignMode; label: string }> = [
+    { value: "classic", label: "קלאסי" },
+    { value: "parchment", label: "קלף" },
+    { value: "clean", label: "נקי" },
+  ];
+
+  const weeklyGroups = useMemo(() => {
+    const groups: Array<{ week: number; days: typeof board.days }> = [];
+    for (let i = 0; i < board.days.length; i += 7) {
+      groups.push({ week: Math.floor(i / 7) + 1, days: board.days.slice(i, i + 7) });
+    }
+    return groups;
+  }, [board.days]);
+
+  const designStyles = {
+    classic: {
+      boardBg: "bg-white",
+      card: "border-[#D6B66A]/70 bg-white",
+      today: "border-[#C8A44D] bg-[#F7F1E1] ring-1 ring-[#C8A44D]/60",
+      header: "bg-[#F7F1E1]",
+    },
+    parchment: {
+      boardBg: "bg-[#FFFDF7]",
+      card: "border-[#B89B57]/70 bg-[#FFFCF0]",
+      today: "border-[#B89B57] bg-[#F2E7C9] ring-1 ring-[#B89B57]/60",
+      header: "bg-[#EFE4C8]",
+    },
+    clean: {
+      boardBg: "bg-white",
+      card: "border-[#CBD5E1] bg-[#F8FAFC]",
+      today: "border-[#64748B] bg-[#E2E8F0] ring-1 ring-[#64748B]/50",
+      header: "bg-[#EEF2F7]",
+    },
+  } as const;
+
+  const activeDesign = designStyles[designMode];
+
+  const openPrayerDialog = (day: (typeof board.days)[number]) => {
+    setSelectedDay(day);
+    setPrayerDialogOpen(true);
+  };
+
+  const omerBlessing = "בָּרוּךְ אַתָּה ה׳ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל סְפִירַת הָעוֹמֶר.";
+  const nusachOptions: Array<{ value: OmerNusach; label: string }> = [
+    { value: "sefarad", label: "נוסח ספרד" },
+    { value: "ashkenaz", label: "נוסח אשכנז" },
+    { value: "edot", label: "עדות המזרח" },
+  ];
+
+  const afterCountByNusach: Record<OmerNusach, { note: string; sections: Array<{ title: string; text: string }> }> = {
+    sefarad: {
+      note: "נוסח נפוץ בקהילות ספרד וחסידים.",
+      sections: [
+        {
+          title: "הרחמן",
+          text: "הָרַחֲמָן הוּא יַחֲזִיר לָנוּ עֲבוֹדַת בֵּית הַמִּקְדָּשׁ לִמְקוֹמָהּ בִּמְהֵרָה בְיָמֵינוּ אָמֵן סֶלָה.",
+        },
+        {
+          title: "ריבונו של עולם",
+          text: "רִבּוֹנוֹ שֶׁל עוֹלָם, אַתָּה צִוִּיתָנוּ עַל יְדֵי מֹשֶׁה עַבְדֶּךָ לִסְפּוֹר סְפִירַת הָעוֹמֶר, כְּדֵי לְטַהֲרֵנוּ מִקְּלִפּוֹתֵינוּ וּמִטֻּמְאוֹתֵינוּ. וְעַל יְדֵי זֶה יֻשְׁפַּע שֶׁפַע רַב בְּכָל הָעוֹלָמוֹת וּלְתַקֵּן אֶת נַפְשׁוֹתֵינוּ. אָבִינוּ שֶׁבַּשָּׁמַיִם, יְהִי רָצוֹן מִלְּפָנֶיךָ שֶׁיִּבָּנֶה בֵּית הַמִּקְדָּשׁ בִּמְהֵרָה בְיָמֵינוּ וְתֵן חֶלְקֵנוּ בְּתוֹרָתֶךָ.",
+        },
+        {
+          title: "אנא בכח",
+          text: "אָנָּא בְּכֹחַ גְּדֻלַּת יְמִינֶךָ תַּתִּיר צְרוּרָה. קַבֵּל רִנַּת עַמְּךָ שַׂגְּבֵנוּ טַהֲרֵנוּ נוֹרָא. נָא גִבּוֹר דּוֹרְשֵׁי יִחוּדְךָ כְּבָבַת שָׁמְרֵם. בָּרְכֵם טַהֲרֵם רַחֲמֵי צִדְקָתֶךָ תָּמִיד גָּמְלֵם. חֲסִין קָדוֹשׁ בְּרוֹב טוּבְךָ נַהֵל עֲדָתֶךָ. יָחִיד גֵּאֶה לְעַמְּךָ פְּנֵה זוֹכְרֵי קְדֻשָּׁתֶךָ. שַׁוְעָתֵנוּ קַבֵּל וּשְׁמַע צַעֲקָתֵנוּ יוֹדֵעַ תַּעֲלֻמוֹת.",
+        },
+      ],
+    },
+    ashkenaz: {
+      note: "נוסח נפוץ בקהילות אשכנז.",
+      sections: [
+        {
+          title: "יהי רצון",
+          text: "יְהִי רָצוֹן מִלְּפָנֶיךָ ה׳ אֱלֹהֵינוּ וֵאלֹהֵי אֲבוֹתֵינוּ שֶׁיִּבָּנֶה בֵּית הַמִּקְדָּשׁ בִּמְהֵרָה בְיָמֵינוּ וְתֵן חֶלְקֵנוּ בְּתוֹרָתֶךָ.",
+        },
+        {
+          title: "הרחמן",
+          text: "הָרַחֲמָן הוּא יַחֲזִיר לָנוּ עֲבוֹדַת בֵּית הַמִּקְדָּשׁ לִמְקוֹמָהּ בִּמְהֵרָה בְיָמֵינוּ אָמֵן.",
+        },
+      ],
+    },
+    edot: {
+      note: "נוסח נפוץ בעדות המזרח.",
+      sections: [
+        {
+          title: "לשם ייחוד",
+          text: "לְשֵׁם יִחוּד קוּדְשָׁא בְּרִיךְ הוּא וּשְׁכִינְתֵּהּ, הֲרֵינִי מוּכָן וּמְזוּמָן לְקַיֵּם מִצְוַת סְפִירַת הָעוֹמֶר כַּכָּתוּב בַּתּוֹרָה.",
+        },
+        {
+          title: "הרחמן",
+          text: "הָרַחֲמָן הוּא יַחֲזִיר לָנוּ עֲבוֹדַת בֵּית הַמִּקְדָּשׁ לִמְקוֹמָהּ בִּמְהֵרָה בְיָמֵינוּ אָמֵן סֶלָה.",
+        },
+        {
+          title: "ריבונו של עולם",
+          text: "רִבּוֹנוֹ שֶׁל עוֹלָם, בִּזְכוּת סְפִירַת הָעוֹמֶר שֶׁסָּפַרְנוּ הַיּוֹם, יִתְקַשְּׁרוּ הַשְּׁפָעוֹת הַטּוֹבוֹת וְתִתְקַבֵּל תְּפִלָּתֵנוּ בְּרַחֲמִים וּבְרָצוֹן.",
+        },
+      ],
+    },
+  };
+
+  const selectedNusach = afterCountByNusach[nusach] ?? afterCountByNusach.sefarad;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("text-muted-foreground", buttonClassName)}
+          title="לוח ספירת העומר"
+        >
+          <Sparkles className={cn("h-4 w-4", iconClassName)} />
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className="w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 border-[#C8A44D] bg-white text-[#0B1F4A] max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        <div className="sticky top-0 z-10 bg-white px-3 sm:px-5 py-3 sm:py-5 border-b border-[#C8A44D]/70">
+          <DialogHeader className="text-right">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={cycleDesignMode}
+                  className="h-9 w-9 sm:h-8 sm:w-8 border-[#C8A44D] text-[#0B1F4A] hover:bg-[#F7F1E1]"
+                  title="החלף עיצוב: קלאסי / קלף / נקי"
+                >
+                  <Palette className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={cycleViewMode}
+                  className="h-9 w-9 sm:h-8 sm:w-8 border-[#C8A44D] text-[#0B1F4A] hover:bg-[#F7F1E1]"
+                  title="החלף תצוגה: רשת / טבלה / קומפקטי / שבועי"
+                >
+                  {currentViewIcon}
+                </Button>
+              </div>
+              <DialogTitle className="text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2 text-[#0B1F4A]">
+                <span>לוח ספירת העומר</span>
+                <CalendarDays className="h-5 w-5 text-[#C8A44D]" />
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-right text-[#0B1F4A]/80">
+              {board.isInSeason
+                ? `היום ${todayHebrewDay} לעומר`
+                : `טווח העומר: ${board.startGregorian} - ${board.endGregorian}`}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+
+        <div className={cn("px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 max-h-[74vh] sm:max-h-[72vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4", activeDesign.boardBg)}>
+          <Card className={cn("p-3 sm:p-4", activeDesign.card)}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs sm:text-sm text-[#0B1F4A]/80">
+                שנה עברית: {board.hebrewYear}
+              </p>
+              <p className="text-sm sm:text-base font-semibold text-right text-[#0B1F4A]">
+                {board.isInSeason && board.currentDay
+                  ? `היום ${todayHebrewDay} לעומר`
+                  : "מחוץ לימי הספירה"}
+              </p>
+            </div>
+            <p className="text-xs text-[#0B1F4A]/70 mt-2 text-right">תצוגה: {currentViewLabel} | עיצוב: {currentDesignLabel}</p>
+
+            <div className="mt-3 sm:hidden space-y-2">
+              <div className="flex flex-wrap gap-2 justify-end">
+                {viewOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setViewMode(option.value)}
+                    className={cn(
+                      "min-h-9 border-[#C8A44D] text-[#0B1F4A]",
+                      viewMode === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
+                    )}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2 justify-end">
+                {designOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDesignMode(option.value)}
+                    className={cn(
+                      "min-h-9 border-[#C8A44D] text-[#0B1F4A]",
+                      designMode === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
+                    )}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {viewMode === "grid" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {board.days.map((day) => (
+                <button
+                  key={day.day}
+                  type="button"
+                  onClick={() => openPrayerDialog(day)}
+                  className={cn(
+                    "w-full p-3 border transition-all text-right rounded-lg",
+                    day.isToday
+                      ? activeDesign.today
+                      : activeDesign.card,
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-right">
+                      <p className="text-sm text-[#0B1F4A]/70">יום</p>
+                      <p className="text-xl font-bold leading-none text-[#0B1F4A]">{day.weekdayHebrew}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-base font-semibold text-[#0B1F4A]">{day.hebrewDay} לעומר</p>
+                      <p className="text-sm text-[#0B1F4A]/90">{day.hebrewDate}</p>
+                      <p className="text-xs text-[#0B1F4A]/70 mt-1">{day.gregorianDate}</p>
+                      {day.shabbatReading && (
+                        <p className="text-xs text-[#0B1F4A]/85 mt-1 font-medium">פרשת השבוע: {day.shabbatReading}</p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-[#0B1F4A]/75 text-right">{day.sefira}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {viewMode === "table" && (
+            <div className="overflow-x-auto rounded-lg border border-[#C8A44D]">
+              <table className="w-full min-w-[620px] text-right text-sm">
+                <thead className={cn("text-[#0B1F4A]", activeDesign.header)}>
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">יום בשבוע</th>
+                    <th className="px-3 py-2 font-semibold">יום לעומר</th>
+                    <th className="px-3 py-2 font-semibold">תאריך עברי</th>
+                    <th className="px-3 py-2 font-semibold">לועזי</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {board.days.map((day) => (
+                    <tr
+                      key={day.day}
+                      onClick={() => openPrayerDialog(day)}
+                      className={cn(
+                        "border-t border-[#E5D2A0] text-[#0B1F4A] cursor-pointer",
+                        day.isToday ? activeDesign.today : activeDesign.card,
+                      )}
+                    >
+                      <td className="px-3 py-2 font-semibold">{day.weekdayHebrew}</td>
+                      <td className="px-3 py-2 font-semibold">
+                        <div>{day.hebrewDay} לעומר</div>
+                        {day.shabbatReading && (
+                          <div className="text-xs text-[#0B1F4A]/80 font-medium mt-1">פרשה: {day.shabbatReading}</div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">{day.hebrewDate}</td>
+                      <td className="px-3 py-2 text-xs text-[#0B1F4A]/75">{day.gregorianDate}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {viewMode === "compact" && (
+            <div className="space-y-2">
+              {board.days.map((day) => (
+                <button
+                  key={day.day}
+                  type="button"
+                  onClick={() => openPrayerDialog(day)}
+                  className={cn(
+                    "w-full px-3 py-3 border flex items-center justify-between text-right rounded-lg",
+                    day.isToday ? activeDesign.today : activeDesign.card,
+                  )}
+                >
+                  <div className="text-right">
+                    <p className="text-xs text-[#0B1F4A]/70">יום {day.weekdayHebrew}</p>
+                    <p className="text-sm font-semibold text-[#0B1F4A]">{day.hebrewDay} לעומר</p>
+                    <p className="text-xs text-[#0B1F4A]/75">{day.hebrewDate}</p>
+                    {day.shabbatReading && (
+                      <p className="text-xs text-[#0B1F4A]/85 mt-1 font-medium">פרשה: {day.shabbatReading}</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#0B1F4A]/70">{day.gregorianDate}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {viewMode === "weekly" && (
+            <div className="space-y-3">
+              {weeklyGroups.map((group) => (
+                <Card key={group.week} className={cn("p-3", activeDesign.card)}>
+                  <p className="text-sm font-bold text-[#0B1F4A] mb-2 text-right">שבוע {toHebrewNumber(group.week)} לעומר</p>
+                  <div className="space-y-2">
+                    {group.days.map((day) => (
+                      <button
+                        key={day.day}
+                        type="button"
+                        onClick={() => openPrayerDialog(day)}
+                        className={cn(
+                          "w-full rounded-md border px-3 py-2 text-right",
+                          day.isToday ? activeDesign.today : activeDesign.card,
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-[#0B1F4A]">{day.hebrewDay} לעומר</p>
+                          <p className="text-xs text-[#0B1F4A]/80">יום {day.weekdayHebrew}</p>
+                        </div>
+                        <p className="text-xs text-[#0B1F4A]/80">{day.hebrewDate} | {day.gregorianDate}</p>
+                        {day.shabbatReading && <p className="text-xs font-medium text-[#0B1F4A]/90 mt-1">פרשת השבוע: {day.shabbatReading}</p>}
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Dialog open={prayerDialogOpen} onOpenChange={setPrayerDialogOpen}>
+          <DialogContent className="w-[96vw] sm:w-auto sm:max-w-2xl border-2 border-[#C8A44D] bg-white text-[#0B1F4A] overflow-x-hidden max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-right text-xl font-bold text-[#0B1F4A]">
+                {selectedDay ? `${selectedDay.hebrewDay} לעומר` : "ספירת העומר"}
+              </DialogTitle>
+              <DialogDescription className="text-right text-[#0B1F4A]/80">
+                {selectedDay ? `יום ${selectedDay.weekdayHebrew} | ${selectedDay.hebrewDate} | ${selectedDay.gregorianDate}` : ""}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="max-h-[74vh] sm:max-h-[70vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4 text-right leading-8 pr-1">
+              {selectedDay?.shabbatReading && (
+                <Card className="border-[#C8A44D] bg-white p-4">
+                  <p className="text-sm text-[#0B1F4A]/70 mb-1">קריאת שבת</p>
+                  <p className="text-base font-semibold text-[#0B1F4A]">פרשת השבוע: {selectedDay.shabbatReading}</p>
+                </Card>
+              )}
+
+              <Card className="border-[#C8A44D] bg-[#FEFDF9] p-4">
+                <p className="text-sm text-[#0B1F4A]/70 mb-2">הברכה לפני הספירה</p>
+                <p className="text-base font-semibold">{omerBlessing}</p>
+              </Card>
+
+              <Card className="border-[#C8A44D] bg-[#F7F1E1] p-4">
+                <p className="text-sm text-[#0B1F4A]/70 mb-2">הספירה של היום</p>
+                <p className="text-lg font-bold">{selectedDay?.countText ?? ""}</p>
+              </Card>
+
+              <Card className="border-[#C8A44D] bg-white p-3">
+                <p className="text-sm text-[#0B1F4A]/70 mb-2">בחירת נוסח</p>
+                <div className="flex flex-wrap gap-2 justify-end">
+                  {nusachOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setNusach(option.value)}
+                      className={cn(
+                        "border-[#C8A44D] text-[#0B1F4A]",
+                        nusach === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
+                      )}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-[#0B1F4A]/60 mt-2">{selectedNusach.note}</p>
+              </Card>
+
+              {selectedNusach.sections.map((section) => (
+                <Card key={section.title} className="border-[#C8A44D] bg-[#FEFDF9] p-4">
+                  <p className="text-sm text-[#0B1F4A]/70 mb-2">{section.title}</p>
+                  <p className="text-base font-semibold">{section.text}</p>
+                </Card>
+              ))}
+
+              <p className="text-xs text-[#0B1F4A]/60 px-1">
+                הערה: קיימים הבדלים בין סידורים שונים, והנוסחים כאן מוצגים בתצוגה כללית ומסודרת.
+              </p>
+            </div>
+
+            <div className="sticky bottom-0 bg-white pt-2 pb-1 flex justify-start">
+              <DialogClose asChild>
+                <Button variant="outline" className="border-[#C8A44D] text-[#0B1F4A] hover:bg-[#F7F1E1] min-h-10 px-5">
+                  סגור
+                </Button>
+              </DialogClose>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </DialogContent>
+    </Dialog>
+  );
+}
