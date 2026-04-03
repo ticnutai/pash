@@ -28,8 +28,31 @@ import { Input } from "@/components/ui/input";
 import { getRememberedCredentials, getAutoLoginEnabled, setAutoLoginEnabled, clearRememberedCredentials } from "@/pages/Auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+
+// ── API Keys cloud sync helpers ──────────────────────────
+const API_KEY_FIELDS = [
+  'api_openai_key', 'api_google_key', 'api_elevenlabs_key', 'api_anthropic_key',
+  'api_twilio_sid', 'api_twilio_token', 'api_twilio_whatsapp_number',
+  'api_sendgrid_key', 'api_sendgrid_from', 'api_mailgun_key', 'api_mailgun_domain',
+] as const;
+
+type ApiKeys = Partial<Record<string, string>>;
+
+const loadLocalApiKeys = (): ApiKeys => {
+  const keys: ApiKeys = {};
+  for (const k of API_KEY_FIELDS) {
+    const v = localStorage.getItem(k);
+    if (v) keys[k] = v;
+  }
+  return keys;
+};
+
+const saveApiKeyLocal = (key: string, value: string) => {
+  if (value) localStorage.setItem(key, value);
+  else localStorage.removeItem(key);
+};
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
