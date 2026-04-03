@@ -40,8 +40,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "הוספת 8 מפרשים: רש\"י, רמב\"ן, אבן עזרא, ספורנו, אור החיים, כלי יקר, חזקוני, מלבי\"ם. תיקון תצוגה ושיפורי ביצועים"},
-                {"language": "en-US", "text": "Added 8 commentators: Rashi, Ramban, Ibn Ezra, Sforno, Or HaChaim, Kli Yakar, Chizkuni, Malbim. Display fixes and performance improvements"},
+                {"language": "he-IL", "text": "v1.5.0 - טאב API חדש בהגדרות עם שירותי Twilio, SendGrid, Mailgun. כפתור שיתוף בספירת העומר (וואטסאפ/מייל). שמירת העדפות פיתוח בענן. תיקון תצוגת טאבים בהגדרות."},
+                {"language": "en-US", "text": "v1.5.0 - New API tab in settings with Twilio, SendGrid, Mailgun services. Omer board share button (WhatsApp/Email). Dev preferences cloud sync. Settings tabs layout fix."},
             ]
         }]
     }
