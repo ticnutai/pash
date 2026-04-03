@@ -222,42 +222,42 @@ export const Settings = () => {
         </DialogHeader>
 
         <Tabs defaultValue="calendar" className="w-full" dir="rtl">
-          <TabsList className="flex w-full h-auto mb-4 sm:mb-6 gap-1 overflow-x-auto flex-nowrap justify-start sm:justify-center p-1">
-            <TabsTrigger value="calendar" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">לוח</span>
-              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <TabsList className="grid w-full grid-cols-5 sm:flex sm:flex-nowrap sm:justify-center h-auto mb-4 sm:mb-6 gap-0.5 sm:gap-1 p-1">
+            <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="truncate">לוח</span>
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">תזכורות</span>
-              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <TabsTrigger value="notifications" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="hidden sm:inline truncate">תזכורות</span>
+              <Bell className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="themes" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">ערכות נושא</span>
-              <Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <TabsTrigger value="themes" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="hidden sm:inline truncate">נושא</span>
+              <Palette className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="fonts" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">גופנים וצבעים</span>
-              <Type className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <TabsTrigger value="fonts" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="hidden sm:inline truncate">גופן</span>
+              <Type className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="display" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">תצוגת טקסט</span>
-              <Layout className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <TabsTrigger value="display" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="hidden sm:inline truncate">תצוגה</span>
+              <Layout className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="sefaria" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">אחסון והורדות</span>
-              <HardDrive className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <TabsTrigger value="sefaria" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="hidden sm:inline truncate">אחסון</span>
+              <HardDrive className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="data" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">ניהול נתונים</span>
-              <Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <TabsTrigger value="data" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="hidden sm:inline truncate">נתונים</span>
+              <Database className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="api" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
+            <TabsTrigger value="api" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
               <span className="hidden sm:inline">API</span>
-              <Plug className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <Plug className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-            <TabsTrigger value="dev" className="flex-shrink-0 gap-1 text-[10px] sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">
-              <span className="hidden sm:inline">פיתוח</span>
-              <Code className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <TabsTrigger value="dev" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 sm:py-2 min-w-0">
+              <span className="hidden sm:inline truncate">פיתוח</span>
+              <Code className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
           </TabsList>
 
