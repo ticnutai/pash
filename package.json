@@ -96,6 +96,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "baseline-browser-mapping": "^2.10.13",
     "electron": "^35.0.0",
     "electron-builder": "^25.1.8",
     "eslint": "^9.32.0",

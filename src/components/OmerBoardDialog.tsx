@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette } from "lucide-react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { getCalendarPreference } from "@/utils/parshaUtils";
 import { getOmerBoardData } from "@/utils/omerUtils";
@@ -263,6 +269,42 @@ export function OmerBoardDialog({ buttonClassName, iconClassName }: OmerBoardDia
           <DialogHeader className="text-right">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 sm:h-8 sm:w-8 border-[#C8A44D] text-[#0B1F4A] hover:bg-[#F7F1E1]"
+                      title="שתף ספירת העומר"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" dir="rtl">
+                    <DropdownMenuItem onClick={() => {
+                      const text = board.currentDay
+                        ? `🕯️ היום ${todayHebrewDay} לעומר\n\nספירת העומר - ${board.startGregorian} עד ${board.endGregorian}`
+                        : `🕯️ לוח ספירת העומר\n\n${board.startGregorian} - ${board.endGregorian}`;
+                      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                      window.open(url, '_blank');
+                    }}>
+                      <MessageCircle className="h-4 w-4 ml-2" />
+                      <span>שלח בוואטסאפ</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const subject = board.currentDay
+                        ? `היום ${todayHebrewDay} לעומר`
+                        : 'לוח ספירת העומר';
+                      const body = board.currentDay
+                        ? `🕯️ היום ${todayHebrewDay} לעומר\n\nספירת העומר - ${board.startGregorian} עד ${board.endGregorian}`
+                        : `🕯️ לוח ספירת העומר\n\n${board.startGregorian} - ${board.endGregorian}`;
+                      window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                    }}>
+                      <Mail className="h-4 w-4 ml-2" />
+                      <span>שלח במייל</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   variant="outline"
                   size="icon"

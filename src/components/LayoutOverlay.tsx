@@ -141,10 +141,22 @@ export const LayoutOverlay = () => {
   const [copied, setCopied]   = useState(false);
   const [hiddenCats, setHiddenCats] = useState<Set<string>>(new Set());
   const [legendOpen, setLegendOpen] = useState(true);
+  const [devVisible, setDevVisible] = useState(() => {
+    try { return localStorage.getItem("dev-floating-buttons-enabled") !== "false"; } catch { return true; }
+  });
   const isSmallViewport = typeof window !== "undefined" && window.innerWidth < 768;
   const dragRef = useRef<{
     zoneId: string; startX: number; startY: number; origDx: number; origDy: number;
   } | null>(null);
+
+  // ── Listen for dev-features toggle changes ───────────────────────
+  useEffect(() => {
+    const handler = () => {
+      try { setDevVisible(localStorage.getItem("dev-floating-buttons-enabled") !== "false"); } catch { /* */ }
+    };
+    window.addEventListener("dev-features:changed", handler);
+    return () => window.removeEventListener("dev-features:changed", handler);
+  }, []);
 
   // ── Keyboard shortcut: Ctrl+Shift+L ──────────────────────────────
   useEffect(() => {
@@ -307,7 +319,7 @@ export const LayoutOverlay = () => {
   };
 
   if (!active) {
-    if (isSmallViewport) return null;
+    if (isSmallViewport || !devVisible) return null;
     return createPortal(
       <button
         onClick={() => setActive(true)}
