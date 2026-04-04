@@ -491,7 +491,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           {viewMode === "table" && (
             <div className="overflow-x-auto rounded-lg border border-[#C8A44D]">
               <table className="w-full min-w-[620px] text-right text-sm">
-                <thead className={cn(""", activeDesign.header)}>
+                <thead className={activeDesign.header}>
                   <tr>
                     <th className="px-3 py-2 font-semibold">יום בשבוע</th>
                     <th className="px-3 py-2 font-semibold">יום לעומר</th>
