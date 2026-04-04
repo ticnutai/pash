@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home } from "lucide-react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -95,6 +95,23 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   });
   const [selectedDay, setSelectedDay] = useState<(typeof board.days)[number] | null>(null);
   const [prayerDialogOpen, setPrayerDialogOpen] = useState(false);
+
+  // Typography settings
+  const TYPO_KEY = "omer-typography-v1";
+  const defaultTypo = { fontSize: 14, subFontSize: 11, cardGap: 10, cardPadding: 12, lineHeight: 1.4 };
+  const [typo, setTypo] = useState(() => {
+    try {
+      const saved = localStorage.getItem(TYPO_KEY);
+      return saved ? { ...defaultTypo, ...JSON.parse(saved) } : defaultTypo;
+    } catch { return defaultTypo; }
+  });
+  const updateTypo = (key: string, value: number) => {
+    setTypo((prev: typeof defaultTypo) => {
+      const next = { ...prev, [key]: value };
+      try { localStorage.setItem(TYPO_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     try {
@@ -529,6 +546,80 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   onRemove={removeCustomTheme}
                   onDuplicate={duplicateTheme}
                 />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
+                      style={{ borderColor: activeDesign.accentColor }}
+                      title="טיפוגרפיה"
+                    >
+                      <Type className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3 space-y-3" dir="rtl" align="start">
+                    <h4 className="font-bold text-sm text-right">טיפוגרפיה</h4>
+                    <div className="space-y-2.5">
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{typo.fontSize}px</span>
+                          <span>גודל טקסט ראשי</span>
+                        </div>
+                        <input type="range" min={10} max={24} step={1} value={typo.fontSize}
+                          onChange={(e) => updateTypo("fontSize", Number(e.target.value))}
+                          className="w-full accent-amber-500 h-1.5" dir="ltr" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{typo.subFontSize}px</span>
+                          <span>גודל טקסט משני</span>
+                        </div>
+                        <input type="range" min={8} max={18} step={1} value={typo.subFontSize}
+                          onChange={(e) => updateTypo("subFontSize", Number(e.target.value))}
+                          className="w-full accent-amber-500 h-1.5" dir="ltr" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{typo.cardGap}px</span>
+                          <span>מרווח בין כרטיסים</span>
+                        </div>
+                        <input type="range" min={2} max={20} step={1} value={typo.cardGap}
+                          onChange={(e) => updateTypo("cardGap", Number(e.target.value))}
+                          className="w-full accent-amber-500 h-1.5" dir="ltr" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{typo.cardPadding}px</span>
+                          <span>מרווח פנימי</span>
+                        </div>
+                        <input type="range" min={4} max={24} step={1} value={typo.cardPadding}
+                          onChange={(e) => updateTypo("cardPadding", Number(e.target.value))}
+                          className="w-full accent-amber-500 h-1.5" dir="ltr" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{typo.lineHeight.toFixed(1)}</span>
+                          <span>גובה שורה</span>
+                        </div>
+                        <input type="range" min={1} max={2.2} step={0.1} value={typo.lineHeight}
+                          onChange={(e) => updateTypo("lineHeight", Number(e.target.value))}
+                          className="w-full accent-amber-500 h-1.5" dir="ltr" />
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-full text-xs h-7 text-muted-foreground"
+                        onClick={() => {
+                          setTypo(defaultTypo);
+                          try { localStorage.setItem(TYPO_KEY, JSON.stringify(defaultTypo)); } catch {}
+                        }}
+                      >
+                        איפוס ברירת מחדל
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="outline"
                   size="icon"
@@ -615,34 +706,35 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           </Card>
 
           {viewMode === "grid" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: `${typo.cardGap}px` }}>
               {board.days.map((day) => (
                 <button
                   key={day.day}
                   type="button"
                   onClick={() => openPrayerDialog(day)}
                   className={cn(
-                    "w-full p-3 border transition-all text-right rounded-lg",
+                    "w-full border transition-all text-right rounded-lg",
                     day.isToday
                       ? activeDesign.today
                       : activeDesign.card,
                   )}
+                  style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="text-right">
-                      <p className="text-sm opacity-70">יום</p>
-                      <p className="text-xl font-bold leading-none">{day.weekdayHebrew}</p>
+                      <p style={{ fontSize: `${typo.subFontSize}px` }} className="opacity-70">יום</p>
+                      <p className="font-bold leading-none" style={{ fontSize: `${typo.fontSize * 1.4}px` }}>{day.weekdayHebrew}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-base font-semibold">{day.hebrewDay} לעומר</p>
-                      <p className="text-sm">{day.hebrewDate}</p>
-                      <p className="text-xs opacity-70 mt-1">{day.gregorianDate}</p>
+                      <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
+                      <p style={{ fontSize: `${typo.subFontSize + 1}px` }}>{day.hebrewDate}</p>
+                      <p className="opacity-70 mt-1" style={{ fontSize: `${typo.subFontSize - 1}px` }}>{day.gregorianDate}</p>
                       {day.shabbatReading && (
-                        <p className="text-xs opacity-70 mt-1 font-medium">פרשת השבוע: {day.shabbatReading}</p>
+                        <p className="opacity-70 mt-1 font-medium" style={{ fontSize: `${typo.subFontSize - 1}px` }}>פרשת השבוע: {day.shabbatReading}</p>
                       )}
                     </div>
                   </div>
-                  <p className="mt-2 text-xs opacity-70 text-right">{day.sefira}</p>
+                  <p className="mt-2 opacity-70 text-right" style={{ fontSize: `${typo.subFontSize}px` }}>{day.sefira}</p>
                 </button>
               ))}
             </div>
@@ -650,7 +742,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
 
           {viewMode === "table" && (
             <div className="overflow-x-auto rounded-lg border" style={{ borderColor: activeDesign.accentColor }}>
-              <table className="w-full min-w-[620px] text-right text-sm">
+              <table className="w-full min-w-[620px] text-right" style={{ fontSize: `${typo.fontSize}px`, lineHeight: typo.lineHeight }}>
                 <thead className={activeDesign.header}>
                   <tr>
                     <th className="px-3 py-2 font-semibold">יום בשבוע</th>
@@ -686,26 +778,27 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           )}
 
           {viewMode === "compact" && (
-            <div className="space-y-2">
+            <div style={{ display: "flex", flexDirection: "column", gap: `${typo.cardGap}px` }}>
               {board.days.map((day) => (
                 <button
                   key={day.day}
                   type="button"
                   onClick={() => openPrayerDialog(day)}
                   className={cn(
-                    "w-full px-3 py-3 border flex items-center justify-between text-right rounded-lg",
+                    "w-full border flex items-center justify-between text-right rounded-lg",
                     day.isToday ? activeDesign.today : activeDesign.card,
                   )}
+                  style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight }}
                 >
                   <div className="text-right">
-                    <p className="text-xs opacity-70">יום {day.weekdayHebrew}</p>
-                    <p className="text-sm font-semibold">{day.hebrewDay} לעומר</p>
-                    <p className="text-xs opacity-70">{day.hebrewDate}</p>
+                    <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>יום {day.weekdayHebrew}</p>
+                    <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
+                    <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.hebrewDate}</p>
                     {day.shabbatReading && (
-                      <p className="text-xs opacity-70 mt-1 font-medium">פרשה: {day.shabbatReading}</p>
+                      <p className="opacity-70 mt-1 font-medium" style={{ fontSize: `${typo.subFontSize}px` }}>פרשה: {day.shabbatReading}</p>
                     )}
                   </div>
-                  <p className="text-xs opacity-70">{day.gregorianDate}</p>
+                  <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.gregorianDate}</p>
                 </button>
               ))}
             </div>
@@ -715,24 +808,25 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
             <div className="space-y-3">
               {weeklyGroups.map((group) => (
                 <Card key={group.week} className={cn("p-3", activeDesign.card)}>
-                  <p className="text-sm font-bold mb-2 text-right">שבוע {toHebrewNumber(group.week)} לעומר</p>
-                  <div className="space-y-2">
+                  <p className="font-bold mb-2 text-right" style={{ fontSize: `${typo.fontSize}px` }}>שבוע {toHebrewNumber(group.week)} לעומר</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: `${typo.cardGap}px` }}>
                     {group.days.map((day) => (
                       <button
                         key={day.day}
                         type="button"
                         onClick={() => openPrayerDialog(day)}
                         className={cn(
-                          "w-full rounded-md border px-3 py-2 text-right",
+                          "w-full rounded-md border text-right",
                           day.isToday ? activeDesign.today : activeDesign.card,
                         )}
+                        style={{ padding: `${typo.cardPadding * 0.7}px ${typo.cardPadding}px`, lineHeight: typo.lineHeight }}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold">{day.hebrewDay} לעומר</p>
-                          <p className="text-xs opacity-70">יום {day.weekdayHebrew}</p>
+                          <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
+                          <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>יום {day.weekdayHebrew}</p>
                         </div>
-                        <p className="text-xs opacity-70">{day.hebrewDate} | {day.gregorianDate}</p>
-                        {day.shabbatReading && <p className="text-xs font-medium mt-1">פרשת השבוע: {day.shabbatReading}</p>}
+                        <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.hebrewDate} | {day.gregorianDate}</p>
+                        {day.shabbatReading && <p className="font-medium mt-1" style={{ fontSize: `${typo.subFontSize}px` }}>פרשת השבוע: {day.shabbatReading}</p>}
                       </button>
                     ))}
                   </div>

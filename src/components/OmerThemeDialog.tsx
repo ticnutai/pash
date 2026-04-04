@@ -144,7 +144,7 @@ function ThemeEditor({
   };
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="space-y-3" dir="rtl">
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
@@ -160,30 +160,28 @@ function ThemeEditor({
         <h3 className="font-bold text-sm">{isBuiltIn ? "עריכה (ישמור כעותק)" : "עריכת ערכת נושא"}</h3>
       </div>
 
-      {/* Large live preview */}
-      <div>
-        <Label className="text-xs mb-1.5 block font-semibold">תצוגה מקדימה — {highlightField ? COLOR_FIELDS.find(f => f.key === highlightField)?.previewHint ?? "" : "לחץ על שדה צבע לראות מה הוא משנה"}</Label>
-        <LargePreview colors={colors} highlightField={highlightField} />
-      </div>
+      {/* Side-by-side: preview right, fields left */}
+      <div className="flex gap-4">
+        {/* Right: sticky preview */}
+        <div className="w-1/2 flex-shrink-0 sticky top-0 self-start space-y-2">
+          <Label className="text-xs mb-1.5 block font-semibold">
+            תצוגה מקדימה — {highlightField ? COLOR_FIELDS.find(f => f.key === highlightField)?.previewHint ?? "" : "לחץ על שדה צבע"}
+          </Label>
+          <LargePreview colors={colors} highlightField={highlightField} />
+          <div className="pt-2">
+            <Label className="text-xs">שם הערכה</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="text-right text-sm h-8 mt-1"
+              dir="rtl"
+            />
+          </div>
+        </div>
 
-      <Separator />
-
-      {/* Name */}
-      <div>
-        <Label className="text-xs">שם הערכה</Label>
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="text-right text-sm h-8 mt-1"
-          dir="rtl"
-        />
-      </div>
-
-      <Separator />
-
-      {/* Color fields */}
-      <div className="grid grid-cols-1 gap-3">
-        {COLOR_FIELDS.map(({ key, label, previewHint, isAccent }) => (
+        {/* Left: scrollable color fields */}
+        <div className="w-1/2 space-y-3 overflow-y-auto max-h-[65vh] pr-1 omer-scrollbar">
+          {COLOR_FIELDS.map(({ key, label, previewHint, isAccent }) => (
           <div
             key={key}
             className={cn(
@@ -251,6 +249,7 @@ function ThemeEditor({
             )}
           </div>
         ))}
+        </div>
       </div>
     </div>
   );
@@ -269,6 +268,7 @@ export function OmerThemeDialog({
 }: OmerThemeDialogProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingTheme = editingId ? allThemes.find((t) => t.id === editingId) : null;
+  const isEditing = !!editingTheme;
 
   const handleSave = (name: string, colors: OmerThemeColors) => {
     if (!editingId) return;
@@ -298,7 +298,7 @@ export function OmerThemeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] max-h-[90vh] p-0 overflow-hidden" dir="rtl">
+      <DialogContent className={cn("max-h-[90vh] p-0 overflow-hidden", isEditing ? "sm:max-w-[900px]" : "sm:max-w-[540px]")} dir="rtl">
         <div className="bg-gradient-to-l from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-4 border-b">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-end gap-2 text-lg">
