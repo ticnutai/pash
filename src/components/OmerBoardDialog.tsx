@@ -403,9 +403,16 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-[340px] max-h-[75vh] overflow-y-auto p-0 direction-rtl" dir="rtl">
+                  <PopoverContent
+                    align="start"
+                    className="w-[340px] max-h-[75vh] p-0 direction-rtl"
+                    dir="rtl"
+                    onWheel={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
+                    <div className="max-h-[75vh] overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
                     {/* Header */}
-                    <div className="bg-gradient-to-l from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-3 border-b">
+                    <div className="bg-gradient-to-l from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-3 border-b sticky top-0 z-10">
                       <div className="flex items-center justify-between">
                         <Button
                           size="sm"
@@ -574,6 +581,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                           שלח התראת בדיקה
                         </Button>
                       )}
+                    </div>
                     </div>
                   </PopoverContent>
                 </Popover>
