@@ -489,7 +489,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           )}
 
           {viewMode === "table" && (
-            <div className="overflow-x-auto rounded-lg border border-[#C8A44D]">
+            <div className="overflow-x-auto rounded-lg border" style={{ borderColor: activeDesign.accentColor }}>
               <table className="w-full min-w-[620px] text-right text-sm">
                 <thead className={activeDesign.header}>
                   <tr>
