@@ -583,36 +583,36 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
         </div>
 
         <Dialog open={prayerDialogOpen} onOpenChange={setPrayerDialogOpen}>
-          <DialogContent className="w-[96vw] sm:w-auto sm:max-w-2xl border-2 border-[#C8A44D] bg-white overflow-x-hidden max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+          <DialogContent className={cn("w-[96vw] sm:w-auto sm:max-w-2xl border-2 overflow-x-hidden max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
             <DialogHeader className="text-right">
-              <DialogTitle className="text-right text-xl font-bold">
+              <DialogTitle className={cn("text-right text-xl font-bold", activeDesign.textColor)}>
                 {selectedDay ? `${selectedDay.hebrewDay} לעומר` : "ספירת העומר"}
               </DialogTitle>
-              <DialogDescription className="text-right opacity-70">
+              <DialogDescription className={cn("text-right", activeDesign.textMuted)}>
                 {selectedDay ? `יום ${selectedDay.weekdayHebrew} | ${selectedDay.hebrewDate} | ${selectedDay.gregorianDate}` : ""}
               </DialogDescription>
             </DialogHeader>
 
             <div className="max-h-[74vh] sm:max-h-[70vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4 text-right leading-8 pr-1">
               {selectedDay?.shabbatReading && (
-                <Card className="border-[#C8A44D] bg-white p-4">
-                  <p className="text-sm opacity-70 mb-1">קריאת שבת</p>
+                <Card className={cn("p-4", activeDesign.card)}>
+                  <p className={cn("text-sm mb-1", activeDesign.textMuted)}>קריאת שבת</p>
                   <p className="text-base font-semibold">פרשת השבוע: {selectedDay.shabbatReading}</p>
                 </Card>
               )}
 
-              <Card className="border-[#C8A44D] bg-[#FEFDF9] p-4">
-                <p className="text-sm opacity-70 mb-2">הברכה לפני הספירה</p>
+              <Card className={cn("p-4", activeDesign.card)}>
+                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>הברכה לפני הספירה</p>
                 <p className="text-base font-semibold">{omerBlessing}</p>
               </Card>
 
-              <Card className="border-[#C8A44D] bg-[#F7F1E1] p-4">
-                <p className="text-sm opacity-70 mb-2">הספירה של היום</p>
+              <Card className={cn("p-4", activeDesign.today)}>
+                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>הספירה של היום</p>
                 <p className="text-lg font-bold">{selectedDay?.countText ?? ""}</p>
               </Card>
 
-              <Card className="border-[#C8A44D] bg-white p-3">
-                <p className="text-sm opacity-70 mb-2">בחירת נוסח</p>
+              <Card className={cn("p-3", activeDesign.card)}>
+                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>בחירת נוסח</p>
                 <div className="flex flex-wrap gap-2 justify-end">
                   {nusachOptions.map((option) => (
                     <Button
@@ -622,32 +622,32 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       variant="outline"
                       onClick={() => setNusach(option.value)}
                       className={cn(
-                        "border-[#C8A44D]",
-                        nusach === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
+                        nusach === option.value ? "font-semibold" : "",
                       )}
+                      style={{ borderColor: activeDesign.accentColor }}
                     >
                       {option.label}
                     </Button>
                   ))}
                 </div>
-                <p className="text-xs opacity-70 mt-2">{selectedNusach.note}</p>
+                <p className={cn("text-xs mt-2", activeDesign.textMuted)}>{selectedNusach.note}</p>
               </Card>
 
               {selectedNusach.sections.map((section) => (
-                <Card key={section.title} className="border-[#C8A44D] bg-[#FEFDF9] p-4">
-                  <p className="text-sm opacity-70 mb-2">{section.title}</p>
+                <Card key={section.title} className={cn("p-4", activeDesign.card)}>
+                  <p className={cn("text-sm mb-2", activeDesign.textMuted)}>{section.title}</p>
                   <p className="text-base font-semibold">{section.text}</p>
                 </Card>
               ))}
 
-              <p className="text-xs opacity-70 px-1">
+              <p className={cn("text-xs px-1", activeDesign.textMuted)}>
                 הערה: קיימים הבדלים בין סידורים שונים, והנוסחים כאן מוצגים בתצוגה כללית ומסודרת.
               </p>
             </div>
 
-            <div className="sticky bottom-0 bg-white pt-2 pb-1 flex justify-start">
+            <div className={cn("sticky bottom-0 pt-2 pb-1 flex justify-start", activeDesign.dialogBg)}>
               <DialogClose asChild>
-                <Button variant="outline" className="border-[#C8A44D] hover:bg-[#F7F1E1] min-h-10 px-5">
+                <Button variant="outline" className="min-h-10 px-5" style={{ borderColor: activeDesign.accentColor }}>
                   סגור
                 </Button>
               </DialogClose>
