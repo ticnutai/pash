@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -163,7 +163,7 @@ export const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { settings, updateSettings } = useFontAndColorSettings();
   const [isIsrael, setIsIsrael] = useState(getCalendarPreference());
-  const { settings: notifSettings, updateSettings: updateNotif, permission, requestPermission, sendTestNotification, supported: notifSupported } = useNotifications();
+  const { settings: notifSettings, updateSettings: updateNotif, addReminder, updateReminder, removeReminder, permission, requestPermission, sendTestNotification, supported: notifSupported } = useNotifications();
   const { user } = useAuth();
   const [devFloatingEnabled, setDevFloatingEnabled] = useState(() => getDevFeatureEnabled(DEV_FLOATING_ENABLED_KEY, true));
   const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
@@ -455,14 +455,20 @@ export const Settings = () => {
           <TabsContent value="notifications" className="space-y-4">
             <Card className="p-6">
               <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-lg mb-1 flex items-center gap-2 justify-end">
-                    <span>תזכורת לימוד יומית</span>
-                    <Bell className="h-5 w-5 text-primary" />
-                  </h3>
-                  <p className="text-sm text-muted-foreground text-right">
-                    קבל תראות בדפדפן כדי להזכיר לעצמך ללמוד תורה מדי יום
-                  </p>
+                <div className="flex items-center justify-between">
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => addReminder()}>
+                    <Plus className="h-4 w-4" />
+                    הוסף תזכורת
+                  </Button>
+                  <div className="text-right">
+                    <h3 className="font-semibold text-lg flex items-center gap-2 justify-end">
+                      <span>תזכורות לימוד</span>
+                      <Bell className="h-5 w-5 text-primary" />
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      הגדר תזכורות מרובות בשעות שונות
+                    </p>
+                  </div>
                 </div>
 
                 <Separator />
@@ -489,66 +495,133 @@ export const Settings = () => {
                       </div>
                     )}
 
-                    {/* Enable toggle */}
-                    <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
-                      <Switch
-                        id="notif-toggle"
-                        checked={notifSettings.enabled}
-                        disabled={permission !== "granted"}
-                        onCheckedChange={(v) => updateNotif({ enabled: v })}
-                      />
-                      <div className="flex-1 text-right mr-3">
-                        <Label htmlFor="notif-toggle" className="text-base font-semibold cursor-pointer">
-                          התראות יומית
-                        </Label>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {notifSettings.enabled ? "פעיל" : "כבוי"}
-                        </p>
+                    {/* Reminders list */}
+                    {notifSettings.reminders.length === 0 && (
+                      <div className="p-6 text-center text-muted-foreground text-sm border rounded-lg border-dashed">
+                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>אין תזכורות מוגדרות</p>
+                        <p className="text-xs mt-1">לחץ "הוסף תזכורת" כדי להתחיל</p>
                       </div>
-                      {notifSettings.enabled ? (
-                        <Bell className="h-5 w-5 text-primary ml-2" />
-                      ) : (
-                        <BellOff className="h-5 w-5 text-muted-foreground ml-2" />
-                      )}
-                    </div>
+                    )}
 
-                    {/* Time picker */}
-                    <div className="p-4 rounded-lg border space-y-3 text-right">
-                      <Label className="font-semibold">שעת התזכורת</Label>
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="text-sm text-muted-foreground">:דקות</span>
-                        <Input
-                          type="number"
-                          min={0} max={59}
-                          value={notifSettings.minute}
-                          onChange={(e) => updateNotif({ minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
-                          className="w-16 text-center"
-                        />
-                        <span className="text-sm text-muted-foreground">:שעה</span>
-                        <Input
-                          type="number"
-                          min={0} max={23}
-                          value={notifSettings.hour}
-                          onChange={(e) => updateNotif({ hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
-                          className="w-16 text-center"
-                        />
+                    {notifSettings.reminders.map((reminder) => (
+                      <div key={reminder.id} className="p-4 rounded-lg border space-y-3 bg-card">
+                        {/* Header row */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => removeReminder(reminder.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Switch
+                              checked={reminder.enabled}
+                              disabled={permission !== "granted"}
+                              onCheckedChange={(v) => updateReminder(reminder.id, { enabled: v })}
+                            />
+                            <div className="text-right">
+                              <span className="font-semibold text-sm">{reminder.label}</span>
+                              <div className="flex items-center gap-1 justify-end text-xs text-muted-foreground">
+                                <span>{String(reminder.hour).padStart(2, "0")}:{String(reminder.minute).padStart(2, "0")}</span>
+                                <Clock className="h-3 w-3" />
+                              </div>
+                            </div>
+                            {reminder.enabled ? (
+                              <Bell className="h-4 w-4 text-primary" />
+                            ) : (
+                              <BellOff className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Label */}
+                        <div className="space-y-1 text-right">
+                          <Label className="text-xs text-muted-foreground">שם התזכורת</Label>
+                          <Input
+                            value={reminder.label}
+                            onChange={(e) => updateReminder(reminder.id, { label: e.target.value })}
+                            className="text-right text-sm h-8"
+                            dir="rtl"
+                          />
+                        </div>
+
+                        {/* Time */}
+                        <div className="flex items-center gap-2 justify-end">
+                          <span className="text-xs text-muted-foreground">דקות:</span>
+                          <Input
+                            type="number"
+                            min={0} max={59}
+                            value={reminder.minute}
+                            onChange={(e) => updateReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
+                            className="w-14 text-center text-sm h-8"
+                          />
+                          <span className="text-xs text-muted-foreground">שעה:</span>
+                          <Input
+                            type="number"
+                            min={0} max={23}
+                            value={reminder.hour}
+                            onChange={(e) => updateReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
+                            className="w-14 text-center text-sm h-8"
+                          />
+                        </div>
+
+                        {/* Message */}
+                        <div className="space-y-1 text-right">
+                          <Label className="text-xs text-muted-foreground">הודעה</Label>
+                          <Input
+                            value={reminder.message}
+                            onChange={(e) => updateReminder(reminder.id, { message: e.target.value })}
+                            className="text-right text-sm h-8"
+                            dir="rtl"
+                          />
+                        </div>
+
+                        {/* Days picker */}
+                        <div className="space-y-1 text-right">
+                          <Label className="text-xs text-muted-foreground">ימים (ריק = כל יום)</Label>
+                          <div className="flex gap-1 justify-end flex-wrap">
+                            {["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"].map((dayLabel, idx) => {
+                              const active = reminder.days.includes(idx);
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    const days = active
+                                      ? reminder.days.filter((d) => d !== idx)
+                                      : [...reminder.days, idx];
+                                    updateReminder(reminder.id, { days });
+                                  }}
+                                  className={`w-8 h-8 rounded-full text-xs font-medium transition-colors ${
+                                    active
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-muted text-muted-foreground hover:bg-accent"
+                                  }`}
+                                >
+                                  {dayLabel}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Popup toggle */}
+                        <div className="flex items-center justify-between">
+                          <Switch
+                            checked={reminder.popup}
+                            onCheckedChange={(v) => updateReminder(reminder.id, { popup: v })}
+                          />
+                          <span className="text-sm text-right">הצג פופ-אפ באפליקציה</span>
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Custom message */}
-                    <div className="p-4 rounded-lg border space-y-2 text-right">
-                      <Label className="font-semibold">הודעת התזכורת</Label>
-                      <Input
-                        value={notifSettings.message}
-                        onChange={(e) => updateNotif({ message: e.target.value })}
-                        className="text-right"
-                        dir="rtl"
-                        placeholder="זמן ללמוד תורה!"
-                      />
-                    </div>
+                    ))}
 
                     {/* Test button */}
-                    {permission === "granted" && (
+                    {permission === "granted" && notifSettings.reminders.length > 0 && (
                       <Button variant="outline" size="sm" className="w-full gap-2" onClick={sendTestNotification}>
                         <Bell className="h-4 w-4" />
                         שלח התראה לדוגמא

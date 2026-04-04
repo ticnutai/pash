@@ -19,6 +19,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Loader2, WifiOff } from "lucide-react";
 import { PWAReloadPrompt } from "@/components/PWAReloadPrompt";
+import { ReminderPopup } from "@/components/ReminderPopup";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
@@ -85,6 +87,7 @@ const App = () => {
   const [showDevFloating, setShowDevFloating] = useState(() => readDevFeatureFlag(DEV_FLOATING_ENABLED_KEY, true));
   const [showDevChat, setShowDevChat] = useState(() => readDevFeatureFlag(DEV_CHAT_ENABLED_KEY, true));
   const [showScreenshotTool, setShowScreenshotTool] = useState(() => readDevFeatureFlag(DEV_SCREENSHOT_ENABLED_KEY, true));
+  const { popupReminder, dismissPopup } = useNotifications();
 
   useEffect(() => {
     const syncDevFeatures = () => {
@@ -118,6 +121,7 @@ const App = () => {
                       <Sonner />
                       <PWAReloadPrompt />
                       <OfflineBanner />
+                      <ReminderPopup reminder={popupReminder} onDismiss={dismissPopup} />
                       {DevChatWidget && showDevFloating && showDevChat && <Suspense fallback={null}><DevChatWidget /></Suspense>}
                       {ScreenshotTool && showDevFloating && showScreenshotTool && <Suspense fallback={null}><ScreenshotTool /></Suspense>}
                       <Router
