@@ -73,6 +73,9 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     updateCustomTheme,
     removeCustomTheme,
     duplicateTheme,
+    typography: typo,
+    updateTypography: updateTypo,
+    resetTypography: resetTypo,
   } = useOmerThemes();
   const { user } = useAuth();
   const {
@@ -95,23 +98,6 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   });
   const [selectedDay, setSelectedDay] = useState<(typeof board.days)[number] | null>(null);
   const [prayerDialogOpen, setPrayerDialogOpen] = useState(false);
-
-  // Typography settings
-  const TYPO_KEY = "omer-typography-v1";
-  const defaultTypo = { fontSize: 14, subFontSize: 11, cardGap: 10, cardPadding: 12, lineHeight: 1.4 };
-  const [typo, setTypo] = useState(() => {
-    try {
-      const saved = localStorage.getItem(TYPO_KEY);
-      return saved ? { ...defaultTypo, ...JSON.parse(saved) } : defaultTypo;
-    } catch { return defaultTypo; }
-  });
-  const updateTypo = (key: string, value: number) => {
-    setTypo((prev: typeof defaultTypo) => {
-      const next = { ...prev, [key]: value };
-      try { localStorage.setItem(TYPO_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  };
 
   useEffect(() => {
     try {
@@ -613,10 +599,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                         size="sm"
                         variant="ghost"
                         className="w-full text-xs h-7 text-muted-foreground"
-                        onClick={() => {
-                          setTypo(defaultTypo);
-                          try { localStorage.setItem(TYPO_KEY, JSON.stringify(defaultTypo)); } catch {}
-                        }}
+                        onClick={() => resetTypo()}
                       >
                         איפוס ברירת מחדל
                       </Button>

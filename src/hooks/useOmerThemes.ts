@@ -5,6 +5,23 @@ import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "omer_custom_themes_v1";
 const ACTIVE_KEY = "omer_active_theme_v1";
+const TYPO_KEY = "omer-typography-v1";
+
+export interface OmerTypography {
+  fontSize: number;
+  subFontSize: number;
+  cardGap: number;
+  cardPadding: number;
+  lineHeight: number;
+}
+
+export const DEFAULT_TYPOGRAPHY: OmerTypography = {
+  fontSize: 14,
+  subFontSize: 11,
+  cardGap: 10,
+  cardPadding: 12,
+  lineHeight: 1.4,
+};
 
 export interface OmerThemeColors {
   boardBg: string;
@@ -169,28 +186,41 @@ function saveActiveLocal(id: string) {
   localStorage.setItem(ACTIVE_KEY, id);
 }
 
-async function syncToCloud(customThemes: OmerTheme[], activeId: string) {
+function loadTypoLocal(): OmerTypography {
+  try {
+    const raw = localStorage.getItem(TYPO_KEY);
+    if (raw) return { ...DEFAULT_TYPOGRAPHY, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return { ...DEFAULT_TYPOGRAPHY };
+}
+
+function saveTypoLocal(typo: OmerTypography) {
+  localStorage.setItem(TYPO_KEY, JSON.stringify(typo));
+}
+
+async function syncToCloud(customThemes: OmerTheme[], activeId: string, typography?: OmerTypography) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.auth.updateUser({
-      data: {
-        ...user.user_metadata,
-        omer_custom_themes: customThemes,
-        omer_active_theme: activeId,
-      },
-    });
+    const meta: Record<string, unknown> = {
+      ...user.user_metadata,
+      omer_custom_themes: customThemes,
+      omer_active_theme: activeId,
+    };
+    if (typography) meta.omer_typography = typography;
+    await supabase.auth.updateUser({ data: meta });
   } catch { /* silent */ }
 }
 
-async function loadFromCloud(): Promise<{ customThemes: OmerTheme[]; activeId: string } | null> {
+async function loadFromCloud(): Promise<{ customThemes: OmerTheme[]; activeId: string; typography?: OmerTypography } | null> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.user_metadata) return null;
     const ct = user.user_metadata.omer_custom_themes as OmerTheme[] | undefined;
     const ai = user.user_metadata.omer_active_theme as string | undefined;
-    if (!ct && !ai) return null;
-    return { customThemes: ct ?? [], activeId: ai ?? "classic" };
+    const tp = user.user_metadata.omer_typography as OmerTypography | undefined;
+    if (!ct && !ai && !tp) return null;
+    return { customThemes: ct ?? [], activeId: ai ?? "classic", typography: tp };
   } catch {
     return null;
   }
@@ -201,6 +231,7 @@ async function loadFromCloud(): Promise<{ customThemes: OmerTheme[]; activeId: s
 export function useOmerThemes() {
   const [customThemes, setCustomThemes] = useState<OmerTheme[]>(() => loadCustomLocal());
   const [activeId, setActiveId] = useState<string>(() => loadActiveLocal());
+  const [typography, setTypography] = useState<OmerTypography>(() => loadTypoLocal());
 
   // All themes: built-in + custom
   const allThemes = [...BUILT_IN_THEMES, ...customThemes];
@@ -208,21 +239,7 @@ export function useOmerThemes() {
 
   // Cloud sync on load
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) return;
-      loadFromCloud().then((cloud) => {
-        if (!cloud) return;
-        if (cloud.customThemes.length > 0) {
-          setCustomThemes(cloud.customThemes);
-          saveCustomLocal(cloud.customThemes);
-        }
-        if (cloud.activeId) {
-          setActiveId(cloud.activeId);
-          saveActiveLocal(cloud.activeId);
-        }
-      });
-    });
-    loadFromCloud().then((cloud) => {
+    const applyCloud = (cloud: { customThemes: OmerTheme[]; activeId: string; typography?: OmerTypography } | null) => {
       if (!cloud) return;
       if (cloud.customThemes.length > 0) {
         setCustomThemes(cloud.customThemes);
@@ -232,21 +249,30 @@ export function useOmerThemes() {
         setActiveId(cloud.activeId);
         saveActiveLocal(cloud.activeId);
       }
+      if (cloud.typography) {
+        setTypography(cloud.typography);
+        saveTypoLocal(cloud.typography);
+      }
+    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) return;
+      loadFromCloud().then(applyCloud);
     });
+    loadFromCloud().then(applyCloud);
     return () => subscription.unsubscribe();
   }, []);
 
-  const persist = useCallback((themes: OmerTheme[], active: string) => {
+  const persist = useCallback((themes: OmerTheme[], active: string, typo?: OmerTypography) => {
     saveCustomLocal(themes);
     saveActiveLocal(active);
-    syncToCloud(themes, active);
+    syncToCloud(themes, active, typo);
   }, []);
 
   const selectTheme = useCallback((id: string) => {
     setActiveId(id);
     saveActiveLocal(id);
-    syncToCloud(customThemes, id);
-  }, [customThemes]);
+    syncToCloud(customThemes, id, typography);
+  }, [customThemes, typography]);
 
   const addCustomTheme = useCallback((theme: Omit<OmerTheme, "id" | "builtIn">) => {
     const newTheme: OmerTheme = {
@@ -289,6 +315,21 @@ export function useOmerThemes() {
     });
   }, [allThemes, addCustomTheme]);
 
+  const updateTypography = useCallback((key: keyof OmerTypography, value: number) => {
+    setTypography((prev) => {
+      const next = { ...prev, [key]: value };
+      saveTypoLocal(next);
+      syncToCloud(customThemes, activeId, next);
+      return next;
+    });
+  }, [customThemes, activeId]);
+
+  const resetTypography = useCallback(() => {
+    setTypography({ ...DEFAULT_TYPOGRAPHY });
+    saveTypoLocal(DEFAULT_TYPOGRAPHY);
+    syncToCloud(customThemes, activeId, DEFAULT_TYPOGRAPHY);
+  }, [customThemes, activeId]);
+
   return {
     allThemes,
     customThemes,
@@ -299,5 +340,8 @@ export function useOmerThemes() {
     updateCustomTheme,
     removeCustomTheme,
     duplicateTheme,
+    typography,
+    updateTypography,
+    resetTypography,
   };
 }
