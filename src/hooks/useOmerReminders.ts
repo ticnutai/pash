@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -198,7 +197,6 @@ function checkBrowserReminders(reminders: OmerReminder[]) {
 /* ─── Hook ───────────────────────────────────────────────── */
 
 export function useOmerReminders() {
-  const { user } = useAuth();
   const [reminders, setReminders] = useState<OmerReminder[]>(() => loadLocal());
   const [permission, setPermission] = useState<NotificationPermission>(() => {
     if (Capacitor.isNativePlatform()) return "default";
@@ -215,14 +213,24 @@ export function useOmerReminders() {
 
   // Load from cloud on login
   useEffect(() => {
-    if (!user) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) return;
+      loadFromCloud().then((cloud) => {
+        if (cloud && cloud.length > 0) {
+          setReminders(cloud);
+          saveLocal(cloud);
+        }
+      });
+    });
+    // Also try loading immediately
     loadFromCloud().then((cloud) => {
       if (cloud && cloud.length > 0) {
         setReminders(cloud);
         saveLocal(cloud);
       }
     });
-  }, [user]);
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Check permission on native
   useEffect(() => {
