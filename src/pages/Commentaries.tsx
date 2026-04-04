@@ -476,7 +476,7 @@ const CommentarySection = ({ commentary, seferId, perek, pasuk, isFavorite, onTo
   };
 
   const handleShare = () => {
-    const shareText = `*${commentary.mefaresh}*\n📖 ${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentary.text}\n\n---\nמתוך אפליקציית חמישה חומשי תורה`;
+    const shareText = `*${commentary.mefaresh}*\n📖 ${seferName} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentary.text}\n\n---\nמתוך אפליקציית חמישה חומשי תורה עם פירושים`;
     if (navigator.share) {
       navigator.share({ title: `${commentary.mefaresh} - פירוש`, text: shareText }).catch(() => {});
     } else {

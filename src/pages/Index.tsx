@@ -137,7 +137,7 @@ const Index = () => {
   const [chumashSelectedPasukId, setChumashSelectedPasukId] = useState<number | null>(null);
   const currentSeferOptions = corpusMode === "torah" ? TORAH_SEFARIM : NEVIIM_SEFARIM;
   // appTitle removed – no longer shown in mobile header
-  const appSubtitle = corpusMode === "torah" ? "חמישה חומשי תורה - שאלות ופירושים" : "נביאים ומגילות";
+  const appSubtitle = corpusMode === "torah" ? "חמישה חומשי תורה עם פירושים" : "נביאים ומגילות";
 
   const toggleTextLanguage = useCallback(() => {
     setTextLanguage(prev => {

@@ -151,7 +151,7 @@ export const CommentaryExpandDialog = ({
                   size="sm"
                   onClick={() => {
                     const seferNames = ["בראשית", "שמות", "ויקרא", "במדבר", "דברים"];
-                    const shareText = `*${mefaresh}*\n📖 ${seferNames[sefer - 1]} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentaryText}\n\n---\nמתוך אפליקציית חמישה חומשי תורה`;
+                    const shareText = `*${mefaresh}*\n📖 ${seferNames[sefer - 1]} פרק ${toHebrewNumber(perek)} פסוק ${toHebrewNumber(pasuk)}\n\n${commentaryText}\n\n---\nמתוך אפליקציית חמישה חומשי תורה עם פירושים`;
                     if (navigator.share) {
                       navigator.share({ title: `${mefaresh} - פירוש`, text: shareText }).catch(() => {});
                     } else {

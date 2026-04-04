@@ -40,8 +40,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "v1.5.0 - טאב API חדש בהגדרות עם שירותי Twilio, SendGrid, Mailgun. כפתור שיתוף בספירת העומר (וואטסאפ/מייל). שמירת העדפות פיתוח בענן. תיקון תצוגת טאבים בהגדרות."},
-                {"language": "en-US", "text": "v1.5.0 - New API tab in settings with Twilio, SendGrid, Mailgun services. Omer board share button (WhatsApp/Email). Dev preferences cloud sync. Settings tabs layout fix."},
+                {"language": "he-IL", "text": "v1.5.1 - שם האפליקציה עודכן ל'חמישה חומשי תורה עם פירושים'. שיפורים ותיקונים."},
+                {"language": "en-US", "text": "v1.5.1 - App name updated to 'Five Books of Torah with Commentaries'. Improvements and fixes."},
             ]
         }]
     }

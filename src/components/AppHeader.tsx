@@ -23,7 +23,7 @@ export const AppHeader = ({ isMobile, syncStatus, onNavigateToPasuk }: AppHeader
       <div className="container flex h-14 items-center px-4 gap-3">
         <div className="flex items-center gap-2 shrink-0">
           <Book className="h-5 w-5 text-primary" />
-          {!isMobile && <h1 className="text-lg font-semibold">חמישה חומשי תורה</h1>}
+          {!isMobile && <h1 className="text-lg font-semibold">חמישה חומשי תורה עם פירושים</h1>}
         </div>
 
         {/* Inline quick search */}

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.torahapp.pash',
-  appName: 'חמישה חומשי תורה',
+  appName: 'חמישה חומשי תורה עם פירושים',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

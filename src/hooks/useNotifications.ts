@@ -50,7 +50,7 @@ function maybeSendDailyNotification(settings: ReminderSettings) {
     new Date(now.getFullYear(), now.getMonth(), now.getDate(), settings.hour, settings.minute, 0).getTime();
 
   if (now.getTime() >= scheduledMs) {
-    new Notification("חמישה חומשי תורה", {
+    new Notification("חמישה חומשי תורה עם פירושים", {
       body: settings.message,
       icon: "/favicon.ico",
       dir: "rtl",
@@ -105,7 +105,7 @@ export function useNotifications() {
 
   const sendTestNotification = useCallback(() => {
     if (!supported || permission !== "granted") return;
-    new Notification("חמישה חומשי תורה - בדיקה", {
+    new Notification("חמישה חומשי תורה עם פירושים - בדיקה", {
       body: settings.message,
       icon: "/favicon.ico",
       dir: "rtl",

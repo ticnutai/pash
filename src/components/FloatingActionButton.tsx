@@ -216,7 +216,7 @@ export const FloatingActionButton = ({
           sharePasukLink(currentSefer, currentPerek, currentPasuk);
         } else {
           if (navigator.share) {
-            navigator.share({ title: "חמישה חומשי תורה", url: window.location.origin }).catch(() => {});
+            navigator.share({ title: "חמישה חומשי תורה עם פירושים", url: window.location.origin }).catch(() => {});
           } else {
             navigator.clipboard.writeText(window.location.href);
             import("sonner").then(({ toast }) => toast.success("הקישור הועתק!"));
