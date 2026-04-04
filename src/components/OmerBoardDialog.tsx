@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle } from "lucide-react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +23,16 @@ import { getOmerBoardData } from "@/utils/omerUtils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
+import { useNotifications, createDefaultReminder } from "@/hooks/useNotifications";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface OmerBoardDialogProps {
   buttonClassName?: string;
@@ -52,6 +62,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   const [viewMode, setViewMode] = useState<OmerViewMode>("grid");
   const [designMode, setDesignMode] = useState<OmerDesignMode>("classic");
   const { user } = useAuth();
+  const { settings: notifSettings, addReminder, updateReminder, removeReminder, permission, requestPermission, supported: notifSupported } = useNotifications();
   const [nusach, setNusach] = useState<OmerNusach>(() => {
     try {
       return normalizeNusach(localStorage.getItem(OMER_NUSACH_KEY));
@@ -365,6 +376,136 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* ── Reminder Bell ── */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn("h-9 w-9 sm:h-8 sm:w-8 relative", activeDesign.textColor)}
+                      style={{ borderColor: activeDesign.accentColor }}
+                      title="תזכורות ספירת העומר"
+                    >
+                      <Bell className="h-4 w-4" />
+                      {notifSettings.reminders.filter((r) => r.enabled).length > 0 && (
+                        <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-80 max-h-[70vh] overflow-y-auto p-4 direction-rtl" dir="rtl">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => addReminder({ label: "תזכורת עומר", message: "🕯️ זמן לספור ספירת העומר!" })}>
+                          <Plus className="h-3 w-3" />
+                          הוסף
+                        </Button>
+                        <h4 className="font-semibold text-sm flex items-center gap-1">
+                          <Bell className="h-4 w-4 text-primary" />
+                          תזכורות
+                        </h4>
+                      </div>
+                      <Separator />
+
+                      {!notifSupported && (
+                        <p className="text-xs text-destructive">הדפדפן אינו תומך בהתראות</p>
+                      )}
+
+                      {notifSupported && permission !== "granted" && (
+                        <Button size="sm" className="w-full text-xs h-7" onClick={requestPermission}>
+                          <Bell className="h-3 w-3 ml-1" />
+                          אפשר התראות
+                        </Button>
+                      )}
+
+                      {notifSettings.reminders.length === 0 && (
+                        <div className="text-center text-muted-foreground text-xs py-3">
+                          <BellOff className="h-5 w-5 mx-auto mb-1 opacity-50" />
+                          <p>אין תזכורות</p>
+                        </div>
+                      )}
+
+                      {notifSettings.reminders.map((reminder) => (
+                        <div key={reminder.id} className="p-2 rounded-md border space-y-2 bg-card text-xs">
+                          <div className="flex items-center justify-between">
+                            <button
+                              className="text-destructive hover:text-destructive/80"
+                              onClick={() => removeReminder(reminder.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={reminder.enabled}
+                                disabled={permission !== "granted"}
+                                onCheckedChange={(v) => updateReminder(reminder.id, { enabled: v })}
+                                className="scale-75"
+                              />
+                              <span className="font-medium">{reminder.label}</span>
+                              {reminder.enabled ? <Bell className="h-3 w-3 text-primary" /> : <BellOff className="h-3 w-3 text-muted-foreground" />}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            <Input
+                              type="number" min={0} max={23}
+                              value={reminder.hour}
+                              onChange={(e) => updateReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
+                              className="w-12 text-center text-xs h-6 px-1"
+                            />
+                            <span>:</span>
+                            <Input
+                              type="number" min={0} max={59}
+                              value={reminder.minute}
+                              onChange={(e) => updateReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
+                              className="w-12 text-center text-xs h-6 px-1"
+                            />
+                          </div>
+
+                          <Input
+                            value={reminder.message}
+                            onChange={(e) => updateReminder(reminder.id, { message: e.target.value })}
+                            className="text-right text-xs h-6"
+                            dir="rtl"
+                          />
+
+                          <div className="flex gap-0.5 justify-end">
+                            {["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"].map((dayLabel, idx) => {
+                              const active = reminder.days.includes(idx);
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    const days = active
+                                      ? reminder.days.filter((d) => d !== idx)
+                                      : [...reminder.days, idx];
+                                    updateReminder(reminder.id, { days });
+                                  }}
+                                  className={`w-6 h-6 rounded-full text-[10px] font-medium transition-colors ${
+                                    active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+                                  }`}
+                                >
+                                  {dayLabel}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <Switch
+                              checked={reminder.popup}
+                              onCheckedChange={(v) => updateReminder(reminder.id, { popup: v })}
+                              className="scale-75"
+                            />
+                            <span className="text-muted-foreground">פופ-אפ</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
                 <Button
                   variant="outline"
                   size="icon"
