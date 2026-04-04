@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { useOmerReminders, type OmerChannel } from "@/hooks/useOmerReminders";
 import { useOmerThemes } from "@/hooks/useOmerThemes";
+import { useOmerChecklist } from "@/hooks/useOmerChecklist";
 import { OmerThemeDialog } from "@/components/OmerThemeDialog";
 import { TimePickerDialog } from "@/components/TimePickerDialog";
 import { Switch } from "@/components/ui/switch";
@@ -64,6 +65,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   const [viewMode, setViewMode] = useState<OmerViewMode>("grid");
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
   const [timePickerFor, setTimePickerFor] = useState<string | null>(null);
+  const boardScrollRef = useRef<HTMLDivElement>(null);
+  const todayCardRef = useRef<HTMLElement>(null);
   const {
     allThemes,
     activeTheme,
@@ -78,6 +81,12 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     resetTypography: resetTypo,
   } = useOmerThemes();
   const { user } = useAuth();
+  const {
+    toggleDay,
+    markDay,
+    isCounted,
+    stats: omerStats,
+  } = useOmerChecklist(board.hebrewYear, board.currentDay);
   const {
     reminders: omerReminders,
     addReminder: addOmerReminder,
@@ -143,6 +152,15 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
 
     void syncNusachToCloud();
   }, [user, nusach]);
+
+  // Auto-scroll to today's card when dialog opens
+  useEffect(() => {
+    if (!dialogOpen || !board.currentDay) return;
+    const timer = setTimeout(() => {
+      todayCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [dialogOpen, board.currentDay, viewMode]);
 
   const todayHebrewDay = board.currentDay
     ? board.days.find((day) => day.day === board.currentDay)?.hebrewDay ?? ""
@@ -641,7 +659,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           </DialogHeader>
         </div>
 
-        <div className={cn("px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 max-h-[74vh] sm:max-h-[72vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4 omer-scrollbar", activeDesign.boardBg)}>
+        <div ref={boardScrollRef} className={cn("px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 max-h-[74vh] sm:max-h-[72vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4 omer-scrollbar", activeDesign.boardBg)}>
           <Card className={cn("p-3 sm:p-4", activeDesign.card)}>
             <div className="flex items-center justify-between gap-2">
               <p className={cn("text-xs sm:text-sm", activeDesign.textMuted)}>
@@ -654,6 +672,37 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
               </p>
             </div>
             <p className={cn("text-xs mt-2 text-right", activeDesign.textMuted)}>תצוגה: {currentViewLabel} | עיצוב: {currentDesignLabel}</p>
+
+            {/* ── Stats Bar ── */}
+            {board.isInSeason && board.currentDay && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-3 justify-end flex-wrap text-xs">
+                  <span className="flex items-center gap-1" style={{ color: activeDesign.accentColor }}>
+                    <Trophy className="h-3.5 w-3.5" />
+                    {omerStats.totalCounted}/{omerStats.totalDays} נספרו ({omerStats.percentage}%)
+                  </span>
+                  {omerStats.streak > 0 && (
+                    <span className="flex items-center gap-1 text-orange-500">
+                      <Flame className="h-3.5 w-3.5" />
+                      רצף: {omerStats.streak} {omerStats.streak === 1 ? "יום" : "ימים"}
+                    </span>
+                  )}
+                  {omerStats.missedAny && (
+                    <span className="flex items-center gap-1 text-red-400">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      סופרים בלי ברכה
+                    </span>
+                  )}
+                </div>
+                {/* Progress bar */}
+                <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: activeDesign.accentColor + "25" }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${omerStats.percentage}%`, backgroundColor: activeDesign.accentColor }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="mt-3 sm:hidden space-y-2">
               <div className="flex flex-wrap gap-2 justify-end">
@@ -694,34 +743,49 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           {viewMode === "grid" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: `${typo.cardGap}px` }}>
               {board.days.map((day) => (
-                <button
+                <div
                   key={day.day}
-                  type="button"
-                  onClick={() => openPrayerDialog(day)}
+                  ref={day.isToday ? (todayCardRef as React.RefObject<HTMLDivElement>) : undefined}
                   className={cn(
-                    "w-full border transition-all text-right",
+                    "w-full border transition-all text-right relative",
                     day.isToday
                       ? activeDesign.today
                       : activeDesign.card,
                   )}
                   style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight, borderRadius: cardBorderRadius, boxShadow: cardBoxShadow }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-right">
-                      <p style={{ fontSize: `${typo.subFontSize}px` }} className="opacity-70">יום</p>
-                      <p className="font-bold leading-none" style={{ fontSize: `${typo.fontSize * 1.4}px` }}>{day.weekdayHebrew}</p>
+                  {/* Checkmark toggle */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleDay(day.day); }}
+                    className="absolute top-1.5 left-1.5 p-0.5 rounded-full transition-all hover:scale-110"
+                    title={isCounted(day.day) ? "סומן כנספר" : "סמן כנספר"}
+                    style={{ color: isCounted(day.day) ? "#22c55e" : activeDesign.accentColor + "60" }}
+                  >
+                    {isCounted(day.day) ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openPrayerDialog(day)}
+                    className="w-full text-right"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-right">
+                        <p style={{ fontSize: `${typo.subFontSize}px` }} className="opacity-70">יום</p>
+                        <p className="font-bold leading-none" style={{ fontSize: `${typo.fontSize * 1.4}px` }}>{day.weekdayHebrew}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
+                        <p style={{ fontSize: `${typo.subFontSize + 1}px` }}>{day.hebrewDate}</p>
+                        <p className="opacity-70 mt-1" style={{ fontSize: `${typo.subFontSize - 1}px` }}>{day.gregorianDate}</p>
+                        {day.shabbatReading && (
+                          <p className="opacity-70 mt-1 font-medium" style={{ fontSize: `${typo.subFontSize - 1}px` }}>פרשת השבוע: {day.shabbatReading}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
-                      <p style={{ fontSize: `${typo.subFontSize + 1}px` }}>{day.hebrewDate}</p>
-                      <p className="opacity-70 mt-1" style={{ fontSize: `${typo.subFontSize - 1}px` }}>{day.gregorianDate}</p>
-                      {day.shabbatReading && (
-                        <p className="opacity-70 mt-1 font-medium" style={{ fontSize: `${typo.subFontSize - 1}px` }}>פרשת השבוע: {day.shabbatReading}</p>
-                      )}
-                    </div>
-                  </div>
-                  <p className="mt-2 opacity-70 text-right" style={{ fontSize: `${typo.subFontSize}px` }}>{day.sefira}</p>
-                </button>
+                    <p className="mt-2 opacity-70 text-right" style={{ fontSize: `${typo.subFontSize}px` }}>{day.sefira}</p>
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -731,6 +795,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
               <table className="w-full min-w-[620px] text-right" style={{ fontSize: `${typo.fontSize}px`, lineHeight: typo.lineHeight }}>
                 <thead className={activeDesign.header}>
                   <tr>
+                    <th className="px-3 py-2 font-semibold w-10">✓</th>
                     <th className="px-3 py-2 font-semibold">יום בשבוע</th>
                     <th className="px-3 py-2 font-semibold">יום לעומר</th>
                     <th className="px-3 py-2 font-semibold">תאריך עברי</th>
@@ -741,12 +806,23 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   {board.days.map((day) => (
                     <tr
                       key={day.day}
+                      ref={day.isToday ? (todayCardRef as React.RefObject<HTMLTableRowElement>) : undefined}
                       onClick={() => openPrayerDialog(day)}
                       className={cn(
                         "border-t cursor-pointer",
                         day.isToday ? activeDesign.today : activeDesign.card,
                       )}
                     >
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleDay(day.day); }}
+                          className="transition-all hover:scale-110"
+                          style={{ color: isCounted(day.day) ? "#22c55e" : activeDesign.accentColor + "60" }}
+                        >
+                          {isCounted(day.day) ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                        </button>
+                      </td>
                       <td className="px-3 py-2 font-semibold">{day.weekdayHebrew}</td>
                       <td className="px-3 py-2 font-semibold">
                         <div>{day.hebrewDay} לעומר</div>
@@ -766,26 +842,39 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           {viewMode === "compact" && (
             <div style={{ display: "flex", flexDirection: "column", gap: `${typo.cardGap}px` }}>
               {board.days.map((day) => (
-                <button
+                <div
                   key={day.day}
-                  type="button"
-                  onClick={() => openPrayerDialog(day)}
+                  ref={day.isToday ? (todayCardRef as React.RefObject<HTMLDivElement>) : undefined}
                   className={cn(
-                    "w-full border flex items-center justify-between text-right",
+                    "w-full border flex items-center justify-between text-right relative",
                     day.isToday ? activeDesign.today : activeDesign.card,
                   )}
                   style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight, borderRadius: cardBorderRadius, boxShadow: cardBoxShadow }}
                 >
-                  <div className="text-right">
-                    <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>יום {day.weekdayHebrew}</p>
-                    <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
-                    <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.hebrewDate}</p>
-                    {day.shabbatReading && (
-                      <p className="opacity-70 mt-1 font-medium" style={{ fontSize: `${typo.subFontSize}px` }}>פרשה: {day.shabbatReading}</p>
-                    )}
-                  </div>
-                  <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.gregorianDate}</p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleDay(day.day); }}
+                    className="shrink-0 p-0.5 rounded-full transition-all hover:scale-110"
+                    style={{ color: isCounted(day.day) ? "#22c55e" : activeDesign.accentColor + "60" }}
+                  >
+                    {isCounted(day.day) ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openPrayerDialog(day)}
+                    className="flex-1 flex items-center justify-between text-right"
+                  >
+                    <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.gregorianDate}</p>
+                    <div className="text-right">
+                      <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>יום {day.weekdayHebrew}</p>
+                      <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
+                      <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.hebrewDate}</p>
+                      {day.shabbatReading && (
+                        <p className="opacity-70 mt-1 font-medium" style={{ fontSize: `${typo.subFontSize}px` }}>פרשה: {day.shabbatReading}</p>
+                      )}
+                    </div>
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -797,23 +886,38 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   <p className="font-bold mb-2 text-right" style={{ fontSize: `${typo.fontSize}px` }}>שבוע {toHebrewNumber(group.week)} לעומר</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: `${typo.cardGap}px` }}>
                     {group.days.map((day) => (
-                      <button
+                      <div
                         key={day.day}
-                        type="button"
-                        onClick={() => openPrayerDialog(day)}
+                        ref={day.isToday ? (todayCardRef as React.RefObject<HTMLDivElement>) : undefined}
                         className={cn(
-                          "w-full border text-right",
+                          "w-full border text-right relative",
                           day.isToday ? activeDesign.today : activeDesign.card,
                         )}
                         style={{ padding: `${typo.cardPadding * 0.7}px ${typo.cardPadding}px`, lineHeight: typo.lineHeight, borderRadius: cardBorderRadius, boxShadow: cardBoxShadow }}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
-                          <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>יום {day.weekdayHebrew}</p>
-                        </div>
-                        <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.hebrewDate} | {day.gregorianDate}</p>
-                        {day.shabbatReading && <p className="font-medium mt-1" style={{ fontSize: `${typo.subFontSize}px` }}>פרשת השבוע: {day.shabbatReading}</p>}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => openPrayerDialog(day)}
+                          className="w-full text-right"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); toggleDay(day.day); }}
+                                className="shrink-0 p-0.5 rounded-full transition-all hover:scale-110"
+                                style={{ color: isCounted(day.day) ? "#22c55e" : activeDesign.accentColor + "60" }}
+                              >
+                                {isCounted(day.day) ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                              </button>
+                              <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>
+                            </div>
+                            <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>יום {day.weekdayHebrew}</p>
+                          </div>
+                          <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>{day.hebrewDate} | {day.gregorianDate}</p>
+                          {day.shabbatReading && <p className="font-medium mt-1" style={{ fontSize: `${typo.subFontSize}px` }}>פרשת השבוע: {day.shabbatReading}</p>}
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </Card>
@@ -883,14 +987,46 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
               <p className={cn("text-xs px-1", activeDesign.textMuted)}>
                 הערה: קיימים הבדלים בין סידורים שונים, והנוסחים כאן מוצגים בתצוגה כללית ומסודרת.
               </p>
+
+              {/* Missed day warning */}
+              {selectedDay && omerStats.missedAny && omerStats.firstMissed !== null && selectedDay.day > omerStats.firstMissed && (
+                <Card className="p-3 border-red-400/50 bg-red-50/50 dark:bg-red-900/10">
+                  <div className="flex items-center gap-2 justify-end text-sm text-red-600 dark:text-red-400">
+                    <span>פיספסת יום {toHebrewNumber(omerStats.firstMissed)} — יש לספור בלי ברכה</span>
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                  </div>
+                </Card>
+              )}
             </div>
 
-            <div className={cn("sticky bottom-0 pt-2 pb-1 flex justify-start", activeDesign.dialogBg)}>
+            <div className={cn("sticky bottom-0 pt-2 pb-1 flex justify-between items-center gap-2", activeDesign.dialogBg)}>
               <DialogClose asChild>
                 <Button variant="outline" className="min-h-10 px-5" style={{ borderColor: activeDesign.accentColor }}>
                   סגור
                 </Button>
               </DialogClose>
+              {selectedDay && (
+                <Button
+                  onClick={() => { markDay(selectedDay.day); }}
+                  className={cn("min-h-10 px-5 gap-2 transition-all", isCounted(selectedDay.day) ? "opacity-70" : "")}
+                  style={{
+                    backgroundColor: isCounted(selectedDay.day) ? "#22c55e" : activeDesign.accentColor,
+                    color: "#fff",
+                  }}
+                >
+                  {isCounted(selectedDay.day) ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      נספר ✓
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="h-4 w-4" />
+                      סמן כנספר
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </DialogContent>
         </Dialog>

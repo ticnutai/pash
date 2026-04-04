@@ -9,4 +9,7 @@
     <string name="widget_title">✡ פסוק היום</string>
     <string name="widget_open">פתח אפליקציה</string>
     <string name="widget_description">מציג פסוק יומי מחמשת חומשי התורה</string>
+    <!-- Omer Widget -->
+    <string name="omer_widget_label">ספירת העומר</string>
+    <string name="omer_widget_description">מציג את היום הנוכחי בספירת העומר</string>
 </resources>
