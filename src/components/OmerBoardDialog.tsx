@@ -564,7 +564,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           </DialogHeader>
         </div>
 
-        <div className={cn("px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 max-h-[74vh] sm:max-h-[72vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4", activeDesign.boardBg)}>
+        <div className={cn("px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 max-h-[74vh] sm:max-h-[72vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4 omer-scrollbar", activeDesign.boardBg)}>
           <Card className={cn("p-3 sm:p-4", activeDesign.card)}>
             <div className="flex items-center justify-between gap-2">
               <p className={cn("text-xs sm:text-sm", activeDesign.textMuted)}>

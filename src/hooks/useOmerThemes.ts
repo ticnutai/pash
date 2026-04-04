@@ -112,6 +112,34 @@ export const BUILT_IN_THEMES: OmerTheme[] = [
       accentColor: "#8B5CF6",
     },
   },
+  {
+    id: "white-gold-navy", name: "לבן זהב", builtIn: true,
+    colors: {
+      boardBg: "bg-white",
+      card: "border-[#C8A44D] bg-white",
+      today: "border-[#C8A44D] bg-white ring-2 ring-[#C8A44D]/60 shadow-lg shadow-[#C8A44D]/20",
+      header: "bg-white",
+      dialogBorder: "border-[#C8A44D]",
+      dialogBg: "bg-white",
+      textColor: "text-[#0A1A3F]",
+      textMuted: "text-[#0A1A3F]/60",
+      accentColor: "#C8A44D",
+    },
+  },
+  {
+    id: "gray-classic", name: "אפור קלאסי", builtIn: true,
+    colors: {
+      boardBg: "bg-[#1C1C1E]",
+      card: "border-[#3A3A3C] bg-[#2C2C2E]",
+      today: "border-[#C8A44D] bg-[#2C2C2E] ring-2 ring-[#C8A44D]/50 shadow-lg shadow-[#C8A44D]/10",
+      header: "bg-[#2C2C2E]",
+      dialogBorder: "border-[#3A3A3C]",
+      dialogBg: "bg-[#1C1C1E]",
+      textColor: "text-[#E5E5E7]",
+      textMuted: "text-[#8E8E93]",
+      accentColor: "#C8A44D",
+    },
+  },
 ];
 
 /* ─── Persistence ────────────────────────────────────────── */

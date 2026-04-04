@@ -124,6 +124,7 @@ function ThemeEditor({
                   onChange={(e) => updateColor(key, e.target.value)}
                   className="text-xs h-8 flex-1 font-mono"
                   dir="ltr"
+                  placeholder="#C8A44D"
                 />
                 <input
                   type="color"
@@ -135,6 +136,22 @@ function ThemeEditor({
             ) : (
               <div className="flex items-center gap-2">
                 <Input
+                  value={extractHexColor(colors[key])}
+                  onChange={(e) => {
+                    const hex = e.target.value;
+                    const current = colors[key];
+                    const existingHex = current.match(/#[0-9A-Fa-f]{3,8}/);
+                    if (existingHex) {
+                      updateColor(key, current.replace(existingHex[0], hex));
+                    } else {
+                      updateColor(key, key.startsWith("text") ? `text-[${hex}]` : `bg-[${hex}]`);
+                    }
+                  }}
+                  className="text-xs h-8 w-24 font-mono"
+                  dir="ltr"
+                  placeholder="#000000"
+                />
+                <Input
                   value={colors[key]}
                   onChange={(e) => updateColor(key, e.target.value)}
                   className="text-[11px] h-8 flex-1 font-mono"
@@ -145,14 +162,13 @@ function ThemeEditor({
                   type="color"
                   value={extractHexColor(colors[key])}
                   onChange={(e) => {
-                    // For Tailwind class fields, update the hex inside the class
                     const hex = e.target.value;
                     const current = colors[key];
                     const existingHex = current.match(/#[0-9A-Fa-f]{3,8}/);
                     if (existingHex) {
                       updateColor(key, current.replace(existingHex[0], hex));
                     } else {
-                      updateColor(key, `bg-[${hex}]`);
+                      updateColor(key, key.startsWith("text") ? `text-[${hex}]` : `bg-[${hex}]`);
                     }
                   }}
                   className="h-8 w-10 rounded cursor-pointer border"
