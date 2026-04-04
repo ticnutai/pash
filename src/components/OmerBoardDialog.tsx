@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle } from "lucide-react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,6 +48,7 @@ type OmerViewMode = "grid" | "table" | "compact" | "weekly";
 type OmerNusach = "sefarad" | "ashkenaz" | "edot";
 
 const OMER_NUSACH_KEY = "omer-nusach";
+const OMER_TOOLTIP_DISMISSED_KEY = "omer-tooltip-dismissed";
 
 const normalizeNusach = (value: unknown): OmerNusach => {
   if (value === "ashkenaz" || value === "edot" || value === "sefarad") return value;
@@ -107,6 +108,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   });
   const [selectedDay, setSelectedDay] = useState<(typeof board.days)[number] | null>(null);
   const [prayerDialogOpen, setPrayerDialogOpen] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [blessingAnimated, setBlessingAnimated] = useState(false);
 
   useEffect(() => {
     try {
@@ -162,6 +165,16 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     return () => clearTimeout(timer);
   }, [dialogOpen, board.currentDay, viewMode]);
 
+  // Show first-time tooltip after scroll settles
+  useEffect(() => {
+    if (!dialogOpen || !board.currentDay) return;
+    try {
+      if (localStorage.getItem(OMER_TOOLTIP_DISMISSED_KEY) === "true") return;
+    } catch { /* ignore */ }
+    const timer = setTimeout(() => setShowTooltip(true), 600);
+    return () => clearTimeout(timer);
+  }, [dialogOpen, board.currentDay]);
+
   const todayHebrewDay = board.currentDay
     ? board.days.find((day) => day.day === board.currentDay)?.hebrewDay ?? ""
     : "";
@@ -213,7 +226,14 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
 
   const openPrayerDialog = (day: (typeof board.days)[number]) => {
     setSelectedDay(day);
+    setBlessingAnimated(true);
     setPrayerDialogOpen(true);
+    if (showTooltip) setShowTooltip(false);
+  };
+
+  const dismissTooltipForever = () => {
+    setShowTooltip(false);
+    try { localStorage.setItem(OMER_TOOLTIP_DISMISSED_KEY, "true"); } catch { /* ignore */ }
   };
 
   const omerBlessing = "בָּרוּךְ אַתָּה ה׳ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל סְפִירַת הָעוֹמֶר.";
@@ -751,9 +771,29 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     day.isToday
                       ? activeDesign.today
                       : activeDesign.card,
+                    day.isToday && showTooltip && "ring-2 ring-amber-400 animate-pulse",
                   )}
                   style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight, borderRadius: cardBorderRadius, boxShadow: cardBoxShadow }}
                 >
+                  {/* First-time tooltip */}
+                  {day.isToday && showTooltip && (
+                    <div
+                      className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap animate-bounce"
+                      style={{ direction: "rtl" }}
+                    >
+                      <div className="bg-amber-500 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
+                        <span>👆 לחץ כאן כדי לספור!</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); dismissTooltipForever(); }}
+                          className="hover:bg-amber-600 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="w-3 h-3 bg-amber-500 rotate-45 mx-auto -mt-1.5" />
+                    </div>
+                  )}
                   {/* Checkmark toggle */}
                   <button
                     type="button"
@@ -926,7 +966,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           )}
         </div>
 
-        <Dialog open={prayerDialogOpen} onOpenChange={setPrayerDialogOpen}>
+        <Dialog open={prayerDialogOpen} onOpenChange={(open) => { setPrayerDialogOpen(open); if (!open) setBlessingAnimated(false); }}>
           <DialogContent className={cn("w-[96vw] sm:w-auto sm:max-w-2xl border-2 overflow-x-hidden max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
             <DialogHeader className="text-right">
               <DialogTitle className={cn("text-right text-xl font-bold", activeDesign.textColor)}>
@@ -945,14 +985,20 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                 </Card>
               )}
 
-              <Card className={cn("p-4", activeDesign.card)}>
-                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>הברכה לפני הספירה</p>
-                <p className="text-base font-semibold">{omerBlessing}</p>
+              <Card
+                className={cn("p-4 transition-all duration-700", activeDesign.card)}
+                style={blessingAnimated ? { animation: "omer-blessing-in 0.8s ease-out both" } : undefined}
+              >
+                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>🕯️ הברכה לפני הספירה</p>
+                <p className="text-lg font-bold leading-relaxed">{omerBlessing}</p>
               </Card>
 
-              <Card className={cn("p-4", activeDesign.today)}>
-                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>הספירה של היום</p>
-                <p className="text-lg font-bold">{selectedDay?.countText ?? ""}</p>
+              <Card
+                className={cn("p-4 transition-all duration-700", activeDesign.today)}
+                style={blessingAnimated ? { animation: "omer-blessing-in 0.8s ease-out 0.4s both" } : undefined}
+              >
+                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>✨ הספירה של היום</p>
+                <p className="text-xl font-bold">{selectedDay?.countText ?? ""}</p>
               </Card>
 
               <Card className={cn("p-3", activeDesign.card)}>
@@ -999,19 +1045,20 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
               )}
             </div>
 
-            <div className={cn("sticky bottom-0 pt-2 pb-1 flex justify-between items-center gap-2", activeDesign.dialogBg)}>
-              <DialogClose asChild>
-                <Button variant="outline" className="min-h-10 px-5" style={{ borderColor: activeDesign.accentColor }}>
-                  סגור
-                </Button>
-              </DialogClose>
-              {selectedDay && (
-                <Button
-                  onClick={() => { markDay(selectedDay.day); }}
-                  className={cn("min-h-10 px-5 gap-2 transition-all", isCounted(selectedDay.day) ? "opacity-70" : "")}
-                  style={{
-                    backgroundColor: isCounted(selectedDay.day) ? "#22c55e" : activeDesign.accentColor,
-                    color: "#fff",
+            <div className={cn("sticky bottom-0 pt-2 pb-1 space-y-1", activeDesign.dialogBg)}>
+              <div className="flex justify-between items-center gap-2">
+                <DialogClose asChild>
+                  <Button variant="outline" className="min-h-10 px-5" style={{ borderColor: activeDesign.accentColor }}>
+                    סגור
+                  </Button>
+                </DialogClose>
+                {selectedDay && (
+                  <Button
+                    onClick={() => { markDay(selectedDay.day); }}
+                    className={cn("min-h-10 px-5 gap-2 transition-all", isCounted(selectedDay.day) ? "opacity-70" : "")}
+                    style={{
+                      backgroundColor: isCounted(selectedDay.day) ? "#22c55e" : activeDesign.accentColor,
+                      color: "#fff",
                   }}
                 >
                   {isCounted(selectedDay.day) ? (
@@ -1026,6 +1073,17 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     </>
                   )}
                 </Button>
+              )}
+              </div>
+              {/* Don't show tooltip again */}
+              {blessingAnimated && (() => { try { return localStorage.getItem(OMER_TOOLTIP_DISMISSED_KEY) !== "true"; } catch { return false; } })() && (
+                <button
+                  type="button"
+                  onClick={dismissTooltipForever}
+                  className={cn("text-xs w-full text-center py-0.5 hover:underline", activeDesign.textMuted)}
+                >
+                  לא להציג הנחיה שוב
+                </button>
               )}
             </div>
           </DialogContent>
