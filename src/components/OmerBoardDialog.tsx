@@ -146,7 +146,10 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   const currentDesignLabel =
     designMode === "classic" ? "קלאסי" :
     designMode === "parchment" ? "קלף" :
-    "נקי";
+    designMode === "clean" ? "נקי" :
+    designMode === "golden" ? "זהב מלכותי" :
+    designMode === "dark" ? "לילה" :
+    "צבעוני";
 
   const viewOptions: Array<{ value: OmerViewMode; label: string }> = [
     { value: "grid", label: "רשת" },
