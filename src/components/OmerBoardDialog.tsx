@@ -402,16 +402,16 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
         <div className={cn("px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 max-h-[74vh] sm:max-h-[72vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4", activeDesign.boardBg)}>
           <Card className={cn("p-3 sm:p-4", activeDesign.card)}>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs sm:text-sm text-[#0B1F4A]/80">
+              <p className={cn("text-xs sm:text-sm", activeDesign.textMuted)}>
                 שנה עברית: {board.hebrewYear}
               </p>
-              <p className="text-sm sm:text-base font-semibold text-right text-[#0B1F4A]">
+              <p className={cn("text-sm sm:text-base font-semibold text-right", activeDesign.textColor)}>
                 {board.isInSeason && board.currentDay
                   ? `היום ${todayHebrewDay} לעומר`
                   : "מחוץ לימי הספירה"}
               </p>
             </div>
-            <p className="text-xs text-[#0B1F4A]/70 mt-2 text-right">תצוגה: {currentViewLabel} | עיצוב: {currentDesignLabel}</p>
+            <p className={cn("text-xs mt-2 text-right", activeDesign.textMuted)}>תצוגה: {currentViewLabel} | עיצוב: {currentDesignLabel}</p>
 
             <div className="mt-3 sm:hidden space-y-2">
               <div className="flex flex-wrap gap-2 justify-end">
