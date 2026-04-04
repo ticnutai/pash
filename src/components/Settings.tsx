@@ -403,6 +403,7 @@ export const Settings = () => {
                   </div>
                 </div>
               </div>
+            </Card>
             <Card className="p-6">
               <div className="space-y-4">
                 <div>
