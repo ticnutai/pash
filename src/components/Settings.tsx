@@ -552,22 +552,23 @@ export const Settings = () => {
 
                         {/* Time */}
                         <div className="flex items-center gap-2 justify-end">
-                          <span className="text-xs text-muted-foreground">דקות:</span>
-                          <Input
-                            type="number"
-                            min={0} max={59}
-                            value={reminder.minute}
-                            onChange={(e) => updateReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
-                            className="w-14 text-center text-sm h-8"
-                          />
-                          <span className="text-xs text-muted-foreground">שעה:</span>
-                          <Input
-                            type="number"
-                            min={0} max={23}
-                            value={reminder.hour}
-                            onChange={(e) => updateReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
-                            className="w-14 text-center text-sm h-8"
-                          />
+                          <div className="flex items-center gap-1.5" dir="ltr">
+                            <Input
+                              type="number"
+                              min={0} max={23}
+                              value={String(reminder.hour).padStart(2, "0")}
+                              onChange={(e) => updateReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
+                              className="w-14 text-center text-sm h-8"
+                            />
+                            <span className="font-mono font-bold text-lg">:</span>
+                            <Input
+                              type="number"
+                              min={0} max={59}
+                              value={String(reminder.minute).padStart(2, "0")}
+                              onChange={(e) => updateReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
+                              className="w-14 text-center text-sm h-8"
+                            />
+                          </div>
                         </div>
 
                         {/* Message */}

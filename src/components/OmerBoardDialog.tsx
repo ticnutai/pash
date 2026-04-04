@@ -448,19 +448,21 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
 
                           <div className="flex items-center gap-1.5 justify-end">
                             <Clock className="h-3 w-3 text-muted-foreground" />
-                            <Input
-                              type="number" min={0} max={23}
-                              value={reminder.hour}
-                              onChange={(e) => updateReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
-                              className="w-12 text-center text-xs h-6 px-1"
-                            />
-                            <span>:</span>
-                            <Input
-                              type="number" min={0} max={59}
-                              value={reminder.minute}
-                              onChange={(e) => updateReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
-                              className="w-12 text-center text-xs h-6 px-1"
-                            />
+                            <div className="flex items-center gap-1" dir="ltr">
+                              <Input
+                                type="number" min={0} max={23}
+                                value={String(reminder.hour).padStart(2, "0")}
+                                onChange={(e) => updateReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
+                                className="w-12 text-center text-xs h-6 px-1"
+                              />
+                              <span className="font-mono font-bold">:</span>
+                              <Input
+                                type="number" min={0} max={59}
+                                value={String(reminder.minute).padStart(2, "0")}
+                                onChange={(e) => updateReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
+                                className="w-12 text-center text-xs h-6 px-1"
+                              />
+                            </div>
                           </div>
 
                           <Input
