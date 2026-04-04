@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Copy, Edit2, Palette, Plus, Trash2, X } from "lucide-react";
+import { ArrowRight, Check, Copy, Edit2, Palette, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OmerTheme, OmerThemeColors } from "@/hooks/useOmerThemes";
 
@@ -21,16 +21,16 @@ interface OmerThemeDialogProps {
   onDuplicate: (id: string) => string | undefined;
 }
 
-const COLOR_FIELDS: Array<{ key: keyof OmerThemeColors; label: string; isAccent?: boolean }> = [
-  { key: "accentColor", label: "צבע מבטא", isAccent: true },
-  { key: "boardBg", label: "רקע לוח" },
-  { key: "dialogBg", label: "רקע דיאלוג" },
-  { key: "dialogBorder", label: "גבול דיאלוג" },
-  { key: "header", label: "רקע כותרת" },
-  { key: "card", label: "סגנון כרטיס" },
-  { key: "today", label: "סגנון היום" },
-  { key: "textColor", label: "צבע טקסט" },
-  { key: "textMuted", label: "צבע טקסט מעומעם" },
+const COLOR_FIELDS: Array<{ key: keyof OmerThemeColors; label: string; previewHint: string; isAccent?: boolean }> = [
+  { key: "accentColor", label: "צבע מבטא", previewHint: "גבולות וקישוטים", isAccent: true },
+  { key: "boardBg", label: "רקע לוח", previewHint: "הרקע הראשי" },
+  { key: "dialogBg", label: "רקע דיאלוג", previewHint: "רקע החלון" },
+  { key: "dialogBorder", label: "גבול דיאלוג", previewHint: "מסגרת החלון" },
+  { key: "header", label: "רקע כותרת", previewHint: "פס עליון" },
+  { key: "card", label: "סגנון כרטיס", previewHint: "תא רגיל" },
+  { key: "today", label: "סגנון היום", previewHint: "תא היום הנוכחי" },
+  { key: "textColor", label: "צבע טקסט", previewHint: "טקסט ראשי" },
+  { key: "textMuted", label: "צבע טקסט מעומעם", previewHint: "טקסט משני" },
 ];
 
 function extractHexColor(value: string): string {
@@ -55,7 +55,6 @@ function PreviewSwatch({ theme, active, onClick }: { theme: OmerTheme; active: b
           <Check className="h-3 w-3 text-primary-foreground" />
         </div>
       )}
-      {/* Color preview dots */}
       <div className="flex gap-1">
         <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: accent }} />
         <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: extractHexColor(theme.colors.textColor) }} />
@@ -69,17 +68,76 @@ function PreviewSwatch({ theme, active, onClick }: { theme: OmerTheme; active: b
   );
 }
 
+/* ─── Large annotated preview ─────────────────────────────── */
+function LargePreview({ colors, highlightField }: { colors: OmerThemeColors; highlightField: keyof OmerThemeColors | null }) {
+  const hl = (field: keyof OmerThemeColors) =>
+    highlightField === field ? "ring-2 ring-blue-500 ring-offset-1" : "";
+
+  return (
+    <div
+      className={cn("rounded-xl border-2 overflow-hidden transition-all", colors.dialogBg, colors.dialogBorder, hl("dialogBg"), highlightField === "dialogBorder" ? "ring-2 ring-blue-500 ring-offset-1" : "")}
+      style={{ borderColor: colors.accentColor }}
+    >
+      {/* Header */}
+      <div className={cn("px-3 py-2 border-b flex items-center justify-between", colors.header, hl("header"))} style={{ borderColor: colors.accentColor + "70" }}>
+        <div className="flex gap-1">
+          <div className="h-4 w-4 rounded" style={{ backgroundColor: colors.accentColor, opacity: highlightField === "accentColor" ? 1 : 0.6 }} />
+          <div className="h-4 w-4 rounded" style={{ backgroundColor: colors.accentColor, opacity: highlightField === "accentColor" ? 1 : 0.6 }} />
+        </div>
+        <span className={cn("text-sm font-bold", colors.textColor, hl("textColor"))}>לוח ספירת העומר</span>
+      </div>
+
+      {/* Board */}
+      <div className={cn("p-3 space-y-2", colors.boardBg, hl("boardBg"))}>
+        {/* Row of cards */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className={cn("p-2 rounded-lg border text-center", colors.today, hl("today"))}>
+            <p className={cn("text-xs font-bold", colors.textColor)}>ג׳ לעומר</p>
+            <p className={cn("text-[10px]", colors.textMuted, hl("textMuted"))}>חסד שבתפארת</p>
+          </div>
+          <div className={cn("p-2 rounded-lg border text-center", colors.card, hl("card"))}>
+            <p className={cn("text-xs", colors.textColor, hl("textColor"))}>ב׳ לעומר</p>
+            <p className={cn("text-[10px]", colors.textMuted)}>גבורה שבחסד</p>
+          </div>
+          <div className={cn("p-2 rounded-lg border text-center", colors.card)}>
+            <p className={cn("text-xs", colors.textColor)}>א׳ לעומר</p>
+            <p className={cn("text-[10px]", colors.textMuted)}>חסד שבחסד</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className={cn("p-2 rounded-lg border text-center", colors.card)}>
+            <p className={cn("text-xs", colors.textColor)}>ו׳ לעומר</p>
+            <p className={cn("text-[10px]", colors.textMuted)}>יסוד שבחסד</p>
+          </div>
+          <div className={cn("p-2 rounded-lg border text-center", colors.card)}>
+            <p className={cn("text-xs", colors.textColor)}>ה׳ לעומר</p>
+            <p className={cn("text-[10px]", colors.textMuted)}>הוד שבחסד</p>
+          </div>
+          <div className={cn("p-2 rounded-lg border text-center", colors.card)}>
+            <p className={cn("text-xs", colors.textColor)}>ד׳ לעומר</p>
+            <p className={cn("text-[10px]", colors.textMuted)}>נצח שבחסד</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Theme Editor ────────────────────────────────────────── */
 function ThemeEditor({
   theme,
+  isBuiltIn,
   onSave,
   onCancel,
 }: {
   theme: OmerTheme;
+  isBuiltIn: boolean;
   onSave: (name: string, colors: OmerThemeColors) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState(theme.name);
+  const [name, setName] = useState(isBuiltIn ? theme.name + " (מותאם)" : theme.name);
   const [colors, setColors] = useState<OmerThemeColors>({ ...theme.colors });
+  const [highlightField, setHighlightField] = useState<keyof OmerThemeColors | null>(null);
 
   const updateColor = (key: keyof OmerThemeColors, value: string) => {
     setColors((prev) => ({ ...prev, [key]: value }));
@@ -87,20 +145,30 @@ function ThemeEditor({
 
   return (
     <div className="space-y-4" dir="rtl">
+      {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={onCancel} className="gap-1 text-xs">
-            <X className="h-3 w-3" />
-            ביטול
+            <ArrowRight className="h-3 w-3" />
+            חזור
           </Button>
-          <Button size="sm" onClick={() => onSave(name, colors)} className="gap-1 text-xs">
+          <Button size="sm" onClick={() => onSave(name, colors)} className="gap-1 text-xs bg-amber-500 hover:bg-amber-600 text-white">
             <Check className="h-3 w-3" />
-            שמור
+            {isBuiltIn ? "שמור כערכה חדשה" : "שמור"}
           </Button>
         </div>
-        <h3 className="font-bold text-sm">עריכת ערכת נושא</h3>
+        <h3 className="font-bold text-sm">{isBuiltIn ? "עריכה (ישמור כעותק)" : "עריכת ערכת נושא"}</h3>
       </div>
 
+      {/* Large live preview */}
+      <div>
+        <Label className="text-xs mb-1.5 block font-semibold">תצוגה מקדימה — {highlightField ? COLOR_FIELDS.find(f => f.key === highlightField)?.previewHint ?? "" : "לחץ על שדה צבע לראות מה הוא משנה"}</Label>
+        <LargePreview colors={colors} highlightField={highlightField} />
+      </div>
+
+      <Separator />
+
+      {/* Name */}
       <div>
         <Label className="text-xs">שם הערכה</Label>
         <Input
@@ -113,10 +181,23 @@ function ThemeEditor({
 
       <Separator />
 
+      {/* Color fields */}
       <div className="grid grid-cols-1 gap-3">
-        {COLOR_FIELDS.map(({ key, label, isAccent }) => (
-          <div key={key} className="space-y-1">
-            <Label className="text-xs">{label}</Label>
+        {COLOR_FIELDS.map(({ key, label, previewHint, isAccent }) => (
+          <div
+            key={key}
+            className={cn(
+              "space-y-1 p-2 rounded-lg transition-colors cursor-pointer -mx-2",
+              highlightField === key ? "bg-blue-50 dark:bg-blue-950/30" : "hover:bg-muted/50"
+            )}
+            onMouseEnter={() => setHighlightField(key)}
+            onMouseLeave={() => setHighlightField(null)}
+            onClick={() => setHighlightField(key)}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">{previewHint}</span>
+              <Label className="text-xs font-semibold">{label}</Label>
+            </div>
             {isAccent ? (
               <div className="flex items-center gap-2">
                 <Input
@@ -151,13 +232,6 @@ function ThemeEditor({
                   dir="ltr"
                   placeholder="#000000"
                 />
-                <Input
-                  value={colors[key]}
-                  onChange={(e) => updateColor(key, e.target.value)}
-                  className="text-[11px] h-8 flex-1 font-mono"
-                  dir="ltr"
-                  placeholder="Tailwind class..."
-                />
                 <input
                   type="color"
                   value={extractHexColor(colors[key])}
@@ -177,25 +251,6 @@ function ThemeEditor({
             )}
           </div>
         ))}
-      </div>
-
-      {/* Live preview */}
-      <Separator />
-      <div>
-        <Label className="text-xs mb-2 block">תצוגה מקדימה</Label>
-        <div className={cn("p-3 rounded-lg border-2", colors.boardBg)} style={{ borderColor: colors.accentColor }}>
-          <div className="flex gap-2 justify-end">
-            <div className={cn("rounded-md p-2 border text-xs text-center", colors.card)}>
-              <span className={colors.textColor}>א׳ לעומר</span>
-            </div>
-            <div className={cn("rounded-md p-2 border text-xs text-center", colors.today)}>
-              <span className={colors.textColor} style={{ fontWeight: "bold" }}>היום</span>
-            </div>
-            <div className={cn("rounded-md p-2 border text-xs text-center", colors.card)}>
-              <span className={colors.textMuted}>ג׳ לעומר</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -221,7 +276,6 @@ export function OmerThemeDialog({
     if (!theme) return;
 
     if (theme.builtIn) {
-      // Duplicate as custom then save
       const newId = onAdd({ name, colors });
       if (newId) onSelect(newId);
     } else {
@@ -244,7 +298,7 @@ export function OmerThemeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] p-0 overflow-hidden" dir="rtl">
+      <DialogContent className="sm:max-w-[540px] max-h-[90vh] p-0 overflow-hidden" dir="rtl">
         <div className="bg-gradient-to-l from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-4 border-b">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-end gap-2 text-lg">
@@ -254,16 +308,16 @@ export function OmerThemeDialog({
           </DialogHeader>
         </div>
 
-        <ScrollArea className="max-h-[70vh] p-4">
+        <ScrollArea className="max-h-[78vh] p-4">
           {editingTheme ? (
             <ThemeEditor
               theme={editingTheme}
+              isBuiltIn={editingTheme.builtIn}
               onSave={handleSave}
               onCancel={() => setEditingId(null)}
             />
           ) : (
             <div className="space-y-4">
-              {/* Add new button */}
               <Button
                 variant="outline"
                 className="w-full gap-2 border-dashed border-2 h-12 text-sm"
@@ -285,6 +339,13 @@ export function OmerThemeDialog({
                         onClick={() => onSelect(theme.id)}
                       />
                       <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditingId(theme.id); }}
+                          className="h-5 w-5 rounded bg-background/90 border flex items-center justify-center hover:bg-accent"
+                          title="ערוך (נשמר כעותק)"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); onDuplicate(theme.id); }}
                           className="h-5 w-5 rounded bg-background/90 border flex items-center justify-center hover:bg-accent"
