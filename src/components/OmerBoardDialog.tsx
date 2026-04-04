@@ -505,7 +505,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       key={day.day}
                       onClick={() => openPrayerDialog(day)}
                       className={cn(
-                        "border-t border-[#E5D2A0] cursor-pointer",
+                        "border-t cursor-pointer",
                         day.isToday ? activeDesign.today : activeDesign.card,
                       )}
                     >
