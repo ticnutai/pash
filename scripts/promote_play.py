@@ -31,8 +31,8 @@ service.edits().tracks().update(
             "versionCodes": [VERSION],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "v1.5.1 - שם האפליקציה עודכן לחמישה חומשי תורה עם פירושים. שיפורים ותיקונים."},
-                {"language": "en-US", "text": "v1.5.1 - App name updated to Five Books of Torah with Commentaries. Improvements and fixes."},
+                {"language": "he-IL", "text": "v1.6.0 - מערכת תזכורות משופרת: תזכורות מרובות עם תזמון, פופ-אפ באפליקציה, בחירת ימים, הפעלה אוטומטית בהתקנה. התראות נייטיב לאנדרואיד."},
+                {"language": "en-US", "text": "v1.6.0 - Enhanced reminder system: multiple reminders with scheduling, in-app popup, day picker, auto-enable on install. Native Android notifications."},
             ]
         }]
     }
