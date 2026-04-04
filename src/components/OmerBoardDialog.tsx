@@ -333,7 +333,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 sm:h-8 sm:w-8 border-[#C8A44D] text-[#0B1F4A] hover:bg-[#F7F1E1]"
+                      className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
+                      style={{ borderColor: activeDesign.accentColor }}
                       title="שתף ספירת העומר"
                     >
                       <Share2 className="h-4 w-4" />
@@ -368,8 +369,9 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   variant="outline"
                   size="icon"
                   onClick={cycleDesignMode}
-                  className="h-9 w-9 sm:h-8 sm:w-8 border-[#C8A44D] text-[#0B1F4A] hover:bg-[#F7F1E1]"
-                  title="החלף עיצוב: קלאסי / קלף / נקי"
+                  className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
+                  style={{ borderColor: activeDesign.accentColor }}
+                  title="החלף עיצוב"
                 >
                   <Palette className="h-4 w-4" />
                 </Button>
@@ -377,18 +379,19 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   variant="outline"
                   size="icon"
                   onClick={cycleViewMode}
-                  className="h-9 w-9 sm:h-8 sm:w-8 border-[#C8A44D] text-[#0B1F4A] hover:bg-[#F7F1E1]"
-                  title="החלף תצוגה: רשת / טבלה / קומפקטי / שבועי"
+                  className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
+                  style={{ borderColor: activeDesign.accentColor }}
+                  title="החלף תצוגה"
                 >
                   {currentViewIcon}
                 </Button>
               </div>
-              <DialogTitle className="text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2 text-[#0B1F4A]">
+              <DialogTitle className={cn("text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2", activeDesign.textColor)}>
                 <span>לוח ספירת העומר</span>
-                <CalendarDays className="h-5 w-5 text-[#C8A44D]" />
+                <CalendarDays className="h-5 w-5" style={{ color: activeDesign.accentColor }} />
               </DialogTitle>
             </div>
-            <DialogDescription className="text-right text-[#0B1F4A]/80">
+            <DialogDescription className={cn("text-right", activeDesign.textMuted)}>
               {board.isInSeason
                 ? `היום ${todayHebrewDay} לעומר`
                 : `טווח העומר: ${board.startGregorian} - ${board.endGregorian}`}
