@@ -311,7 +311,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   const selectedNusach = afterCountByNusach[nusach] ?? afterCountByNusach.sefarad;
 
   return (
-    <Dialog>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -323,8 +323,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 border-[#C8A44D] bg-white text-[#0B1F4A] max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]">
-        <div className="sticky top-0 z-10 bg-white px-3 sm:px-5 py-3 sm:py-5 border-b border-[#C8A44D]/70">
+      <DialogContent className={cn("w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
+        <div className={cn("sticky top-0 z-10 px-3 sm:px-5 py-3 sm:py-5 border-b", activeDesign.dialogBg, activeDesign.textColor)} style={{ borderColor: activeDesign.accentColor + "70" }}>
           <DialogHeader className="text-right">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
