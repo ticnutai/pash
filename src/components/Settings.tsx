@@ -220,6 +220,11 @@ export const Settings = () => {
       localStorage.setItem(DEV_FLOATING_ENABLED_KEY, String(cloudVal));
       window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
     }
+    // Sync omer auto-open from cloud
+    const omerAutoOpen = user.user_metadata?.omer_auto_open;
+    if (omerAutoOpen === true || omerAutoOpen === false) {
+      localStorage.setItem('omer-auto-open', String(omerAutoOpen));
+    }
   }, [user]);
 
   const resetTextSizesToDefault = () => {
@@ -401,6 +406,42 @@ export const Settings = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">לוח ספירת העומר</h3>
+                  <p className="text-sm text-muted-foreground">
+                    הגדרות פתיחה אוטומטית של לוח ספירת העומר
+                  </p>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                  <div className="flex-1 text-right">
+                    <Label htmlFor="omer-auto-open" className="text-base font-semibold cursor-pointer">
+                      פתח לוח עומר בעליית האתר
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      כאשר מופעל, לוח ספירת העומר ייפתח אוטומטית בכל כניסה לאתר (בתקופת הספירה)
+                    </p>
+                  </div>
+                  <Switch
+                    id="omer-auto-open"
+                    checked={(() => {
+                      try { return localStorage.getItem('omer-auto-open') === 'true'; } catch { return false; }
+                    })()}
+                    onCheckedChange={(checked) => {
+                      localStorage.setItem('omer-auto-open', String(checked));
+                      toast.success(checked ? "לוח העומר ייפתח אוטומטית" : "פתיחה אוטומטית כובתה");
+                      // Sync to cloud
+                      if (user) {
+                        supabase.auth.updateUser({ data: { ...user.user_metadata, omer_auto_open: checked } })
+                          .catch(() => {});
+                      }
+                    }}
+                  />
                 </div>
               </div>
             </Card>

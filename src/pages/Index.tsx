@@ -116,6 +116,9 @@ const Index = () => {
   const [singlePasukMode, setSinglePasukMode] = useState(false);
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const omerAutoOpen = useMemo(() => {
+    try { return localStorage.getItem('omer-auto-open') === 'true'; } catch { return false; }
+  }, []);
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
   const pendingSearchNav = useRef<{ perek: number; pasuk: number } | null>(null); // pending navigation from search
   const seferClickStartedAtRef = useRef<number | null>(null);
@@ -879,7 +882,7 @@ const Index = () => {
                 </Button>
                 </span>
                 <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר">
-                  <OmerBoardDialog buttonClassName="h-8 w-8" iconClassName="h-4 w-4" />
+                  <OmerBoardDialog buttonClassName="h-8 w-8" iconClassName="h-4 w-4" defaultOpen={omerAutoOpen} />
                 </span>
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
@@ -920,7 +923,7 @@ const Index = () => {
               <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
               <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
               <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר">
-                <OmerBoardDialog buttonClassName="h-9 w-9" iconClassName="h-5 w-5" />
+                <OmerBoardDialog buttonClassName="h-9 w-9" iconClassName="h-5 w-5" defaultOpen={omerAutoOpen} />
               </span>
               <span data-layout="btn-siddur" data-layout-label="🕍 סידור">
               <Button
