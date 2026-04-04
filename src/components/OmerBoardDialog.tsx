@@ -171,8 +171,18 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     try {
       if (localStorage.getItem(OMER_TOOLTIP_DISMISSED_KEY) === "true") return;
     } catch { /* ignore */ }
-    const timer = setTimeout(() => setShowTooltip(true), 600);
-    return () => clearTimeout(timer);
+    const showTimer = setTimeout(() => setShowTooltip(true), 600);
+    // Auto-open prayer dialog after 10 seconds if tooltip still visible
+    const autoOpenTimer = setTimeout(() => {
+      const todayEntry = board.days.find((d) => d.day === board.currentDay);
+      if (todayEntry) {
+        setSelectedDay(todayEntry);
+        setBlessingAnimated(true);
+        setPrayerDialogOpen(true);
+        setShowTooltip(false);
+      }
+    }, 10_000);
+    return () => { clearTimeout(showTimer); clearTimeout(autoOpenTimer); };
   }, [dialogOpen, board.currentDay]);
 
   const todayHebrewDay = board.currentDay
