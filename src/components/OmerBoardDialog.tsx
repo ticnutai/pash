@@ -423,7 +423,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     variant="outline"
                     onClick={() => setViewMode(option.value)}
                     className={cn(
-                      "min-h-9 border-[#C8A44D] omer-text",
+                      "min-h-9 border-[#C8A44D] inherit",
                       viewMode === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
                     )}
                   >
@@ -441,7 +441,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     variant="outline"
                     onClick={() => setDesignMode(option.value)}
                     className={cn(
-                      "min-h-9 border-[#C8A44D] omer-text",
+                      "min-h-9 border-[#C8A44D] inherit",
                       designMode === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
                     )}
                   >
@@ -468,19 +468,19 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="text-right">
-                      <p className="text-sm omer-muted">יום</p>
-                      <p className="text-xl font-bold leading-none omer-text">{day.weekdayHebrew}</p>
+                      <p className="text-sm inherit opacity-70">יום</p>
+                      <p className="text-xl font-bold leading-none inherit">{day.weekdayHebrew}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-base font-semibold omer-text">{day.hebrewDay} לעומר</p>
-                      <p className="text-sm omer-text">{day.hebrewDate}</p>
-                      <p className="text-xs omer-muted mt-1">{day.gregorianDate}</p>
+                      <p className="text-base font-semibold inherit">{day.hebrewDay} לעומר</p>
+                      <p className="text-sm inherit">{day.hebrewDate}</p>
+                      <p className="text-xs inherit opacity-70 mt-1">{day.gregorianDate}</p>
                       {day.shabbatReading && (
-                        <p className="text-xs omer-muted mt-1 font-medium">פרשת השבוע: {day.shabbatReading}</p>
+                        <p className="text-xs inherit opacity-70 mt-1 font-medium">פרשת השבוע: {day.shabbatReading}</p>
                       )}
                     </div>
                   </div>
-                  <p className="mt-2 text-xs omer-muted text-right">{day.sefira}</p>
+                  <p className="mt-2 text-xs inherit opacity-70 text-right">{day.sefira}</p>
                 </button>
               ))}
             </div>
@@ -489,7 +489,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
           {viewMode === "table" && (
             <div className="overflow-x-auto rounded-lg border border-[#C8A44D]">
               <table className="w-full min-w-[620px] text-right text-sm">
-                <thead className={cn("omer-text", activeDesign.header)}>
+                <thead className={cn("inherit", activeDesign.header)}>
                   <tr>
                     <th className="px-3 py-2 font-semibold">יום בשבוע</th>
                     <th className="px-3 py-2 font-semibold">יום לעומר</th>
@@ -503,7 +503,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       key={day.day}
                       onClick={() => openPrayerDialog(day)}
                       className={cn(
-                        "border-t border-[#E5D2A0] omer-text cursor-pointer",
+                        "border-t border-[#E5D2A0] inherit cursor-pointer",
                         day.isToday ? activeDesign.today : activeDesign.card,
                       )}
                     >
@@ -511,11 +511,11 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       <td className="px-3 py-2 font-semibold">
                         <div>{day.hebrewDay} לעומר</div>
                         {day.shabbatReading && (
-                          <div className="text-xs omer-muted font-medium mt-1">פרשה: {day.shabbatReading}</div>
+                          <div className="text-xs inherit opacity-70 font-medium mt-1">פרשה: {day.shabbatReading}</div>
                         )}
                       </td>
                       <td className="px-3 py-2">{day.hebrewDate}</td>
-                      <td className="px-3 py-2 text-xs omer-muted">{day.gregorianDate}</td>
+                      <td className="px-3 py-2 text-xs inherit opacity-70">{day.gregorianDate}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -536,14 +536,14 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   )}
                 >
                   <div className="text-right">
-                    <p className="text-xs omer-muted">יום {day.weekdayHebrew}</p>
-                    <p className="text-sm font-semibold omer-text">{day.hebrewDay} לעומר</p>
-                    <p className="text-xs omer-muted">{day.hebrewDate}</p>
+                    <p className="text-xs inherit opacity-70">יום {day.weekdayHebrew}</p>
+                    <p className="text-sm font-semibold inherit">{day.hebrewDay} לעומר</p>
+                    <p className="text-xs inherit opacity-70">{day.hebrewDate}</p>
                     {day.shabbatReading && (
-                      <p className="text-xs omer-muted mt-1 font-medium">פרשה: {day.shabbatReading}</p>
+                      <p className="text-xs inherit opacity-70 mt-1 font-medium">פרשה: {day.shabbatReading}</p>
                     )}
                   </div>
-                  <p className="text-xs omer-muted">{day.gregorianDate}</p>
+                  <p className="text-xs inherit opacity-70">{day.gregorianDate}</p>
                 </button>
               ))}
             </div>
@@ -553,7 +553,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
             <div className="space-y-3">
               {weeklyGroups.map((group) => (
                 <Card key={group.week} className={cn("p-3", activeDesign.card)}>
-                  <p className="text-sm font-bold omer-text mb-2 text-right">שבוע {toHebrewNumber(group.week)} לעומר</p>
+                  <p className="text-sm font-bold inherit mb-2 text-right">שבוע {toHebrewNumber(group.week)} לעומר</p>
                   <div className="space-y-2">
                     {group.days.map((day) => (
                       <button
@@ -566,11 +566,11 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                         )}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold omer-text">{day.hebrewDay} לעומר</p>
-                          <p className="text-xs omer-muted">יום {day.weekdayHebrew}</p>
+                          <p className="text-sm font-semibold inherit">{day.hebrewDay} לעומר</p>
+                          <p className="text-xs inherit opacity-70">יום {day.weekdayHebrew}</p>
                         </div>
-                        <p className="text-xs omer-muted">{day.hebrewDate} | {day.gregorianDate}</p>
-                        {day.shabbatReading && <p className="text-xs font-medium omer-text mt-1">פרשת השבוע: {day.shabbatReading}</p>}
+                        <p className="text-xs inherit opacity-70">{day.hebrewDate} | {day.gregorianDate}</p>
+                        {day.shabbatReading && <p className="text-xs font-medium inherit mt-1">פרשת השבוע: {day.shabbatReading}</p>}
                       </button>
                     ))}
                   </div>
@@ -581,12 +581,12 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
         </div>
 
         <Dialog open={prayerDialogOpen} onOpenChange={setPrayerDialogOpen}>
-          <DialogContent className="w-[96vw] sm:w-auto sm:max-w-2xl border-2 border-[#C8A44D] bg-white omer-text overflow-x-hidden max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+          <DialogContent className="w-[96vw] sm:w-auto sm:max-w-2xl border-2 border-[#C8A44D] bg-white inherit overflow-x-hidden max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]">
             <DialogHeader className="text-right">
-              <DialogTitle className="text-right text-xl font-bold omer-text">
+              <DialogTitle className="text-right text-xl font-bold inherit">
                 {selectedDay ? `${selectedDay.hebrewDay} לעומר` : "ספירת העומר"}
               </DialogTitle>
-              <DialogDescription className="text-right omer-muted">
+              <DialogDescription className="text-right inherit opacity-70">
                 {selectedDay ? `יום ${selectedDay.weekdayHebrew} | ${selectedDay.hebrewDate} | ${selectedDay.gregorianDate}` : ""}
               </DialogDescription>
             </DialogHeader>
@@ -594,23 +594,23 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
             <div className="max-h-[74vh] sm:max-h-[70vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4 text-right leading-8 pr-1">
               {selectedDay?.shabbatReading && (
                 <Card className="border-[#C8A44D] bg-white p-4">
-                  <p className="text-sm omer-muted mb-1">קריאת שבת</p>
-                  <p className="text-base font-semibold omer-text">פרשת השבוע: {selectedDay.shabbatReading}</p>
+                  <p className="text-sm inherit opacity-70 mb-1">קריאת שבת</p>
+                  <p className="text-base font-semibold inherit">פרשת השבוע: {selectedDay.shabbatReading}</p>
                 </Card>
               )}
 
               <Card className="border-[#C8A44D] bg-[#FEFDF9] p-4">
-                <p className="text-sm omer-muted mb-2">הברכה לפני הספירה</p>
+                <p className="text-sm inherit opacity-70 mb-2">הברכה לפני הספירה</p>
                 <p className="text-base font-semibold">{omerBlessing}</p>
               </Card>
 
               <Card className="border-[#C8A44D] bg-[#F7F1E1] p-4">
-                <p className="text-sm omer-muted mb-2">הספירה של היום</p>
+                <p className="text-sm inherit opacity-70 mb-2">הספירה של היום</p>
                 <p className="text-lg font-bold">{selectedDay?.countText ?? ""}</p>
               </Card>
 
               <Card className="border-[#C8A44D] bg-white p-3">
-                <p className="text-sm omer-muted mb-2">בחירת נוסח</p>
+                <p className="text-sm inherit opacity-70 mb-2">בחירת נוסח</p>
                 <div className="flex flex-wrap gap-2 justify-end">
                   {nusachOptions.map((option) => (
                     <Button
@@ -620,7 +620,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       variant="outline"
                       onClick={() => setNusach(option.value)}
                       className={cn(
-                        "border-[#C8A44D] omer-text",
+                        "border-[#C8A44D] inherit",
                         nusach === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
                       )}
                     >
@@ -628,24 +628,24 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     </Button>
                   ))}
                 </div>
-                <p className="text-xs omer-muted mt-2">{selectedNusach.note}</p>
+                <p className="text-xs inherit opacity-70 mt-2">{selectedNusach.note}</p>
               </Card>
 
               {selectedNusach.sections.map((section) => (
                 <Card key={section.title} className="border-[#C8A44D] bg-[#FEFDF9] p-4">
-                  <p className="text-sm omer-muted mb-2">{section.title}</p>
+                  <p className="text-sm inherit opacity-70 mb-2">{section.title}</p>
                   <p className="text-base font-semibold">{section.text}</p>
                 </Card>
               ))}
 
-              <p className="text-xs omer-muted px-1">
+              <p className="text-xs inherit opacity-70 px-1">
                 הערה: קיימים הבדלים בין סידורים שונים, והנוסחים כאן מוצגים בתצוגה כללית ומסודרת.
               </p>
             </div>
 
             <div className="sticky bottom-0 bg-white pt-2 pb-1 flex justify-start">
               <DialogClose asChild>
-                <Button variant="outline" className="border-[#C8A44D] omer-text hover:bg-[#F7F1E1] min-h-10 px-5">
+                <Button variant="outline" className="border-[#C8A44D] inherit hover:bg-[#F7F1E1] min-h-10 px-5">
                   סגור
                 </Button>
               </DialogClose>
