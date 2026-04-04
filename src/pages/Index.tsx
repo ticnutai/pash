@@ -882,7 +882,7 @@ const Index = () => {
                 </Button>
                 </span>
                 <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר">
-                  <OmerBoardDialog buttonClassName="h-8 w-8" iconClassName="h-4 w-4" />
+                  <OmerBoardDialog buttonClassName="h-8 w-8" iconClassName="h-4 w-4" defaultOpen={omerAutoOpen} />
                 </span>
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
