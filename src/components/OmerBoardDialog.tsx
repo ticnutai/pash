@@ -162,6 +162,9 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     { value: "classic", label: "קלאסי" },
     { value: "parchment", label: "קלף" },
     { value: "clean", label: "נקי" },
+    { value: "golden", label: "זהב מלכותי" },
+    { value: "dark", label: "לילה" },
+    { value: "colorful", label: "צבעוני" },
   ];
 
   const weeklyGroups = useMemo(() => {
