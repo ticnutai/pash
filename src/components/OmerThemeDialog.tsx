@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowRight, Check, Copy, Edit2, Palette, Plus, Trash2, X } from "lucide-react";
+import { ArrowRight, Check, Copy, Edit2, Palette, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OmerTheme, OmerThemeColors } from "@/hooks/useOmerThemes";
 
@@ -33,10 +33,53 @@ const COLOR_FIELDS: Array<{ key: keyof OmerThemeColors; label: string; previewHi
   { key: "textMuted", label: "צבע טקסט מעומעם", previewHint: "טקסט משני" },
 ];
 
+/* ─── Style extraction helpers ────────────────────────────── */
+
 function extractHexColor(value: string): string {
   const match = value.match(/#[0-9A-Fa-f]{3,8}/);
   return match?.[0] ?? "#C8A44D";
 }
+
+/** Parse a Tailwind class string → inline backgroundColor */
+function toBgStyle(cls: string): React.CSSProperties {
+  if (!cls) return {};
+  // Gradient
+  const from = cls.match(/from-\[([^\]]+)\]/)?.[1];
+  const to = cls.match(/to-\[([^\]]+)\]/)?.[1];
+  const via = cls.match(/via-\[([^\]]+)\]/)?.[1];
+  if (from && to) {
+    const stops = via ? `${from}, ${via}, ${to}` : `${from}, ${to}`;
+    return { background: `linear-gradient(to bottom, ${stops})` };
+  }
+  if (/\bbg-white\b/.test(cls)) return { backgroundColor: "#ffffff" };
+  const bgHex = cls.match(/bg-\[([^\]]+)\]/)?.[1];
+  if (bgHex) return { backgroundColor: bgHex };
+  return {};
+}
+
+/** Parse a Tailwind class string → inline color */
+function toTextStyle(cls: string): React.CSSProperties {
+  const m = cls.match(/text-\[([^\]]+)\]/);
+  if (!m) return {};
+  const hex = m[1];
+  const opMatch = cls.match(/text-\[[^\]]+\]\/(\d+)/);
+  if (opMatch) return { color: hex, opacity: parseInt(opMatch[1]) / 100 };
+  return { color: hex };
+}
+
+/** Parse a Tailwind class string → inline borderColor */
+function toBorderHex(cls: string): string | undefined {
+  const m = cls.match(/border-\[([^\]]+)\]/);
+  if (!m) return undefined;
+  return m[1].replace(/\/\d+$/, "");
+}
+
+const SHADOW_MAP: Record<string, string> = {
+  none: "none",
+  sm: "0 1px 3px rgba(0,0,0,0.12)",
+  md: "0 2px 8px rgba(0,0,0,0.18)",
+  lg: "0 4px 16px rgba(0,0,0,0.25)",
+};
 
 function PreviewSwatch({ theme, active, onClick }: { theme: OmerTheme; active: boolean; onClick: () => void }) {
   const accent = theme.colors.accentColor;
@@ -68,55 +111,100 @@ function PreviewSwatch({ theme, active, onClick }: { theme: OmerTheme; active: b
   );
 }
 
-/* ─── Large annotated preview ─────────────────────────────── */
+/* ─── Large annotated preview (inline styles) ─────────────── */
 function LargePreview({ colors, highlightField }: { colors: OmerThemeColors; highlightField: keyof OmerThemeColors | null }) {
-  const hl = (field: keyof OmerThemeColors) =>
-    highlightField === field ? "ring-2 ring-blue-500 ring-offset-1" : "";
+  const ring = (field: keyof OmerThemeColors): React.CSSProperties =>
+    highlightField === field ? { outline: "2px solid #3b82f6", outlineOffset: "1px" } : {};
+
+  const br = colors.borderRadius ?? 8;
+  const shadow = SHADOW_MAP[colors.cardShadow ?? "none"];
+  const dialogBgStyle = toBgStyle(colors.dialogBg);
+  const boardBgStyle = toBgStyle(colors.boardBg);
+  const headerBgStyle = toBgStyle(colors.header);
+  const cardBgStyle = toBgStyle(colors.card);
+  const todayBgStyle = toBgStyle(colors.today);
+  const textStyle = toTextStyle(colors.textColor);
+  const mutedStyle = toTextStyle(colors.textMuted);
+  const cardBorderHex = toBorderHex(colors.card) ?? colors.accentColor;
+  const todayBorderHex = toBorderHex(colors.today) ?? colors.accentColor;
 
   return (
     <div
-      className={cn("rounded-xl border-2 overflow-hidden transition-all", colors.dialogBg, colors.dialogBorder, hl("dialogBg"), highlightField === "dialogBorder" ? "ring-2 ring-blue-500 ring-offset-1" : "")}
-      style={{ borderColor: colors.accentColor }}
+      style={{
+        borderRadius: br + 4,
+        borderWidth: 2,
+        borderStyle: "solid",
+        borderColor: colors.accentColor,
+        overflow: "hidden",
+        transition: "all 0.2s",
+        ...dialogBgStyle,
+        ...ring("dialogBg"),
+        ...(highlightField === "dialogBorder" ? { outline: "2px solid #3b82f6", outlineOffset: "1px" } : {}),
+      }}
     >
       {/* Header */}
-      <div className={cn("px-3 py-2 border-b flex items-center justify-between", colors.header, hl("header"))} style={{ borderColor: colors.accentColor + "70" }}>
-        <div className="flex gap-1">
-          <div className="h-4 w-4 rounded" style={{ backgroundColor: colors.accentColor, opacity: highlightField === "accentColor" ? 1 : 0.6 }} />
-          <div className="h-4 w-4 rounded" style={{ backgroundColor: colors.accentColor, opacity: highlightField === "accentColor" ? 1 : 0.6 }} />
+      <div
+        style={{
+          padding: "8px 12px",
+          borderBottom: `1px solid ${colors.accentColor}70`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          ...headerBgStyle,
+          ...ring("header"),
+        }}
+      >
+        <div style={{ display: "flex", gap: 4 }}>
+          <div style={{ height: 16, width: 16, borderRadius: 4, backgroundColor: colors.accentColor, opacity: highlightField === "accentColor" ? 1 : 0.6 }} />
+          <div style={{ height: 16, width: 16, borderRadius: 4, backgroundColor: colors.accentColor, opacity: highlightField === "accentColor" ? 1 : 0.6 }} />
         </div>
-        <span className={cn("text-sm font-bold", colors.textColor, hl("textColor"))}>לוח ספירת העומר</span>
+        <span style={{ fontSize: 14, fontWeight: 700, ...textStyle, ...ring("textColor") }}>
+          לוח ספירת העומר
+        </span>
       </div>
 
       {/* Board */}
-      <div className={cn("p-3 space-y-2", colors.boardBg, hl("boardBg"))}>
-        {/* Row of cards */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className={cn("p-2 rounded-lg border text-center", colors.today, hl("today"))}>
-            <p className={cn("text-xs font-bold", colors.textColor)}>ג׳ לעומר</p>
-            <p className={cn("text-[10px]", colors.textMuted, hl("textMuted"))}>חסד שבתפארת</p>
+      <div style={{ padding: 12, ...boardBgStyle, ...ring("boardBg") }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          {/* Today card */}
+          <div style={{
+            padding: 8, borderRadius: br, border: `2px solid ${todayBorderHex}`,
+            textAlign: "center", boxShadow: `0 0 0 2px ${todayBorderHex}40, ${shadow}`,
+            ...todayBgStyle, ...ring("today"),
+          }}>
+            <p style={{ fontSize: 12, fontWeight: 700, ...textStyle }}>ג׳ לעומר</p>
+            <p style={{ fontSize: 10, ...mutedStyle, ...ring("textMuted") }}>חסד שבתפארת</p>
           </div>
-          <div className={cn("p-2 rounded-lg border text-center", colors.card, hl("card"))}>
-            <p className={cn("text-xs", colors.textColor, hl("textColor"))}>ב׳ לעומר</p>
-            <p className={cn("text-[10px]", colors.textMuted)}>גבורה שבחסד</p>
-          </div>
-          <div className={cn("p-2 rounded-lg border text-center", colors.card)}>
-            <p className={cn("text-xs", colors.textColor)}>א׳ לעומר</p>
-            <p className={cn("text-[10px]", colors.textMuted)}>חסד שבחסד</p>
-          </div>
+          {/* Regular cards */}
+          {[
+            { d: "ב׳ לעומר", s: "גבורה שבחסד" },
+            { d: "א׳ לעומר", s: "חסד שבחסד" },
+          ].map((c, i) => (
+            <div key={i} style={{
+              padding: 8, borderRadius: br, border: `1px solid ${cardBorderHex}`,
+              textAlign: "center", boxShadow: shadow,
+              ...cardBgStyle, ...ring("card"),
+            }}>
+              <p style={{ fontSize: 12, ...textStyle }}>{c.d}</p>
+              <p style={{ fontSize: 10, ...mutedStyle }}>{c.s}</p>
+            </div>
+          ))}
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div className={cn("p-2 rounded-lg border text-center", colors.card)}>
-            <p className={cn("text-xs", colors.textColor)}>ו׳ לעומר</p>
-            <p className={cn("text-[10px]", colors.textMuted)}>יסוד שבחסד</p>
-          </div>
-          <div className={cn("p-2 rounded-lg border text-center", colors.card)}>
-            <p className={cn("text-xs", colors.textColor)}>ה׳ לעומר</p>
-            <p className={cn("text-[10px]", colors.textMuted)}>הוד שבחסד</p>
-          </div>
-          <div className={cn("p-2 rounded-lg border text-center", colors.card)}>
-            <p className={cn("text-xs", colors.textColor)}>ד׳ לעומר</p>
-            <p className={cn("text-[10px]", colors.textMuted)}>נצח שבחסד</p>
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 8 }}>
+          {[
+            { d: "ו׳ לעומר", s: "יסוד שבחסד" },
+            { d: "ה׳ לעומר", s: "הוד שבחסד" },
+            { d: "ד׳ לעומר", s: "נצח שבחסד" },
+          ].map((c, i) => (
+            <div key={i} style={{
+              padding: 8, borderRadius: br, border: `1px solid ${cardBorderHex}`,
+              textAlign: "center", boxShadow: shadow,
+              ...cardBgStyle,
+            }}>
+              <p style={{ fontSize: 12, ...textStyle }}>{c.d}</p>
+              <p style={{ fontSize: 10, ...mutedStyle }}>{c.s}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -136,7 +224,11 @@ function ThemeEditor({
   onCancel: () => void;
 }) {
   const [name, setName] = useState(isBuiltIn ? theme.name + " (מותאם)" : theme.name);
-  const [colors, setColors] = useState<OmerThemeColors>({ ...theme.colors });
+  const [colors, setColors] = useState<OmerThemeColors>({
+    ...theme.colors,
+    borderRadius: theme.colors.borderRadius ?? 8,
+    cardShadow: theme.colors.cardShadow ?? "none",
+  });
   const [highlightField, setHighlightField] = useState<keyof OmerThemeColors | null>(null);
 
   const updateColor = (key: keyof OmerThemeColors, value: string) => {
@@ -249,6 +341,43 @@ function ThemeEditor({
             )}
           </div>
         ))}
+
+          {/* ─── Style options ─── */}
+          <Separator className="my-2" />
+          <h4 className="text-xs font-bold text-right">אפשרויות עיצוב</h4>
+
+          <div className="space-y-1 p-2 rounded-lg -mx-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">{colors.borderRadius ?? 8}px</span>
+              <Label className="text-xs font-semibold">עיגול פינות</Label>
+            </div>
+            <input
+              type="range" min={0} max={24} step={1}
+              value={colors.borderRadius ?? 8}
+              onChange={(e) => setColors((prev) => ({ ...prev, borderRadius: Number(e.target.value) }))}
+              className="w-full accent-amber-500 h-1.5" dir="ltr"
+            />
+          </div>
+
+          <div className="space-y-1 p-2 rounded-lg -mx-2">
+            <Label className="text-xs font-semibold block text-right mb-1">צל כרטיסים</Label>
+            <div className="flex gap-1.5 justify-end flex-wrap">
+              {(["none", "sm", "md", "lg"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setColors((prev) => ({ ...prev, cardShadow: v }))}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[10px] font-medium border transition-all",
+                    (colors.cardShadow ?? "none") === v
+                      ? "bg-amber-500 text-white border-amber-600"
+                      : "border-muted hover:bg-muted/50"
+                  )}
+                >
+                  {{ none: "ללא", sm: "קל", md: "בינוני", lg: "חזק" }[v]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

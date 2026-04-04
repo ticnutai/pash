@@ -203,6 +203,9 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   }, [board.days]);
 
   const activeDesign = activeTheme.colors;
+  const cardBorderRadius = activeDesign.borderRadius ?? 8;
+  const cardShadowMap: Record<string, string> = { none: "none", sm: "0 1px 3px rgba(0,0,0,0.12)", md: "0 2px 8px rgba(0,0,0,0.18)", lg: "0 4px 16px rgba(0,0,0,0.25)" };
+  const cardBoxShadow = cardShadowMap[activeDesign.cardShadow ?? "none"];
 
   const openPrayerDialog = (day: (typeof board.days)[number]) => {
     setSelectedDay(day);
@@ -713,12 +716,12 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   type="button"
                   onClick={() => openPrayerDialog(day)}
                   className={cn(
-                    "w-full border transition-all text-right rounded-lg",
+                    "w-full border transition-all text-right",
                     day.isToday
                       ? activeDesign.today
                       : activeDesign.card,
                   )}
-                  style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight }}
+                  style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight, borderRadius: cardBorderRadius, boxShadow: cardBoxShadow }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="text-right">
@@ -785,10 +788,10 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   type="button"
                   onClick={() => openPrayerDialog(day)}
                   className={cn(
-                    "w-full border flex items-center justify-between text-right rounded-lg",
+                    "w-full border flex items-center justify-between text-right",
                     day.isToday ? activeDesign.today : activeDesign.card,
                   )}
-                  style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight }}
+                  style={{ padding: `${typo.cardPadding}px`, lineHeight: typo.lineHeight, borderRadius: cardBorderRadius, boxShadow: cardBoxShadow }}
                 >
                   <div className="text-right">
                     <p className="opacity-70" style={{ fontSize: `${typo.subFontSize}px` }}>יום {day.weekdayHebrew}</p>
@@ -816,10 +819,10 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                         type="button"
                         onClick={() => openPrayerDialog(day)}
                         className={cn(
-                          "w-full rounded-md border text-right",
+                          "w-full border text-right",
                           day.isToday ? activeDesign.today : activeDesign.card,
                         )}
-                        style={{ padding: `${typo.cardPadding * 0.7}px ${typo.cardPadding}px`, lineHeight: typo.lineHeight }}
+                        style={{ padding: `${typo.cardPadding * 0.7}px ${typo.cardPadding}px`, lineHeight: typo.lineHeight, borderRadius: cardBorderRadius, boxShadow: cardBoxShadow }}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-semibold" style={{ fontSize: `${typo.fontSize}px` }}>{day.hebrewDay} לעומר</p>

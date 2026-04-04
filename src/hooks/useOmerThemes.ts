@@ -16,6 +16,8 @@ export interface OmerThemeColors {
   textColor: string;
   textMuted: string;
   accentColor: string;
+  borderRadius?: number;      // px, default 8
+  cardShadow?: 'none' | 'sm' | 'md' | 'lg';  // default 'none'
 }
 
 export interface OmerTheme {
