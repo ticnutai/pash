@@ -27,11 +27,12 @@ import { toHebrewNumber } from "@/utils/hebrewNumbers";
 interface OmerBoardDialogProps {
   buttonClassName?: string;
   iconClassName?: string;
+  defaultOpen?: boolean;
 }
 
 type OmerViewMode = "grid" | "table" | "compact" | "weekly";
 type OmerNusach = "sefarad" | "ashkenaz" | "edot";
-type OmerDesignMode = "classic" | "parchment" | "clean";
+type OmerDesignMode = "classic" | "parchment" | "clean" | "golden" | "dark" | "colorful";
 
 const OMER_NUSACH_KEY = "omer-nusach";
 
