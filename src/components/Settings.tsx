@@ -316,10 +316,13 @@ export const Settings = () => {
       </DialogTrigger>
       <DialogContent data-layout="dialog-settings" data-layout-label="📦 דיאלוג: הגדרות" className="w-[95vw] sm:max-w-[650px] max-h-[85vh] overflow-y-auto text-right">
         <DialogHeader>
-          <DialogTitle className="text-right text-xl sm:text-2xl flex items-center justify-end gap-2">
-            <span>הגדרות</span>
-            <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-xs text-[#C8A44D] font-mono">v{__APP_VERSION__}</span>
+            <DialogTitle className="text-right text-xl sm:text-2xl flex items-center justify-end gap-2">
+              <span>הגדרות</span>
+              <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+            </DialogTitle>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="calendar" className="w-full" dir="rtl">

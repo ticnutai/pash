@@ -892,7 +892,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/siddur')}
-                  className="h-8 w-8 text-muted-foreground"
+                  className="h-8 w-8 text-accent"
                   title="סידור תפילה"
                 >
                   <BookMarked className="h-4 w-4" />
@@ -903,7 +903,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleCorpusMode}
-                  className={cn("h-8 w-8", corpusMode === "neviim" ? "text-accent" : "text-muted-foreground")}
+                  className={cn("h-8 w-8 text-accent")}
                   title={corpusMode === "torah" ? "מעבר לנביאים (מגילת אסתר)" : "מעבר לחומשים"}
                 >
                   <ScrollText className="h-4 w-4" />
@@ -930,7 +930,7 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/siddur')}
-                className="h-9 w-9 text-muted-foreground"
+                className="h-9 w-9 text-accent"
                 title="סידור תפילה"
               >
                 <BookMarked className="h-5 w-5" />
@@ -941,7 +941,7 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 onClick={toggleCorpusMode}
-                className={cn("h-9 w-9", corpusMode === "neviim" ? "text-accent" : "text-muted-foreground")}
+                className={cn("h-9 w-9 text-accent")}
                 title={corpusMode === "torah" ? "מעבר לנביאים (מגילת אסתר)" : "מעבר לחומשים"}
               >
                 <ScrollText className="h-5 w-5" />

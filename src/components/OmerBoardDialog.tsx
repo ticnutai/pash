@@ -316,7 +316,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
         <Button
           variant="ghost"
           size="icon"
-          className={cn("text-muted-foreground", buttonClassName)}
+          className={cn("text-accent", buttonClassName)}
           title="לוח ספירת העומר"
         >
           <Sparkles className={cn("h-4 w-4", iconClassName)} />

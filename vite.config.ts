@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import { devChatPlugin } from "./src/plugins/devChatPlugin";
+import pkg from "./package.json" with { type: "json" };
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -125,5 +126,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
 }));
