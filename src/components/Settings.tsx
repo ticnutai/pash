@@ -169,6 +169,9 @@ export const Settings = () => {
   const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
   const [devScreenshotEnabled, setDevScreenshotEnabled] = useState(() => getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true));
   const [apiKeys, setApiKeys] = useState<ApiKeys>(loadLocalApiKeys);
+  const [omerAutoOpen, setOmerAutoOpen] = useState(() => {
+    try { const v = localStorage.getItem('omer-auto-open'); return v === null ? true : v === 'true'; } catch { return true; }
+  });
 
   // Load API keys from cloud on mount
   useEffect(() => {
@@ -432,10 +435,9 @@ export const Settings = () => {
                   </div>
                   <Switch
                     id="omer-auto-open"
-                    checked={(() => {
-                      try { return localStorage.getItem('omer-auto-open') === 'true'; } catch { return false; }
-                    })()}
+                    checked={omerAutoOpen}
                     onCheckedChange={(checked) => {
+                      setOmerAutoOpen(checked);
                       localStorage.setItem('omer-auto-open', String(checked));
                       toast.success(checked ? "לוח העומר ייפתח אוטומטית" : "פתיחה אוטומטית כובתה");
                       // Sync to cloud

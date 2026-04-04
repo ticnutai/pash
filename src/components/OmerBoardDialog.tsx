@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send } from "lucide-react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,6 +26,7 @@ import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { useOmerReminders, type OmerChannel } from "@/hooks/useOmerReminders";
 import { useOmerThemes } from "@/hooks/useOmerThemes";
 import { OmerThemeDialog } from "@/components/OmerThemeDialog";
+import { TimePickerDialog } from "@/components/TimePickerDialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +63,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   const board = useMemo(() => getOmerBoardData(getCalendarPreference()), []);
   const [viewMode, setViewMode] = useState<OmerViewMode>("grid");
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const [timePickerFor, setTimePickerFor] = useState<string | null>(null);
   const {
     allThemes,
     activeTheme,
@@ -415,21 +417,23 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                           {/* Time picker */}
                           <div className="flex items-center gap-1.5 justify-end px-2.5 pb-1.5">
                             <Clock className="h-3 w-3 text-muted-foreground" />
-                            <div className="flex items-center gap-1" dir="ltr">
-                              <Input
-                                type="number" min={0} max={23}
-                                value={String(reminder.hour).padStart(2, "0")}
-                                onChange={(e) => updateOmerReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
-                                className="w-12 text-center text-xs h-6 px-1 rounded-md"
-                              />
-                              <span className="font-mono font-bold text-muted-foreground">:</span>
-                              <Input
-                                type="number" min={0} max={59}
-                                value={String(reminder.minute).padStart(2, "0")}
-                                onChange={(e) => updateOmerReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
-                                className="w-12 text-center text-xs h-6 px-1 rounded-md"
-                              />
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setTimePickerFor(reminder.id)}
+                              className="flex items-center gap-0.5 px-2.5 py-1 rounded-md border bg-background hover:bg-accent/50 transition-colors cursor-pointer"
+                              dir="ltr"
+                            >
+                              <span className="font-mono text-sm font-semibold tabular-nums">
+                                {String(reminder.hour).padStart(2, "0")}:{String(reminder.minute).padStart(2, "0")}
+                              </span>
+                            </button>
+                            <TimePickerDialog
+                              open={timePickerFor === reminder.id}
+                              onOpenChange={(open) => { if (!open) setTimePickerFor(null); }}
+                              hour={reminder.hour}
+                              minute={reminder.minute}
+                              onConfirm={(h, m) => updateOmerReminder(reminder.id, { hour: h, minute: m })}
+                            />
                           </div>
 
                           {/* Message */}
@@ -535,6 +539,17 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                 >
                   {currentViewIcon}
                 </Button>
+                <DialogClose asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
+                    style={{ borderColor: activeDesign.accentColor }}
+                    title="חזרה לאתר"
+                  >
+                    <Home className="h-4 w-4" />
+                  </Button>
+                </DialogClose>
               </div>
               <DialogTitle className={cn("text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2", activeDesign.textColor)}>
                 <span>לוח ספירת העומר</span>

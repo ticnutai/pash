@@ -117,7 +117,7 @@ const Index = () => {
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const omerAutoOpen = useMemo(() => {
-    try { return localStorage.getItem('omer-auto-open') === 'true'; } catch { return false; }
+    try { const v = localStorage.getItem('omer-auto-open'); return v === null ? true : v === 'true'; } catch { return true; }
   }, []);
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
   const pendingSearchNav = useRef<{ perek: number; pasuk: number } | null>(null); // pending navigation from search
