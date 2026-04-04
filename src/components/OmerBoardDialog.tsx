@@ -124,6 +124,9 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     setDesignMode((prev) => {
       if (prev === "classic") return "parchment";
       if (prev === "parchment") return "clean";
+      if (prev === "clean") return "golden";
+      if (prev === "golden") return "dark";
+      if (prev === "dark") return "colorful";
       return "classic";
     });
   };
