@@ -20,7 +20,9 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Loader2, WifiOff } from "lucide-react";
 import { PWAReloadPrompt } from "@/components/PWAReloadPrompt";
 import { ReminderPopup } from "@/components/ReminderPopup";
+import { OmerReminderPopup } from "@/components/OmerReminderPopup";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useOmerReminders } from "@/hooks/useOmerReminders";
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
@@ -88,6 +90,7 @@ const App = () => {
   const [showDevChat, setShowDevChat] = useState(() => readDevFeatureFlag(DEV_CHAT_ENABLED_KEY, true));
   const [showScreenshotTool, setShowScreenshotTool] = useState(() => readDevFeatureFlag(DEV_SCREENSHOT_ENABLED_KEY, true));
   const { popupReminder, dismissPopup } = useNotifications();
+  const { popupReminder: omerPopup, dismissPopup: dismissOmerPopup } = useOmerReminders();
 
   useEffect(() => {
     const syncDevFeatures = () => {
@@ -122,6 +125,7 @@ const App = () => {
                       <PWAReloadPrompt />
                       <OfflineBanner />
                       <ReminderPopup reminder={popupReminder} onDismiss={dismissPopup} />
+                      <OmerReminderPopup reminder={omerPopup} onDismiss={dismissOmerPopup} />
                       {DevChatWidget && showDevFloating && showDevChat && <Suspense fallback={null}><DevChatWidget /></Suspense>}
                       {ScreenshotTool && showDevFloating && showScreenshotTool && <Suspense fallback={null}><ScreenshotTool /></Suspense>}
                       <Router

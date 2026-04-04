@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock } from "lucide-react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,7 +23,7 @@ import { getOmerBoardData } from "@/utils/omerUtils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
-import { useNotifications, createDefaultReminder } from "@/hooks/useNotifications";
+import { useOmerReminders, type OmerChannel } from "@/hooks/useOmerReminders";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +62,17 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   const [viewMode, setViewMode] = useState<OmerViewMode>("grid");
   const [designMode, setDesignMode] = useState<OmerDesignMode>("classic");
   const { user } = useAuth();
-  const { settings: notifSettings, addReminder, updateReminder, removeReminder, permission, requestPermission, supported: notifSupported } = useNotifications();
+  const {
+    reminders: omerReminders,
+    addReminder: addOmerReminder,
+    updateReminder: updateOmerReminder,
+    removeReminder: removeOmerReminder,
+    toggleChannel,
+    permission,
+    askPermission,
+    sendTest,
+    supported: notifSupported,
+  } = useOmerReminders();
   const [nusach, setNusach] = useState<OmerNusach>(() => {
     try {
       return normalizeNusach(localStorage.getItem(OMER_NUSACH_KEY));
@@ -377,7 +387,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* ── Reminder Bell ── */}
+                {/* ── Omer Reminder Bell ── */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -388,49 +398,78 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       title="תזכורות ספירת העומר"
                     >
                       <Bell className="h-4 w-4" />
-                      {notifSettings.reminders.filter((r) => r.enabled).length > 0 && (
-                        <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
+                      {omerReminders.filter((r) => r.enabled).length > 0 && (
+                        <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-amber-500 border-2 border-background animate-pulse" />
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-80 max-h-[70vh] overflow-y-auto p-4 direction-rtl" dir="rtl">
-                    <div className="space-y-3">
+                  <PopoverContent align="start" className="w-[340px] max-h-[75vh] overflow-y-auto p-0 direction-rtl" dir="rtl">
+                    {/* Header */}
+                    <div className="bg-gradient-to-l from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-3 border-b">
                       <div className="flex items-center justify-between">
-                        <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => addReminder({ label: "תזכורת עומר", message: "🕯️ זמן לספור ספירת העומר!" })}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 rounded-full border-amber-300 hover:bg-amber-50"
+                          onClick={() => addOmerReminder()}
+                        >
                           <Plus className="h-3 w-3" />
-                          הוסף
+                          תזכורת חדשה
                         </Button>
-                        <h4 className="font-semibold text-sm flex items-center gap-1">
-                          <Bell className="h-4 w-4 text-primary" />
-                          תזכורות
+                        <h4 className="font-bold text-sm flex items-center gap-1.5">
+                          <span className="text-base">🕯️</span>
+                          תזכורות ספירת העומר
                         </h4>
                       </div>
-                      <Separator />
+                    </div>
 
+                    <div className="p-3 space-y-3">
+                      {/* Permission prompt */}
                       {!notifSupported && (
-                        <p className="text-xs text-destructive">הדפדפן אינו תומך בהתראות</p>
+                        <div className="text-center text-xs text-destructive p-2 rounded-md bg-destructive/5 border border-destructive/20">
+                          הדפדפן אינו תומך בהתראות
+                        </div>
                       )}
 
                       {notifSupported && permission !== "granted" && (
-                        <Button size="sm" className="w-full text-xs h-7" onClick={requestPermission}>
+                        <Button
+                          size="sm"
+                          className="w-full text-xs h-8 rounded-full bg-gradient-to-l from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
+                          onClick={askPermission}
+                        >
                           <Bell className="h-3 w-3 ml-1" />
                           אפשר התראות
                         </Button>
                       )}
 
-                      {notifSettings.reminders.length === 0 && (
-                        <div className="text-center text-muted-foreground text-xs py-3">
-                          <BellOff className="h-5 w-5 mx-auto mb-1 opacity-50" />
-                          <p>אין תזכורות</p>
+                      {/* Empty state */}
+                      {omerReminders.length === 0 && (
+                        <div className="text-center py-6 space-y-2">
+                          <div className="mx-auto w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                            <BellOff className="h-6 w-6 text-amber-400" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">אין תזכורות עומר</p>
+                          <p className="text-xs text-muted-foreground/70">הוסף תזכורת כדי שלא לשכוח לספור!</p>
                         </div>
                       )}
 
-                      {notifSettings.reminders.map((reminder) => (
-                        <div key={reminder.id} className="p-2 rounded-md border space-y-2 bg-card text-xs">
-                          <div className="flex items-center justify-between">
+                      {/* Reminder cards */}
+                      {omerReminders.map((reminder) => (
+                        <div
+                          key={reminder.id}
+                          className={cn(
+                            "rounded-xl border-2 overflow-hidden transition-all",
+                            reminder.enabled
+                              ? "border-amber-300 dark:border-amber-600 bg-gradient-to-l from-amber-50/50 to-white dark:from-amber-900/10 dark:to-background shadow-sm"
+                              : "border-muted bg-muted/30 opacity-70"
+                          )}
+                        >
+                          {/* Card header */}
+                          <div className="flex items-center justify-between p-2.5 pb-1.5">
                             <button
-                              className="text-destructive hover:text-destructive/80"
-                              onClick={() => removeReminder(reminder.id)}
+                              className="text-destructive/60 hover:text-destructive transition-colors p-1 rounded-full hover:bg-destructive/10"
+                              onClick={() => removeOmerReminder(reminder.id)}
+                              title="מחק תזכורת"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -438,72 +477,103 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                               <Switch
                                 checked={reminder.enabled}
                                 disabled={permission !== "granted"}
-                                onCheckedChange={(v) => updateReminder(reminder.id, { enabled: v })}
+                                onCheckedChange={(v) => updateOmerReminder(reminder.id, { enabled: v })}
                                 className="scale-75"
                               />
-                              <span className="font-medium">{reminder.label}</span>
-                              {reminder.enabled ? <Bell className="h-3 w-3 text-primary" /> : <BellOff className="h-3 w-3 text-muted-foreground" />}
+                              <span className="font-semibold text-sm">{reminder.label}</span>
+                              {reminder.enabled
+                                ? <Bell className="h-3.5 w-3.5 text-amber-500" />
+                                : <BellOff className="h-3.5 w-3.5 text-muted-foreground" />}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 justify-end">
+                          {/* Time picker */}
+                          <div className="flex items-center gap-1.5 justify-end px-2.5 pb-1.5">
                             <Clock className="h-3 w-3 text-muted-foreground" />
                             <div className="flex items-center gap-1" dir="ltr">
                               <Input
                                 type="number" min={0} max={23}
                                 value={String(reminder.hour).padStart(2, "0")}
-                                onChange={(e) => updateReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
-                                className="w-12 text-center text-xs h-6 px-1"
+                                onChange={(e) => updateOmerReminder(reminder.id, { hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
+                                className="w-12 text-center text-xs h-6 px-1 rounded-md"
                               />
-                              <span className="font-mono font-bold">:</span>
+                              <span className="font-mono font-bold text-muted-foreground">:</span>
                               <Input
                                 type="number" min={0} max={59}
                                 value={String(reminder.minute).padStart(2, "0")}
-                                onChange={(e) => updateReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
-                                className="w-12 text-center text-xs h-6 px-1"
+                                onChange={(e) => updateOmerReminder(reminder.id, { minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
+                                className="w-12 text-center text-xs h-6 px-1 rounded-md"
                               />
                             </div>
                           </div>
 
-                          <Input
-                            value={reminder.message}
-                            onChange={(e) => updateReminder(reminder.id, { message: e.target.value })}
-                            className="text-right text-xs h-6"
-                            dir="rtl"
-                          />
-
-                          <div className="flex gap-0.5 justify-end">
-                            {["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"].map((dayLabel, idx) => {
-                              const active = reminder.days.includes(idx);
-                              return (
-                                <button
-                                  key={idx}
-                                  onClick={() => {
-                                    const days = active
-                                      ? reminder.days.filter((d) => d !== idx)
-                                      : [...reminder.days, idx];
-                                    updateReminder(reminder.id, { days });
-                                  }}
-                                  className={`w-6 h-6 rounded-full text-[10px] font-medium transition-colors ${
-                                    active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
-                                  }`}
-                                >
-                                  {dayLabel}
-                                </button>
-                              );
-                            })}
+                          {/* Message */}
+                          <div className="px-2.5 pb-1.5">
+                            <Input
+                              value={reminder.message}
+                              onChange={(e) => updateOmerReminder(reminder.id, { message: e.target.value })}
+                              className="text-right text-xs h-7 rounded-md"
+                              dir="rtl"
+                              placeholder="הודעת תזכורת..."
+                            />
                           </div>
 
-                          <div className="flex items-center justify-between">
-                            <Switch
-                              checked={reminder.popup}
-                              onCheckedChange={(v) => updateReminder(reminder.id, { popup: v })}
-                              className="scale-75"
+                          {/* Channel selection */}
+                          <div className="px-2.5 pb-2">
+                            <p className="text-[10px] text-muted-foreground font-medium mb-1.5 text-right">ערוצי התראה:</p>
+                            <div className="flex gap-1.5 justify-end flex-wrap">
+                              {([
+                                { ch: "push" as OmerChannel, icon: <Smartphone className="h-3 w-3" />, label: "פוש" },
+                                { ch: "popup" as OmerChannel, icon: <MonitorSmartphone className="h-3 w-3" />, label: "פופ-אפ" },
+                                { ch: "whatsapp" as OmerChannel, icon: <MessageCircle className="h-3 w-3" />, label: "וואטסאפ" },
+                                { ch: "email" as OmerChannel, icon: <Mail className="h-3 w-3" />, label: "מייל" },
+                              ]).map(({ ch, icon, label }) => {
+                                const active = reminder.channels.includes(ch);
+                                return (
+                                  <button
+                                    key={ch}
+                                    onClick={() => toggleChannel(reminder.id, ch)}
+                                    className={cn(
+                                      "flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border transition-all",
+                                      active
+                                        ? "bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-300 shadow-sm"
+                                        : "bg-muted/50 border-transparent text-muted-foreground hover:border-muted-foreground/30"
+                                    )}
+                                    title={label}
+                                  >
+                                    {icon}
+                                    <span>{label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Label edit */}
+                          <div className="px-2.5 pb-2.5">
+                            <Input
+                              value={reminder.label}
+                              onChange={(e) => updateOmerReminder(reminder.id, { label: e.target.value })}
+                              className="text-right text-[10px] h-6 rounded-md text-muted-foreground"
+                              dir="rtl"
+                              placeholder="שם התזכורת"
                             />
-                            <span className="text-muted-foreground">פופ-אפ</span>
                           </div>
                         </div>
                       ))}
+
+                      {/* Test button */}
+                      {omerReminders.length > 0 && notifSupported && permission === "granted" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full text-xs h-7 text-muted-foreground hover:text-foreground gap-1"
+                          onClick={sendTest}
+                        >
+                          <Send className="h-3 w-3" />
+                          שלח התראת בדיקה
+                        </Button>
+                      )}
                     </div>
                   </PopoverContent>
                 </Popover>
