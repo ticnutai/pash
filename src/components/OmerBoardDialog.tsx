@@ -24,6 +24,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { useOmerReminders, type OmerChannel } from "@/hooks/useOmerReminders";
+import { useOmerThemes } from "@/hooks/useOmerThemes";
+import { OmerThemeDialog } from "@/components/OmerThemeDialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +44,6 @@ interface OmerBoardDialogProps {
 
 type OmerViewMode = "grid" | "table" | "compact" | "weekly";
 type OmerNusach = "sefarad" | "ashkenaz" | "edot";
-type OmerDesignMode = "classic" | "parchment" | "clean" | "golden" | "dark" | "colorful";
 
 const OMER_NUSACH_KEY = "omer-nusach";
 
@@ -60,7 +61,17 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
   const [dialogOpen, setDialogOpen] = useState(defaultOpen ?? false);
   const board = useMemo(() => getOmerBoardData(getCalendarPreference()), []);
   const [viewMode, setViewMode] = useState<OmerViewMode>("grid");
-  const [designMode, setDesignMode] = useState<OmerDesignMode>("classic");
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const {
+    allThemes,
+    activeTheme,
+    activeId: activeThemeId,
+    selectTheme,
+    addCustomTheme,
+    updateCustomTheme,
+    removeCustomTheme,
+    duplicateTheme,
+  } = useOmerThemes();
   const { user } = useAuth();
   const {
     reminders: omerReminders,
@@ -141,16 +152,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     });
   };
 
-  const cycleDesignMode = () => {
-    setDesignMode((prev) => {
-      if (prev === "classic") return "parchment";
-      if (prev === "parchment") return "clean";
-      if (prev === "clean") return "golden";
-      if (prev === "golden") return "dark";
-      if (prev === "dark") return "colorful";
-      return "classic";
-    });
-  };
+
 
   const currentViewIcon =
     viewMode === "grid" ? <LayoutGrid className="h-4 w-4" /> :
@@ -164,28 +166,13 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     viewMode === "compact" ? "קומפקטי" :
     "שבועי";
 
-  const currentDesignLabel =
-    designMode === "classic" ? "קלאסי" :
-    designMode === "parchment" ? "קלף" :
-    designMode === "clean" ? "נקי" :
-    designMode === "golden" ? "זהב מלכותי" :
-    designMode === "dark" ? "לילה" :
-    "צבעוני";
+  const currentDesignLabel = activeTheme.name;
 
   const viewOptions: Array<{ value: OmerViewMode; label: string }> = [
     { value: "grid", label: "רשת" },
     { value: "table", label: "טבלה" },
     { value: "compact", label: "קומפקטי" },
     { value: "weekly", label: "שבועי" },
-  ];
-
-  const designOptions: Array<{ value: OmerDesignMode; label: string }> = [
-    { value: "classic", label: "קלאסי" },
-    { value: "parchment", label: "קלף" },
-    { value: "clean", label: "נקי" },
-    { value: "golden", label: "זהב מלכותי" },
-    { value: "dark", label: "לילה" },
-    { value: "colorful", label: "צבעוני" },
   ];
 
   const weeklyGroups = useMemo(() => {
@@ -196,76 +183,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     return groups;
   }, [board.days]);
 
-  const designStyles = {
-    classic: {
-      boardBg: "bg-white",
-      card: "border-[#D6B66A]/70 bg-white",
-      today: "border-[#C8A44D] bg-[#F7F1E1] ring-2 ring-[#C8A44D]/60",
-      header: "bg-[#F7F1E1]",
-      dialogBorder: "border-[#C8A44D]",
-      dialogBg: "bg-white",
-      textColor: "text-[#0B1F4A]",
-      textMuted: "text-[#0B1F4A]/70",
-      accentColor: "#C8A44D",
-    },
-    parchment: {
-      boardBg: "bg-[#FFFDF7]",
-      card: "border-[#B89B57]/70 bg-[#FFFCF0]",
-      today: "border-[#B89B57] bg-[#F2E7C9] ring-2 ring-[#B89B57]/60",
-      header: "bg-[#EFE4C8]",
-      dialogBorder: "border-[#B89B57]",
-      dialogBg: "bg-[#FFFDF7]",
-      textColor: "text-[#3B2F1A]",
-      textMuted: "text-[#3B2F1A]/70",
-      accentColor: "#B89B57",
-    },
-    clean: {
-      boardBg: "bg-white",
-      card: "border-[#CBD5E1] bg-[#F8FAFC]",
-      today: "border-[#64748B] bg-[#E2E8F0] ring-2 ring-[#64748B]/50",
-      header: "bg-[#EEF2F7]",
-      dialogBorder: "border-[#CBD5E1]",
-      dialogBg: "bg-white",
-      textColor: "text-[#1E293B]",
-      textMuted: "text-[#64748B]",
-      accentColor: "#64748B",
-    },
-    golden: {
-      boardBg: "bg-gradient-to-b from-[#1A0F00] to-[#2D1A00]",
-      card: "border-[#DAA520]/60 bg-gradient-to-br from-[#2D1A00] to-[#3D2400] shadow-md shadow-[#DAA520]/10",
-      today: "border-[#FFD700] bg-gradient-to-br from-[#3D2400] to-[#4D2E00] ring-2 ring-[#FFD700]/70 shadow-lg shadow-[#FFD700]/20",
-      header: "bg-gradient-to-r from-[#2D1A00] to-[#3D2400]",
-      dialogBorder: "border-[#DAA520]",
-      dialogBg: "bg-gradient-to-b from-[#1A0F00] to-[#2D1A00]",
-      textColor: "text-[#F5DEB3]",
-      textMuted: "text-[#DAA520]/80",
-      accentColor: "#FFD700",
-    },
-    dark: {
-      boardBg: "bg-[#0F172A]",
-      card: "border-[#334155] bg-[#1E293B]",
-      today: "border-[#60A5FA] bg-[#1E3A5F] ring-2 ring-[#60A5FA]/50 shadow-lg shadow-[#60A5FA]/10",
-      header: "bg-[#1E293B]",
-      dialogBorder: "border-[#334155]",
-      dialogBg: "bg-[#0F172A]",
-      textColor: "text-[#E2E8F0]",
-      textMuted: "text-[#94A3B8]",
-      accentColor: "#60A5FA",
-    },
-    colorful: {
-      boardBg: "bg-gradient-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#ECFDF5]",
-      card: "border-[#F59E0B]/40 bg-white/80 backdrop-blur-sm",
-      today: "border-[#8B5CF6] bg-gradient-to-br from-[#EDE9FE] to-[#FEF3C7] ring-2 ring-[#8B5CF6]/50 shadow-lg",
-      header: "bg-gradient-to-r from-[#FEF3C7] to-[#ECFDF5]",
-      dialogBorder: "border-[#F59E0B]",
-      dialogBg: "bg-gradient-to-br from-[#FFF7ED] via-[#FEF3C7] to-[#ECFDF5]",
-      textColor: "text-[#1C1917]",
-      textMuted: "text-[#78716C]",
-      accentColor: "#8B5CF6",
-    },
-  } as const;
-
-  const activeDesign = designStyles[designMode];
+  const activeDesign = activeTheme.colors;
 
   const openPrayerDialog = (day: (typeof board.days)[number]) => {
     setSelectedDay(day);
@@ -589,13 +507,24 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={cycleDesignMode}
+                  onClick={() => setThemeDialogOpen(true)}
                   className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
                   style={{ borderColor: activeDesign.accentColor }}
-                  title="החלף עיצוב"
+                  title="ערכות נושא"
                 >
                   <Palette className="h-4 w-4" />
                 </Button>
+                <OmerThemeDialog
+                  open={themeDialogOpen}
+                  onOpenChange={setThemeDialogOpen}
+                  allThemes={allThemes}
+                  activeId={activeThemeId}
+                  onSelect={selectTheme}
+                  onAdd={addCustomTheme}
+                  onUpdate={updateCustomTheme}
+                  onRemove={removeCustomTheme}
+                  onDuplicate={duplicateTheme}
+                />
                 <Button
                   variant="outline"
                   size="icon"
@@ -655,22 +584,17 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
               </div>
 
               <div className="flex flex-wrap gap-2 justify-end">
-                {designOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setDesignMode(option.value)}
-                    className={cn(
-                      "min-h-9",
-                      designMode === option.value ? "font-semibold" : "",
-                    )}
-                    style={{ borderColor: activeDesign.accentColor }}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setThemeDialogOpen(true)}
+                  className="min-h-9 gap-1"
+                  style={{ borderColor: activeDesign.accentColor }}
+                >
+                  <Palette className="h-3.5 w-3.5" />
+                  {currentDesignLabel}
+                </Button>
               </div>
             </div>
           </Card>
