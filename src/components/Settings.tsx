@@ -220,6 +220,11 @@ export const Settings = () => {
       localStorage.setItem(DEV_FLOATING_ENABLED_KEY, String(cloudVal));
       window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
     }
+    // Sync omer auto-open from cloud
+    const omerAutoOpen = user.user_metadata?.omer_auto_open;
+    if (omerAutoOpen === true || omerAutoOpen === false) {
+      localStorage.setItem('omer-auto-open', String(omerAutoOpen));
+    }
   }, [user]);
 
   const resetTextSizesToDefault = () => {
