@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { supabase } from "@/integrations/supabase/client";
+import { getOmerBoardData } from "@/utils/omerUtils";
+import { getCalendarPreference } from "@/utils/parshaUtils";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -90,24 +92,55 @@ export function onOmerPopup(cb: (reminder: OmerReminder) => void) {
   _popupCallback = cb;
 }
 
+/* ─── Omer day info ──────────────────────────────────────── */
+
+const OMER_BLESSING = "בָּרוּךְ אַתָּה ה׳ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל סְפִירַת הָעוֹמֶר.";
+
+function getTodayOmerText(): { dayLine: string; countText: string; blessing: string; sefira: string } | null {
+  try {
+    const board = getOmerBoardData(getCalendarPreference());
+    if (!board.isInSeason || !board.currentDay) return null;
+    const today = board.days.find((d) => d.isToday);
+    if (!today) return null;
+    return {
+      dayLine: `היום ${today.hebrewDay} לעומר`,
+      countText: today.countText,
+      blessing: OMER_BLESSING,
+      sefira: today.sefira,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildOmerMessage(reminder: OmerReminder): string {
+  const omer = getTodayOmerText();
+  if (!omer) return reminder.message;
+  return `${OMER_BLESSING}\n\n${omer.countText}\n\n${omer.sefira}\n\n${reminder.message}`;
+}
+
 /* ─── Delivery ───────────────────────────────────────────── */
 
 function deliverReminder(reminder: OmerReminder) {
+  const fullMessage = buildOmerMessage(reminder);
+  const omer = getTodayOmerText();
+  const title = omer ? `🕯️ ${omer.dayLine}` : "🕯️ ספירת העומר";
+
   // Push notification
   if (reminder.channels.includes("push")) {
     if (Capacitor.isNativePlatform()) {
       LocalNotifications.schedule({
         notifications: [{
           id: Math.floor(Math.random() * 100000),
-          title: "🕯️ ספירת העומר",
-          body: reminder.message,
+          title,
+          body: fullMessage,
           smallIcon: "ic_launcher",
           largeIcon: "ic_launcher",
         }],
       }).catch(() => {});
     } else if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("🕯️ ספירת העומר", {
-        body: reminder.message,
+      new Notification(title, {
+        body: fullMessage,
         icon: "/favicon.ico",
         dir: "rtl",
         lang: "he",
@@ -116,21 +149,21 @@ function deliverReminder(reminder: OmerReminder) {
     }
   }
 
-  // In-app popup
+  // In-app popup — pass enriched reminder with full text
   if (reminder.channels.includes("popup") && _popupCallback) {
-    _popupCallback(reminder);
+    _popupCallback({ ...reminder, message: fullMessage });
   }
 
-  // WhatsApp – open compose with pre-filled text
+  // WhatsApp – open compose with full text
   if (reminder.channels.includes("whatsapp")) {
-    const text = encodeURIComponent(reminder.message);
+    const text = encodeURIComponent(fullMessage);
     window.open(`https://wa.me/?text=${text}`, "_blank");
   }
 
-  // Email – open mailto
+  // Email – open mailto with full text
   if (reminder.channels.includes("email")) {
-    const subject = encodeURIComponent("🕯️ תזכורת ספירת העומר");
-    const body = encodeURIComponent(reminder.message);
+    const subject = encodeURIComponent(title);
+    const body = encodeURIComponent(fullMessage);
     window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
   }
 }
@@ -319,7 +352,7 @@ export function useOmerReminders() {
       minute: 0,
       message: "🕯️ זו התראת בדיקה לספירת העומר!",
       label: "בדיקה",
-      channels: ["push"],
+      channels: ["push", "popup"],
     };
     deliverReminder(testReminder);
   }, [supported]);
