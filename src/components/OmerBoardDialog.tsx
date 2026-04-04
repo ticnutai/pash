@@ -423,9 +423,10 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     variant="outline"
                     onClick={() => setViewMode(option.value)}
                     className={cn(
-                      "min-h-9 border-[#C8A44D]",
-                      viewMode === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
+                      "min-h-9",
+                      viewMode === option.value ? "font-semibold" : "",
                     )}
+                    style={{ borderColor: activeDesign.accentColor }}
                   >
                     {option.label}
                   </Button>
@@ -441,9 +442,10 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     variant="outline"
                     onClick={() => setDesignMode(option.value)}
                     className={cn(
-                      "min-h-9 border-[#C8A44D]",
-                      designMode === option.value ? "bg-[#F7F1E1] font-semibold" : "bg-white",
+                      "min-h-9",
+                      designMode === option.value ? "font-semibold" : "",
                     )}
+                    style={{ borderColor: activeDesign.accentColor }}
                   >
                     {option.label}
                   </Button>
