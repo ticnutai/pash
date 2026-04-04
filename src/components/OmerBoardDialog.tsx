@@ -46,7 +46,8 @@ const parseNusach = (value: unknown): OmerNusach | null => {
   return null;
 };
 
-export function OmerBoardDialog({ buttonClassName, iconClassName }: OmerBoardDialogProps) {
+export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }: OmerBoardDialogProps) {
+  const [dialogOpen, setDialogOpen] = useState(defaultOpen ?? false);
   const board = useMemo(() => getOmerBoardData(getCalendarPreference()), []);
   const [viewMode, setViewMode] = useState<OmerViewMode>("grid");
   const [designMode, setDesignMode] = useState<OmerDesignMode>("classic");
