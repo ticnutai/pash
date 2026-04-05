@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/omer_widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/omer_widget_background"
+    android:padding="14dp"
+    android:gravity="center">
+
+    <!-- כותרת -->
+    <TextView
+        android:id="@+id/omer_widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🕯️ ספירת העומר"
+        android:textColor="#D4AF37"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="6dp" />
+
+    <!-- מספר היום בגדול -->
+    <TextView
+        android:id="@+id/omer_widget_day"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textDirection="rtl" />
+
+    <!-- טקסט הספירה -->
+    <TextView
+        android:id="@+id/omer_widget_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#E0E0E0"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:textDirection="rtl"
+        android:lineSpacingMultiplier="1.2"
+        android:layout_marginTop="4dp" />
+
+    <!-- ספירה (חסד שבגבורה וכו') -->
+    <TextView
+        android:id="@+id/omer_widget_sefira"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#D4AF37"
+        android:textSize="11sp"
+        android:gravity="center"
+        android:textDirection="rtl"
+        android:textStyle="italic"
+        android:layout_marginTop="6dp" />
+
+</LinearLayout>

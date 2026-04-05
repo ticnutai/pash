@@ -22,7 +22,9 @@
     "android:keystore": "powershell -ExecutionPolicy Bypass -File scripts/generate-keystore.ps1",
     "desktop:build": "powershell -Command \"Get-Process 'Torah App' -EA SilentlyContinue | Stop-Process -Force; Start-Sleep 1\" && vite build --base ./ && electron-builder --win portable",
     "desktop:build:dir": "vite build --base ./ && electron-builder --win portable --dir",
-    "build:all": "powershell -ExecutionPolicy Bypass -File scripts/build-all.ps1"
+    "build:all": "powershell -ExecutionPolicy Bypass -File scripts/build-all.ps1",
+    "omer:build": "vite build --config vite.config.omer.ts && node -e \"const fs=require('fs');const p='dist-omer/index-omer.html';if(fs.existsSync(p))fs.renameSync(p,'dist-omer/index.html')\"",
+    "omer:sync": "npm run omer:build && node scripts/omer-cap-sync.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",
