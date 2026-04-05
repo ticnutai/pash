@@ -6,6 +6,21 @@ import { supabase } from "@/integrations/supabase/client";
 const STORAGE_KEY = "omer_custom_themes_v1";
 const ACTIVE_KEY = "omer_active_theme_v1";
 const TYPO_KEY = "omer-typography-v1";
+const AUTO_DARK_KEY = "omer_auto_dark_v1";
+
+export type AutoDarkMode = "off" | "system" | "time";
+
+function loadAutoDark(): AutoDarkMode {
+  try {
+    const v = localStorage.getItem(AUTO_DARK_KEY);
+    if (v === "system" || v === "time") return v;
+  } catch { /* ignore */ }
+  return "off";
+}
+
+function saveAutoDark(mode: AutoDarkMode) {
+  try { localStorage.setItem(AUTO_DARK_KEY, mode); } catch { /* ignore */ }
+}
 
 export interface OmerTypography {
   fontSize: number;
@@ -232,10 +247,32 @@ export function useOmerThemes() {
   const [customThemes, setCustomThemes] = useState<OmerTheme[]>(() => loadCustomLocal());
   const [activeId, setActiveId] = useState<string>(() => loadActiveLocal());
   const [typography, setTypography] = useState<OmerTypography>(() => loadTypoLocal());
+  const [autoDark, setAutoDarkState] = useState<AutoDarkMode>(() => loadAutoDark());
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false);
+
+  // Listen for system dark mode changes
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+    if (!mq) return;
+    const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Check if we should use dark theme based on time (sunset ~19:00, sunrise ~6:00)
+  const isNightByTime = (() => {
+    const h = new Date().getHours();
+    return h >= 19 || h < 6;
+  })();
+
+  const shouldUseDark = autoDark === "system" ? systemDark : autoDark === "time" ? isNightByTime : false;
 
   // All themes: built-in + custom
   const allThemes = [...BUILT_IN_THEMES, ...customThemes];
-  const activeTheme = allThemes.find((t) => t.id === activeId) ?? BUILT_IN_THEMES[0];
+
+  // If auto-dark is active, override to the "dark" (לילה) theme
+  const effectiveId = shouldUseDark ? "dark" : activeId;
+  const activeTheme = allThemes.find((t) => t.id === effectiveId) ?? BUILT_IN_THEMES[0];
 
   // Cloud sync on load
   useEffect(() => {
@@ -330,6 +367,11 @@ export function useOmerThemes() {
     syncToCloud(customThemes, activeId, DEFAULT_TYPOGRAPHY);
   }, [customThemes, activeId]);
 
+  const setAutoDark = useCallback((mode: AutoDarkMode) => {
+    setAutoDarkState(mode);
+    saveAutoDark(mode);
+  }, []);
+
   return {
     allThemes,
     customThemes,
@@ -343,5 +385,7 @@ export function useOmerThemes() {
     typography,
     updateTypography,
     resetTypography,
+    autoDark,
+    setAutoDark,
   };
 }

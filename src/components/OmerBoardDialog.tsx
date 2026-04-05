@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle, X, Volume2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle, X, Volume2, ChevronDown, ChevronUp, Moon, Sun } from "lucide-react";
+import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,7 +26,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { useOmerReminders, type OmerChannel, type OmerVoiceSound, VOICE_SOUND_OPTIONS, playVoiceSound } from "@/hooks/useOmerReminders";
 import { useOmerThemes } from "@/hooks/useOmerThemes";
+import type { AutoDarkMode } from "@/hooks/useOmerThemes";
 import { useOmerChecklist } from "@/hooks/useOmerChecklist";
+import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
 import { OmerThemeDialog } from "@/components/OmerThemeDialog";
 import { TimePickerDialog } from "@/components/TimePickerDialog";
 import { Switch } from "@/components/ui/switch";
@@ -45,7 +49,7 @@ interface OmerBoardDialogProps {
   standalone?: boolean;
 }
 
-type OmerViewMode = "grid" | "table" | "compact" | "weekly";
+type OmerViewMode = "grid" | "table" | "compact" | "weekly" | "calendar";
 type OmerNusach = "sefarad" | "ashkenaz" | "edot";
 
 const OMER_NUSACH_KEY = "omer-nusach";
@@ -91,6 +95,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     typography: typo,
     updateTypography: updateTypo,
     resetTypography: resetTypo,
+    autoDark,
+    setAutoDark,
   } = useOmerThemes();
   const { user } = useAuth();
   const {
@@ -206,6 +212,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
       if (prev === "grid") return "table";
       if (prev === "table") return "compact";
       if (prev === "compact") return "weekly";
+      if (prev === "weekly") return "calendar";
       return "grid";
     });
   };
@@ -216,13 +223,15 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     viewMode === "grid" ? <LayoutGrid className="h-4 w-4" /> :
     viewMode === "table" ? <Table2 className="h-4 w-4" /> :
     viewMode === "compact" ? <Rows3 className="h-4 w-4" /> :
+    viewMode === "weekly" ? <CalendarDays className="h-4 w-4" /> :
     <CalendarDays className="h-4 w-4" />;
 
   const currentViewLabel =
     viewMode === "grid" ? "רשת" :
     viewMode === "table" ? "טבלה" :
     viewMode === "compact" ? "קומפקטי" :
-    "שבועי";
+    viewMode === "weekly" ? "שבועי" :
+    "לוח שנה";
 
   const currentDesignLabel = activeTheme.name;
 
@@ -231,6 +240,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     { value: "table", label: "טבלה" },
     { value: "compact", label: "קומפקטי" },
     { value: "weekly", label: "שבועי" },
+    { value: "calendar", label: "לוח שנה" },
   ];
 
   const weeklyGroups = useMemo(() => {
@@ -239,6 +249,46 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
       groups.push({ week: Math.floor(i / 7) + 1, days: board.days.slice(i, i + 7) });
     }
     return groups;
+  }, [board.days]);
+
+  // Calendar month view data
+  const calendarMonths = useMemo(() => {
+    if (board.days.length === 0) return [];
+    // Parse Gregorian dates to group by month
+    const dayWeekdayMap: Record<string, string> = { "ראשון": "0", "שני": "1", "שלישי": "2", "רביעי": "3", "חמישי": "4", "שישי": "5", "שבת": "6" };
+    const months: Array<{ label: string; weeks: Array<Array<(typeof board.days)[number] | null>> }> = [];
+    let currentMonth = "";
+    let currentWeeks: Array<Array<(typeof board.days)[number] | null>> = [];
+    let currentWeek: Array<(typeof board.days)[number] | null> = new Array(7).fill(null);
+
+    for (const day of board.days) {
+      // Get JS day of week (0=Sun) from Hebrew weekday
+      const jsDay = parseInt(dayWeekdayMap[day.weekdayHebrew] ?? "0");
+      const monthLabel = day.gregorianDate.replace(/\d+\s+/, ""); // e.g. "אפריל 2026"
+
+      if (monthLabel !== currentMonth) {
+        if (currentMonth) {
+          currentWeeks.push(currentWeek);
+          months.push({ label: currentMonth, weeks: currentWeeks });
+        }
+        currentMonth = monthLabel;
+        currentWeeks = [];
+        currentWeek = new Array(7).fill(null);
+      }
+
+      // If we hit Sunday and there's existing data, push the previous week
+      if (jsDay === 0 && currentWeek.some(Boolean)) {
+        currentWeeks.push(currentWeek);
+        currentWeek = new Array(7).fill(null);
+      }
+
+      currentWeek[jsDay] = day;
+    }
+    // Push remaining
+    if (currentWeek.some(Boolean)) currentWeeks.push(currentWeek);
+    if (currentMonth) months.push({ label: currentMonth, weeks: currentWeeks });
+
+    return months;
   }, [board.days]);
 
   const activeDesign = activeTheme.colors;
@@ -258,12 +308,54 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     try { localStorage.setItem(OMER_TOOLTIP_DISMISSED_KEY, "true"); } catch { /* ignore */ }
   };
 
+  const fireConfetti = useCallback((dayNum: number) => {
+    const isDay49 = dayNum === 49;
+    if (isDay49) {
+      // Grand finale for day 49!
+      const end = Date.now() + 2500;
+      const frame = () => {
+        confetti({ particleCount: 4, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, colors: ["#d4af37", "#1b2a4a", "#fff", "#ffd700"] });
+        confetti({ particleCount: 4, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, colors: ["#d4af37", "#1b2a4a", "#fff", "#ffd700"] });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+      frame();
+    } else {
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 }, colors: ["#d4af37", "#1b2a4a", "#fff"] });
+    }
+  }, []);
+
   const omerBlessing = "בָּרוּךְ אַתָּה ה׳ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל סְפִירַת הָעוֹמֶר.";
   const nusachOptions: Array<{ value: OmerNusach; label: string }> = [
     { value: "sefarad", label: "נוסח ספרד" },
     { value: "ashkenaz", label: "נוסח אשכנז" },
     { value: "edot", label: "עדות המזרח" },
   ];
+
+  // Collapsible state for extra prayers
+  const [showBeforePrayers, setShowBeforePrayers] = useState(false);
+  const [showAfterPrayers, setShowAfterPrayers] = useState(false);
+
+  // Prayers BEFORE the blessing (common to all nusachot or per-nusach)
+  const beforeCountPrayers: Record<OmerNusach, Array<{ title: string; text: string }>> = {
+    sefarad: [
+      {
+        title: "לשם ייחוד",
+        text: "לְשֵׁם יִחוּד קוּדְשָׁא בְּרִיךְ הוּא וּשְׁכִינְתֵּהּ, בִּדְחִילוּ וּרְחִימוּ, וּרְחִימוּ וּדְחִילוּ, לְיַחֲדָא שֵׁם יוֹ״ד הֵ״א בְּוָא״ו הֵ״א בְּיִחוּדָא שְׁלִים בְּשֵׁם כָּל יִשְׂרָאֵל. הִנְנִי מוּכָן וּמְזוּמָן לְקַיֵּם מִצְוַת עֲשֵׂה שֶׁל סְפִירַת הָעוֹמֶר, כְּמוֹ שֶׁכָּתוּב בַּתּוֹרָה: וּסְפַרְתֶּם לָכֶם מִמָּחֳרַת הַשַּׁבָּת מִיּוֹם הֲבִיאֲכֶם אֶת עוֹמֶר הַתְּנוּפָה שֶׁבַע שַׁבָּתוֹת תְּמִימוֹת תִּהְיֶינָה. עַד מִמָּחֳרַת הַשַּׁבָּת הַשְּׁבִיעִת תִּסְפְּרוּ חֲמִשִּׁים יוֹם.",
+      },
+    ],
+    ashkenaz: [
+      {
+        title: "הריני מוכן ומזומן",
+        text: "הִנְנִי מוּכָן וּמְזוּמָן לְקַיֵּם מִצְוַת עֲשֵׂה שֶׁל סְפִירַת הָעוֹמֶר, כְּמוֹ שֶׁכָּתוּב בַּתּוֹרָה: וּסְפַרְתֶּם לָכֶם מִמָּחֳרַת הַשַּׁבָּת מִיּוֹם הֲבִיאֲכֶם אֶת עוֹמֶר הַתְּנוּפָה שֶׁבַע שַׁבָּתוֹת תְּמִימוֹת תִּהְיֶינָה. עַד מִמָּחֳרַת הַשַּׁבָּת הַשְּׁבִיעִת תִּסְפְּרוּ חֲמִשִּׁים יוֹם.",
+      },
+    ],
+    edot: [
+      {
+        title: "לשם ייחוד",
+        text: "לְשֵׁם יִחוּד קוּדְשָׁא בְּרִיךְ הוּא וּשְׁכִינְתֵּהּ, בִּדְחִילוּ וּרְחִימוּ, וּרְחִימוּ וּדְחִילוּ, לְיַחֲדָא שֵׁם יוֹ״ד הֵ״א בְּוָא״ו הֵ״א בְּיִחוּדָא שְׁלִים בְּשֵׁם כָּל יִשְׂרָאֵל. הִנְנִי מוּכָן וּמְזוּמָן לְקַיֵּם מִצְוַת עֲשֵׂה שֶׁל סְפִירַת הָעוֹמֶר, כְּמוֹ שֶׁכָּתוּב בַּתּוֹרָה: וּסְפַרְתֶּם לָכֶם מִמָּחֳרַת הַשַּׁבָּת מִיּוֹם הֲבִיאֲכֶם אֶת עוֹמֶר הַתְּנוּפָה שֶׁבַע שַׁבָּתוֹת תְּמִימוֹת תִּהְיֶינָה. עַד מִמָּחֳרַת הַשַּׁבָּת הַשְּׁבִיעִת תִּסְפְּרוּ חֲמִשִּׁים יוֹם.",
+      },
+    ],
+  };
 
   const afterCountByNusach: Record<OmerNusach, { note: string; sections: Array<{ title: string; text: string }> }> = {
     sefarad: {
@@ -315,7 +407,20 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     },
   };
 
+  // Extra prayers after the count (Vihi Noam, Yoshev b'Seter etc.)
+  const afterExtraPrayers: Array<{ title: string; text: string }> = [
+    {
+      title: "יהי נועם",
+      text: "וִיהִי נוֹעַם אֲדֹנָי אֱלֹהֵינוּ עָלֵינוּ, וּמַעֲשֵׂה יָדֵינוּ כּוֹנְנָה עָלֵינוּ, וּמַעֲשֵׂה יָדֵינוּ כּוֹנְנֵהוּ.",
+    },
+    {
+      title: "יושב בסתר (תהלים צ״א)",
+      text: "יוֹשֵׁב בְּסֵתֶר עֶלְיוֹן, בְּצֵל שַׁדַּי יִתְלוֹנָן. אֹמַר לַה׳ מַחְסִי וּמְצוּדָתִי, אֱלֹהַי אֶבְטַח בּוֹ. כִּי הוּא יַצִּילְךָ מִפַּח יָקוּשׁ, מִדֶּבֶר הַוּוֹת. בְּאֶבְרָתוֹ יָסֶךְ לָךְ, וְתַחַת כְּנָפָיו תֶּחְסֶה, צִנָּה וְסוֹחֵרָה אֲמִתּוֹ. לֹא תִירָא מִפַּחַד לָיְלָה, מֵחֵץ יָעוּף יוֹמָם. מִדֶּבֶר בָּאוֹפֶל יַהֲלוֹךְ, מִקֶּטֶב יָשׁוּד צָהֳרָיִם. יִפּוֹל מִצִּדְּךָ אֶלֶף וּרְבָבָה מִימִינֶךָ, אֵלֶיךָ לֹא יִגָּשׁ. רַק בְּעֵינֶיךָ תַבִּיט, וְשִׁלֻּמַת רְשָׁעִים תִּרְאֶה. כִּי אַתָּה ה׳ מַחְסִי, עֶלְיוֹן שַׂמְתָּ מְעוֹנֶךָ. לֹא תְאֻנֶּה אֵלֶיךָ רָעָה, וְנֶגַע לֹא יִקְרַב בְּאָהֳלֶךָ. כִּי מַלְאָכָיו יְצַוֶּה לָּךְ, לִשְׁמָרְךָ בְּכָל דְּרָכֶיךָ. עַל כַּפַּיִם יִשָּׂאוּנְךָ, פֶּן תִּגֹּף בָּאֶבֶן רַגְלֶךָ. עַל שַׁחַל וָפֶתֶן תִּדְרוֹךְ, תִּרְמוֹס כְּפִיר וְתַנִּין. כִּי בִי חָשַׁק וַאֲפַלְּטֵהוּ, אֲשַׂגְּבֵהוּ כִּי יָדַע שְׁמִי. יִקְרָאֵנִי וְאֶעֱנֵהוּ, עִמּוֹ אָנוֹכִי בְצָרָה, אֲחַלְּצֵהוּ וַאֲכַבְּדֵהוּ. אוֹרֶךְ יָמִים אַשְׂבִּיעֵהוּ, וְאַרְאֵהוּ בִּישׁוּעָתִי.",
+    },
+  ];
+
   const selectedNusach = afterCountByNusach[nusach] ?? afterCountByNusach.sefarad;
+  const selectedBeforePrayers = beforeCountPrayers[nusach] ?? beforeCountPrayers.sefarad;
 
   const boardContent = (
       <div className={cn(standalone ? "w-full min-h-[100dvh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]" : "w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
@@ -336,24 +441,31 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="direction-rtl">
-                    <DropdownMenuItem onClick={() => {
+                    <DropdownMenuItem onClick={async () => {
                       const text = board.currentDay
                         ? `🕯️ היום ${todayHebrewDay} לעומר\n\nספירת העומר - ${board.startGregorian} עד ${board.endGregorian}`
                         : `🕯️ לוח ספירת העומר\n\n${board.startGregorian} - ${board.endGregorian}`;
-                      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-                      window.open(url, '_blank');
+                      if (Capacitor.isNativePlatform()) {
+                        await Share.share({ title: "ספירת העומר", text, dialogTitle: "שתף ספירת העומר" });
+                      } else {
+                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                      }
                     }}>
                       <MessageCircle className="h-4 w-4 ml-2" />
-                      <span>שלח בוואטסאפ</span>
+                      <span>שתף בוואטסאפ</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
+                    <DropdownMenuItem onClick={async () => {
                       const subject = board.currentDay
                         ? `היום ${todayHebrewDay} לעומר`
                         : 'לוח ספירת העומר';
                       const body = board.currentDay
                         ? `🕯️ היום ${todayHebrewDay} לעומר\n\nספירת העומר - ${board.startGregorian} עד ${board.endGregorian}`
                         : `🕯️ לוח ספירת העומר\n\n${board.startGregorian} - ${board.endGregorian}`;
-                      window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                      if (Capacitor.isNativePlatform()) {
+                        await Share.share({ title: subject, text: body, dialogTitle: "שתף ספירת העומר" });
+                      } else {
+                        window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                      }
                     }}>
                       <Mail className="h-4 w-4 ml-2" />
                       <span>שלח במייל</span>
@@ -663,6 +775,30 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                   onRemove={removeCustomTheme}
                   onDuplicate={duplicateTheme}
                 />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
+                      style={{ borderColor: activeDesign.accentColor }}
+                      title="מצב לילה"
+                    >
+                      {autoDark !== "off" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="text-right min-w-[160px]">
+                    <DropdownMenuItem onClick={() => setAutoDark("off")} className={cn(autoDark === "off" && "font-bold")}>
+                      ☀️ כבוי (ידני)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setAutoDark("system")} className={cn(autoDark === "system" && "font-bold")}>
+                      📱 לפי המערכת
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setAutoDark("time")} className={cn(autoDark === "time" && "font-bold")}>
+                      🌙 לפי שעה (19:00-6:00)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1056,6 +1192,63 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
               ))}
             </div>
           )}
+
+          {viewMode === "calendar" && (
+            <div className="space-y-4">
+              {calendarMonths.map((month) => (
+                <Card key={month.label} className={cn("p-3", activeDesign.card)}>
+                  <p className="font-bold mb-3 text-center" style={{ fontSize: `${typo.fontSize}px` }}>{month.label}</p>
+                  {/* Weekday headers */}
+                  <div className="grid grid-cols-7 gap-1 mb-1 text-center">
+                    {["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"].map((d) => (
+                      <div key={d} className={cn("text-xs font-semibold py-1", activeDesign.textMuted)}>{d}</div>
+                    ))}
+                  </div>
+                  {month.weeks.map((week, wIdx) => (
+                    <div key={wIdx} className="grid grid-cols-7 gap-1 mb-1">
+                      {week.map((day, dIdx) => {
+                        if (!day) return <div key={dIdx} />;
+                        const counted = isCounted(day.day);
+                        const missed = !counted && day.day < (board.currentDay ?? 999);
+                        return (
+                          <button
+                            key={day.day}
+                            type="button"
+                            onClick={() => openPrayerDialog(day)}
+                            ref={day.isToday ? (todayCardRef as React.RefObject<HTMLButtonElement>) : undefined}
+                            className={cn(
+                              "relative flex flex-col items-center justify-center rounded-lg py-1.5 px-0.5 min-h-[48px] border transition-all",
+                              day.isToday ? "ring-2 font-bold" : "",
+                            )}
+                            style={{
+                              borderColor: day.isToday ? activeDesign.accentColor : counted ? "#22c55e50" : missed ? "#ef444450" : "transparent",
+                              backgroundColor: counted ? "#22c55e15" : missed ? "#ef444410" : "transparent",
+                              ringColor: day.isToday ? activeDesign.accentColor : undefined,
+                              borderRadius: cardBorderRadius * 0.6,
+                            }}
+                          >
+                            <span className="text-xs font-bold" style={{ fontSize: `${typo.subFontSize}px` }}>{day.hebrewDay}</span>
+                            <span className={cn("text-[10px]", activeDesign.textMuted)}>{day.gregorianDate.split(" ")[0]}</span>
+                            {/* Indicator dot */}
+                            <span
+                              className="w-2 h-2 rounded-full mt-0.5"
+                              style={{ backgroundColor: counted ? "#22c55e" : missed ? "#ef4444" : activeDesign.accentColor + "30" }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  {/* Legend */}
+                  <div className="flex items-center justify-center gap-4 mt-2 text-xs">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#22c55e]" /> נספר</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#ef4444]" /> פוספס</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeDesign.accentColor + "30" }} /> לא הגיע</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         <Dialog open={prayerDialogOpen} onOpenChange={(open) => { setPrayerDialogOpen(open); if (!open) setBlessingAnimated(false); }}>
@@ -1076,6 +1269,28 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                   <p className="text-base font-semibold">פרשת השבוע: {selectedDay.shabbatReading}</p>
                 </Card>
               )}
+
+              {/* Before-count prayers — collapsible */}
+              <button
+                type="button"
+                onClick={() => setShowBeforePrayers((v) => !v)}
+                className={cn("w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-colors", activeDesign.card)}
+                style={{ borderColor: activeDesign.accentColor + "50" }}
+              >
+                <span className={cn("text-sm font-semibold flex items-center gap-2", activeDesign.textColor)}>
+                  📖 תפילות לפני הספירה
+                  <span className={cn("text-xs font-normal", activeDesign.textMuted)}>
+                    ({selectedBeforePrayers.length})
+                  </span>
+                </span>
+                {showBeforePrayers ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              {showBeforePrayers && selectedBeforePrayers.map((section) => (
+                <Card key={section.title} className={cn("p-4", activeDesign.card)}>
+                  <p className={cn("text-sm mb-2 font-semibold", activeDesign.textMuted)}>{section.title}</p>
+                  <p className="text-base leading-relaxed">{section.text}</p>
+                </Card>
+              ))}
 
               <Card
                 className={cn("p-4 transition-all duration-700", activeDesign.card)}
@@ -1122,6 +1337,28 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 </Card>
               ))}
 
+              {/* After-count extra prayers — collapsible */}
+              <button
+                type="button"
+                onClick={() => setShowAfterPrayers((v) => !v)}
+                className={cn("w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-colors", activeDesign.card)}
+                style={{ borderColor: activeDesign.accentColor + "50" }}
+              >
+                <span className={cn("text-sm font-semibold flex items-center gap-2", activeDesign.textColor)}>
+                  🙏 תפילות נוספות אחרי הספירה
+                  <span className={cn("text-xs font-normal", activeDesign.textMuted)}>
+                    (יהי נועם, יושב בסתר)
+                  </span>
+                </span>
+                {showAfterPrayers ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              {showAfterPrayers && afterExtraPrayers.map((section) => (
+                <Card key={section.title} className={cn("p-4", activeDesign.card)}>
+                  <p className={cn("text-sm mb-2 font-semibold", activeDesign.textMuted)}>{section.title}</p>
+                  <p className="text-base leading-relaxed">{section.text}</p>
+                </Card>
+              ))}
+
               <p className={cn("text-xs px-1", activeDesign.textMuted)}>
                 הערה: קיימים הבדלים בין סידורים שונים, והנוסחים כאן מוצגים בתצוגה כללית ומסודרת.
               </p>
@@ -1146,7 +1383,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 </DialogClose>
                 {selectedDay && (
                   <Button
-                    onClick={() => { markDay(selectedDay.day); }}
+                    onClick={() => { if (!isCounted(selectedDay.day)) fireConfetti(selectedDay.day); markDay(selectedDay.day); }}
                     className={cn("min-h-10 px-5 gap-2 transition-all", isCounted(selectedDay.day) ? "opacity-70" : "")}
                     style={{
                       backgroundColor: isCounted(selectedDay.day) ? "#22c55e" : activeDesign.accentColor,
