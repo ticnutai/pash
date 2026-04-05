@@ -57,6 +57,7 @@ const UserProfile = lazy(() => import("./pages/UserProfile").then(m => ({ defaul
 const NotFound = lazy(() => import("./pages/NotFound"));
 const LayoutEditor = lazy(() => import("./pages/LayoutEditor").then(m => ({ default: m.LayoutEditor })));
 const Siddur = lazy(() => import("./pages/Siddur").then(m => ({ default: m.Siddur })));
+const Omer = lazy(() => import("./pages/Omer"));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -143,6 +144,7 @@ const App = () => {
                               <Route path="/commentaries/:seferId/:perek/:pasuk" element={<Commentaries />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="/siddur" element={<Siddur />} />
+                              <Route path="/omer" element={<Omer />} />
                               <Route path="/layout-editor" element={<LayoutEditor />} />
                               <Route path="*" element={<NotFound />} />
                             </Routes>
