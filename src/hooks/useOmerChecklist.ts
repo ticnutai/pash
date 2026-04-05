@@ -119,11 +119,12 @@ export function useOmerChecklist(hebrewYear: number, currentDay: number | null) 
   const isCounted = useCallback((day: number) => counted.has(day), [counted]);
 
   const stats: OmerStats = useMemo(() => {
-    const maxDay = currentDay ?? 0;
+    // Only count days BEFORE today as expected (today hasn't passed yet)
+    const maxDay = currentDay ? currentDay - 1 : 0;
     const totalDays = maxDay;
     const totalCounted = [...counted].filter((d) => d <= maxDay).length;
 
-    // Find first missed day (up to current day)
+    // Find first missed day (only past days, not today)
     let firstMissed: number | null = null;
     for (let d = 1; d <= maxDay; d++) {
       if (!counted.has(d)) {

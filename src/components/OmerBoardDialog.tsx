@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle, X } from "lucide-react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle, X, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,7 +23,7 @@ import { getOmerBoardData } from "@/utils/omerUtils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
-import { useOmerReminders, type OmerChannel } from "@/hooks/useOmerReminders";
+import { useOmerReminders, type OmerChannel, type OmerVoiceSound, VOICE_SOUND_OPTIONS, playVoiceSound } from "@/hooks/useOmerReminders";
 import { useOmerThemes } from "@/hooks/useOmerThemes";
 import { useOmerChecklist } from "@/hooks/useOmerChecklist";
 import { OmerThemeDialog } from "@/components/OmerThemeDialog";
@@ -42,6 +42,7 @@ interface OmerBoardDialogProps {
   buttonClassName?: string;
   iconClassName?: string;
   defaultOpen?: boolean;
+  standalone?: boolean;
 }
 
 type OmerViewMode = "grid" | "table" | "compact" | "weekly";
@@ -60,12 +61,22 @@ const parseNusach = (value: unknown): OmerNusach | null => {
   return null;
 };
 
-export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }: OmerBoardDialogProps) {
-  const [dialogOpen, setDialogOpen] = useState(defaultOpen ?? false);
+export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, standalone }: OmerBoardDialogProps) {
+  const [dialogOpen, setDialogOpen] = useState(standalone || defaultOpen ? true : false);
+
+  // In standalone mode, replace Radix Dialog primitives with plain HTML equivalents
+  const Title = standalone
+    ? ({ className, children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => <h2 className={className} {...props}>{children}</h2>
+    : DialogTitle;
+  const Desc = standalone
+    ? ({ className, children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => <p className={className} {...props}>{children}</p>
+    : DialogDescription;
+
   const board = useMemo(() => getOmerBoardData(getCalendarPreference()), []);
   const [viewMode, setViewMode] = useState<OmerViewMode>("grid");
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
   const [timePickerFor, setTimePickerFor] = useState<string | null>(null);
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const boardScrollRef = useRef<HTMLDivElement>(null);
   const todayCardRef = useRef<HTMLElement>(null);
   const {
@@ -94,6 +105,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
     updateReminder: updateOmerReminder,
     removeReminder: removeOmerReminder,
     toggleChannel,
+    toggleReminderDay,
     permission,
     askPermission,
     sendTest,
@@ -305,20 +317,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
 
   const selectedNusach = afterCountByNusach[nusach] ?? afterCountByNusach.sefarad;
 
-  return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("text-accent", buttonClassName)}
-          title="לוח ספירת העומר"
-        >
-          <Sparkles className={cn("h-4 w-4", iconClassName)} />
-        </Button>
-      </DialogTrigger>
-
-      <DialogContent className={cn("w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
+  const boardContent = (
+      <div className={cn(standalone ? "w-full min-h-[100dvh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]" : "w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
         <div className={cn("sticky top-0 z-10 px-3 sm:px-5 py-3 sm:py-5 border-b", activeDesign.dialogBg, activeDesign.textColor)} style={{ borderColor: activeDesign.accentColor + "70" }}>
           <DialogHeader className="text-right">
             <div className="flex items-center justify-between gap-3">
@@ -362,52 +362,48 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                 </DropdownMenu>
 
                 {/* ── Omer Reminder Bell ── */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className={cn("h-9 w-9 sm:h-8 sm:w-8 relative", activeDesign.textColor)}
-                      style={{ borderColor: activeDesign.accentColor }}
-                      title="תזכורות ספירת העומר"
-                    >
-                      <Bell className="h-4 w-4" />
-                      {omerReminders.filter((r) => r.enabled).length > 0 && (
-                        <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-amber-500 border-2 border-background animate-pulse" />
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="start"
-                    className="w-[340px] max-h-[75vh] p-0 direction-rtl"
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn("h-9 w-9 sm:h-8 sm:w-8 relative", activeDesign.textColor)}
+                  style={{ borderColor: activeDesign.accentColor }}
+                  title="תזכורות ספירת העומר"
+                  onClick={() => setReminderDialogOpen(true)}
+                >
+                  <Bell className="h-4 w-4" />
+                  {omerReminders.filter((r) => r.enabled).length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#d4af37] border-2 border-background animate-pulse" />
+                  )}
+                </Button>
+                <Dialog open={reminderDialogOpen} onOpenChange={setReminderDialogOpen}>
+                  <DialogContent
+                    className="w-[95vw] sm:max-w-lg p-0 gap-0 bg-white border-2 border-[#d4af37] max-h-[85vh] overflow-hidden"
                     dir="rtl"
-                    onWheel={(e) => e.stopPropagation()}
-                    onTouchMove={(e) => e.stopPropagation()}
                   >
-                    <div className="max-h-[75vh] overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+                    <div className="max-h-[85vh] overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
                     {/* Header */}
-                    <div className="bg-gradient-to-l from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-3 border-b sticky top-0 z-10">
+                    <div className="bg-white p-4 border-b border-[#d4af37] sticky top-0 z-10">
                       <div className="flex items-center justify-between">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-xs h-7 rounded-full border-amber-300 hover:bg-amber-50"
+                          className="gap-1.5 text-sm h-9 rounded-full border-[#d4af37] text-[#1b2a4a] hover:bg-[#f5ecd0] font-semibold"
                           onClick={() => addOmerReminder()}
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-4 w-4" />
                           תזכורת חדשה
                         </Button>
-                        <h4 className="font-bold text-sm flex items-center gap-1.5">
-                          <span className="text-base">🕯️</span>
+                        <h4 className="font-bold text-base flex items-center gap-2 text-[#1b2a4a]">
+                          <span className="text-lg">🕯️</span>
                           תזכורות ספירת העומר
                         </h4>
                       </div>
                     </div>
 
-                    <div className="p-3 space-y-3">
+                    <div className="p-4 space-y-4">
                       {/* Permission prompt */}
                       {!notifSupported && (
-                        <div className="text-center text-xs text-destructive p-2 rounded-md bg-destructive/5 border border-destructive/20">
+                        <div className="text-center text-sm text-red-700 p-3 rounded-lg bg-red-50 border border-red-200">
                           הדפדפן אינו תומך בהתראות
                         </div>
                       )}
@@ -415,22 +411,30 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       {notifSupported && permission !== "granted" && (
                         <Button
                           size="sm"
-                          className="w-full text-xs h-8 rounded-full bg-gradient-to-l from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
+                          className="w-full text-sm h-10 rounded-full bg-[#d4af37] hover:bg-[#c4a030] text-white font-semibold"
                           onClick={askPermission}
                         >
-                          <Bell className="h-3 w-3 ml-1" />
+                          <Bell className="h-4 w-4 ml-1.5" />
                           אפשר התראות
                         </Button>
                       )}
 
                       {/* Empty state */}
                       {omerReminders.length === 0 && (
-                        <div className="text-center py-6 space-y-2">
-                          <div className="mx-auto w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                            <BellOff className="h-6 w-6 text-amber-400" />
+                        <div className="text-center py-8 space-y-4">
+                          <div className="mx-auto w-16 h-16 rounded-full bg-[#f5ecd0] flex items-center justify-center">
+                            <BellOff className="h-8 w-8 text-[#d4af37]" />
                           </div>
-                          <p className="text-sm text-muted-foreground">אין תזכורות עומר</p>
-                          <p className="text-xs text-muted-foreground/70">הוסף תזכורת כדי שלא לשכוח לספור!</p>
+                          <p className="text-base text-[#1b2a4a] font-semibold">אין תזכורות עומר</p>
+                          <p className="text-sm text-[#1b2a4a]/60">הוסף תזכורת כדי שלא לשכוח לספור!</p>
+                          <Button
+                            size="lg"
+                            className="gap-2 text-base h-12 rounded-full bg-[#d4af37] hover:bg-[#c4a030] text-white font-bold shadow-lg px-8"
+                            onClick={() => addOmerReminder()}
+                          >
+                            <Plus className="h-5 w-5" />
+                            צור תזכורת
+                          </Button>
                         </div>
                       )}
 
@@ -439,45 +443,45 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                         <div
                           key={reminder.id}
                           className={cn(
-                            "rounded-xl border-2 overflow-hidden transition-all",
+                            "rounded-xl border-2 overflow-hidden transition-all bg-white",
                             reminder.enabled
-                              ? "border-amber-300 dark:border-amber-600 bg-gradient-to-l from-amber-50/50 to-white dark:from-amber-900/10 dark:to-background shadow-sm"
-                              : "border-muted bg-muted/30 opacity-70"
+                              ? "border-[#d4af37] shadow-md"
+                              : "border-gray-200 opacity-70"
                           )}
                         >
                           {/* Card header */}
-                          <div className="flex items-center justify-between p-2.5 pb-1.5">
+                          <div className="flex items-center justify-between p-3 pb-2">
                             <button
-                              className="text-destructive/60 hover:text-destructive transition-colors p-1 rounded-full hover:bg-destructive/10"
+                              className="text-red-400 hover:text-red-600 transition-colors p-1.5 rounded-full hover:bg-red-50"
                               onClick={() => removeOmerReminder(reminder.id)}
                               title="מחק תזכורת"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2.5">
                               <Switch
                                 checked={reminder.enabled}
                                 disabled={permission !== "granted"}
                                 onCheckedChange={(v) => updateOmerReminder(reminder.id, { enabled: v })}
-                                className="scale-75"
+                                className="scale-90"
                               />
-                              <span className="font-semibold text-sm">{reminder.label}</span>
+                              <span className="font-bold text-base text-[#1b2a4a]">{reminder.label}</span>
                               {reminder.enabled
-                                ? <Bell className="h-3.5 w-3.5 text-amber-500" />
-                                : <BellOff className="h-3.5 w-3.5 text-muted-foreground" />}
+                                ? <Bell className="h-4 w-4 text-[#d4af37]" />
+                                : <BellOff className="h-4 w-4 text-gray-400" />}
                             </div>
                           </div>
 
                           {/* Time picker */}
-                          <div className="flex items-center gap-1.5 justify-end px-2.5 pb-1.5">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
+                          <div className="flex items-center gap-2 justify-end px-3 pb-2">
+                            <Clock className="h-4 w-4 text-[#1b2a4a]/50" />
                             <button
                               type="button"
                               onClick={() => setTimePickerFor(reminder.id)}
-                              className="flex items-center gap-0.5 px-2.5 py-1 rounded-md border bg-background hover:bg-accent/50 transition-colors cursor-pointer"
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border-2 border-[#d4af37] bg-white hover:bg-[#f5ecd0] transition-colors cursor-pointer"
                               dir="ltr"
                             >
-                              <span className="font-mono text-sm font-semibold tabular-nums">
+                              <span className="font-mono text-lg font-bold tabular-nums text-[#1b2a4a]">
                                 {String(reminder.hour).padStart(2, "0")}:{String(reminder.minute).padStart(2, "0")}
                               </span>
                             </button>
@@ -490,26 +494,90 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                             />
                           </div>
 
+                          {/* Day-of-week selection */}
+                          <div className="px-3 pb-2">
+                            <p className="text-xs text-[#1b2a4a]/60 font-medium mb-1.5 text-right">ימים:</p>
+                            <div className="flex gap-1.5 justify-end">
+                              {([
+                                { day: 0, label: "א׳" },
+                                { day: 1, label: "ב׳" },
+                                { day: 2, label: "ג׳" },
+                                { day: 3, label: "ד׳" },
+                                { day: 4, label: "ה׳" },
+                                { day: 5, label: "ו׳" },
+                                { day: 6, label: "ש׳" },
+                              ]).map(({ day, label }) => {
+                                const active = (reminder.days ?? [0,1,2,3,4,5,6]).includes(day);
+                                return (
+                                  <button
+                                    key={day}
+                                    onClick={() => toggleReminderDay(reminder.id, day)}
+                                    className={cn(
+                                      "w-8 h-8 rounded-full text-xs font-bold border-2 transition-all",
+                                      active
+                                        ? "bg-[#1b2a4a] border-[#1b2a4a] text-white"
+                                        : "bg-white border-gray-300 text-gray-400 hover:border-[#d4af37]"
+                                    )}
+                                  >
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Voice / Sound selection */}
+                          <div className="px-3 pb-2">
+                            <p className="text-xs text-[#1b2a4a]/60 font-medium mb-1.5 text-right flex items-center gap-1 justify-end">
+                              <Volume2 className="h-3.5 w-3.5" />
+                              תזכורת קולית:
+                            </p>
+                            <div className="flex gap-1.5 justify-end flex-wrap">
+                              {VOICE_SOUND_OPTIONS.map(({ value, label, icon }) => {
+                                const active = (reminder.voiceSound ?? "none") === value;
+                                return (
+                                  <button
+                                    key={value}
+                                    onClick={() => {
+                                      updateOmerReminder(reminder.id, { voiceSound: value });
+                                      if (value !== "none") playVoiceSound(value);
+                                    }}
+                                    className={cn(
+                                      "flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-all",
+                                      active
+                                        ? "bg-[#1b2a4a] border-[#1b2a4a] text-white shadow-sm"
+                                        : "bg-white border-gray-200 text-gray-500 hover:border-[#d4af37]"
+                                    )}
+                                    title={label}
+                                  >
+                                    <span>{icon}</span>
+                                    <span>{label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
                           {/* Message */}
-                          <div className="px-2.5 pb-1.5">
+                          <div className="px-3 pb-2">
                             <Input
                               value={reminder.message}
                               onChange={(e) => updateOmerReminder(reminder.id, { message: e.target.value })}
-                              className="text-right text-xs h-7 rounded-md"
+                              className="text-right text-sm h-9 rounded-lg border-[#d4af37] text-[#1b2a4a]"
                               dir="rtl"
                               placeholder="הודעת תזכורת..."
                             />
                           </div>
 
                           {/* Channel selection */}
-                          <div className="px-2.5 pb-2">
-                            <p className="text-[10px] text-muted-foreground font-medium mb-1.5 text-right">ערוצי התראה:</p>
+                          <div className="px-3 pb-2.5">
+                            <p className="text-xs text-[#1b2a4a]/60 font-medium mb-1.5 text-right">ערוצי התראה:</p>
                             <div className="flex gap-1.5 justify-end flex-wrap">
                               {([
-                                { ch: "push" as OmerChannel, icon: <Smartphone className="h-3 w-3" />, label: "פוש" },
-                                { ch: "popup" as OmerChannel, icon: <MonitorSmartphone className="h-3 w-3" />, label: "פופ-אפ" },
-                                { ch: "whatsapp" as OmerChannel, icon: <MessageCircle className="h-3 w-3" />, label: "וואטסאפ" },
-                                { ch: "email" as OmerChannel, icon: <Mail className="h-3 w-3" />, label: "מייל" },
+                                { ch: "push" as OmerChannel, icon: <Smartphone className="h-3.5 w-3.5" />, label: "פוש" },
+                                { ch: "popup" as OmerChannel, icon: <MonitorSmartphone className="h-3.5 w-3.5" />, label: "פופ-אפ" },
+                                { ch: "whatsapp" as OmerChannel, icon: <MessageCircle className="h-3.5 w-3.5" />, label: "וואטסאפ" },
+                                { ch: "email" as OmerChannel, icon: <Mail className="h-3.5 w-3.5" />, label: "מייל" },
                               ]).map(({ ch, icon, label }) => {
                                 const active = reminder.channels.includes(ch);
                                 return (
@@ -517,10 +585,10 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                                     key={ch}
                                     onClick={() => toggleChannel(reminder.id, ch)}
                                     className={cn(
-                                      "flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border transition-all",
+                                      "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-all",
                                       active
-                                        ? "bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-300 shadow-sm"
-                                        : "bg-muted/50 border-transparent text-muted-foreground hover:border-muted-foreground/30"
+                                        ? "bg-[#f5ecd0] border-[#d4af37] text-[#1b2a4a] shadow-sm"
+                                        : "bg-white border-gray-200 text-gray-400 hover:border-[#d4af37]"
                                     )}
                                     title={label}
                                   >
@@ -533,11 +601,11 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                           </div>
 
                           {/* Label edit */}
-                          <div className="px-2.5 pb-2.5">
+                          <div className="px-3 pb-3">
                             <Input
                               value={reminder.label}
                               onChange={(e) => updateOmerReminder(reminder.id, { label: e.target.value })}
-                              className="text-right text-[10px] h-6 rounded-md text-muted-foreground"
+                              className="text-right text-xs h-8 rounded-lg border-[#d4af37]/50 text-[#1b2a4a]/70"
                               dir="rtl"
                               placeholder="שם התזכורת"
                             />
@@ -549,18 +617,30 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                       {omerReminders.length > 0 && notifSupported && permission === "granted" && (
                         <Button
                           size="sm"
-                          variant="ghost"
-                          className="w-full text-xs h-7 text-muted-foreground hover:text-foreground gap-1"
+                          variant="outline"
+                          className="w-full text-sm h-9 text-[#1b2a4a] border-[#d4af37] hover:bg-[#f5ecd0] gap-1.5 rounded-full font-semibold"
                           onClick={sendTest}
                         >
-                          <Send className="h-3 w-3" />
+                          <Send className="h-3.5 w-3.5" />
                           שלח התראת בדיקה
+                        </Button>
+                      )}
+
+                      {/* Add another reminder */}
+                      {omerReminders.length > 0 && (
+                        <Button
+                          size="lg"
+                          className="w-full gap-2 text-base h-12 rounded-full bg-[#d4af37] hover:bg-[#c4a030] text-white font-bold shadow-lg"
+                          onClick={() => addOmerReminder()}
+                        >
+                          <Plus className="h-5 w-5" />
+                          צור תזכורת חדשה
                         </Button>
                       )}
                     </div>
                     </div>
-                  </PopoverContent>
-                </Popover>
+                  </DialogContent>
+                </Dialog>
 
                 <Button
                   variant="outline"
@@ -664,6 +744,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                 >
                   {currentViewIcon}
                 </Button>
+                {!standalone && (
                 <DialogClose asChild>
                   <Button
                     variant="outline"
@@ -675,17 +756,18 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
                     <Home className="h-4 w-4" />
                   </Button>
                 </DialogClose>
+                )}
               </div>
-              <DialogTitle className={cn("text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2", activeDesign.textColor)}>
+              <Title className={cn("text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2", activeDesign.textColor)}>
                 <span>לוח ספירת העומר</span>
                 <CalendarDays className="h-5 w-5" style={{ color: activeDesign.accentColor }} />
-              </DialogTitle>
+              </Title>
             </div>
-            <DialogDescription className={cn("text-right", activeDesign.textMuted)}>
+            <Desc className={cn("text-right", activeDesign.textMuted)}>
               {board.isInSeason
                 ? `היום ${todayHebrewDay} לעומר`
                 : `טווח העומר: ${board.startGregorian} - ${board.endGregorian}`}
-            </DialogDescription>
+            </Desc>
           </DialogHeader>
         </div>
 
@@ -1098,6 +1180,25 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen }:
             </div>
           </DialogContent>
         </Dialog>
+      </div>
+  );
+
+  if (standalone) return boardContent;
+
+  return (
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("text-accent", buttonClassName)}
+          title="לוח ספירת העומר"
+        >
+          <Sparkles className={cn("h-4 w-4", iconClassName)} />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={cn("w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
+        {boardContent}
       </DialogContent>
     </Dialog>
   );
