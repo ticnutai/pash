@@ -425,9 +425,18 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
   const boardContent = (
       <div className={cn(standalone ? "w-full min-h-[100dvh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]" : "w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
         <div className={cn("sticky top-0 z-10 px-3 sm:px-5 py-3 sm:py-5 border-b", activeDesign.dialogBg, activeDesign.textColor)} style={{ borderColor: activeDesign.accentColor + "70" }}>
-          <DialogHeader className="text-right">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+          <DialogHeader className="text-right space-y-2">
+            <Title className={cn("text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2", activeDesign.textColor)}>
+              <span>לוח ספירת העומר</span>
+              <CalendarDays className="h-5 w-5" style={{ color: activeDesign.accentColor }} />
+            </Title>
+            <Desc className={cn("text-right text-sm", activeDesign.textMuted)}>
+              {board.isInSeason
+                ? `היום ${todayHebrewDay} לעומר`
+                : `טווח העומר: ${board.startGregorian} - ${board.endGregorian}`}
+            </Desc>
+            <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -894,16 +903,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 </DialogClose>
                 )}
               </div>
-              <Title className={cn("text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2", activeDesign.textColor)}>
-                <span>לוח ספירת העומר</span>
-                <CalendarDays className="h-5 w-5" style={{ color: activeDesign.accentColor }} />
-              </Title>
             </div>
-            <Desc className={cn("text-right", activeDesign.textMuted)}>
-              {board.isInSeason
-                ? `היום ${todayHebrewDay} לעומר`
-                : `טווח העומר: ${board.startGregorian} - ${board.endGregorian}`}
-            </Desc>
           </DialogHeader>
         </div>
 
