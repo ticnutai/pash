@@ -435,8 +435,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 ? `היום ${todayHebrewDay} לעומר`
                 : `טווח העומר: ${board.startGregorian} - ${board.endGregorian}`}
             </Desc>
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
