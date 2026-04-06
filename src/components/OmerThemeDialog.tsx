@@ -307,10 +307,10 @@ function ThemeEditor({
             ) : (
               <div className="flex items-center gap-2">
                 <Input
-                  value={extractHexColor(colors[key])}
+                  value={extractHexColor(String(colors[key]))}
                   onChange={(e) => {
                     const hex = e.target.value;
-                    const current = colors[key];
+                    const current = String(colors[key]);
                     const existingHex = current.match(/#[0-9A-Fa-f]{3,8}/);
                     if (existingHex) {
                       updateColor(key, current.replace(existingHex[0], hex));
@@ -324,10 +324,10 @@ function ThemeEditor({
                 />
                 <input
                   type="color"
-                  value={extractHexColor(colors[key])}
+                  value={extractHexColor(String(colors[key]))}
                   onChange={(e) => {
                     const hex = e.target.value;
-                    const current = colors[key];
+                    const current = String(colors[key]);
                     const existingHex = current.match(/#[0-9A-Fa-f]{3,8}/);
                     if (existingHex) {
                       updateColor(key, current.replace(existingHex[0], hex));

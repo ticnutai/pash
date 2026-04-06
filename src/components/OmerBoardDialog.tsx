@@ -1223,7 +1223,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                             style={{
                               borderColor: day.isToday ? activeDesign.accentColor : counted ? "#22c55e50" : missed ? "#ef444450" : "transparent",
                               backgroundColor: counted ? "#22c55e15" : missed ? "#ef444410" : "transparent",
-                              ringColor: day.isToday ? activeDesign.accentColor : undefined,
+                              outline: day.isToday ? `2px solid ${activeDesign.accentColor}` : undefined,
                               borderRadius: cardBorderRadius * 0.6,
                             }}
                           >
