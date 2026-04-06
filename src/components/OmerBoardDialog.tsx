@@ -903,16 +903,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 </DialogClose>
                 )}
               </div>
-              <Title className={cn("text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2", activeDesign.textColor)}>
-                <span>לוח ספירת העומר</span>
-                <CalendarDays className="h-5 w-5" style={{ color: activeDesign.accentColor }} />
-              </Title>
             </div>
-            <Desc className={cn("text-right", activeDesign.textMuted)}>
-              {board.isInSeason
-                ? `היום ${todayHebrewDay} לעומר`
-                : `טווח העומר: ${board.startGregorian} - ${board.endGregorian}`}
-            </Desc>
           </DialogHeader>
         </div>
 
