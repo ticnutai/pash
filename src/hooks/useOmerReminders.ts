@@ -74,7 +74,7 @@ export function createOmerReminder(overrides?: Partial<OmerReminder>): OmerRemin
     label: "תזכורת עומר",
     channels: ["push", "popup"],
     days: [0, 1, 2, 3, 4, 5, 6],
-    voiceSound: "none",
+    voiceSound: "chime",
     ...overrides,
   };
 }
@@ -162,8 +162,13 @@ function buildOmerMessage(reminder: OmerReminder): string {
 
 /* ─── Voice / Sound playback ─────────────────────────────── */
 
-/** Shared AudioContext — reused to avoid Android WebView limits */
+/** 
+ * Shared AudioContext — reused to avoid Android WebView limits. 
+ * We also unlock it on first user interaction.
+ */
 let _audioCtx: AudioContext | null = null;
+let _audioUnlocked = false;
+
 function getAudioCtx(): AudioContext | null {
   try {
     if (!_audioCtx || _audioCtx.state === "closed") {
@@ -172,25 +177,54 @@ function getAudioCtx(): AudioContext | null {
       _audioCtx = new AC();
     }
     // Resume if suspended (Android requires user gesture)
-    if (_audioCtx.state === "suspended") _audioCtx.resume().catch(() => {});
+    if (_audioCtx.state === "suspended") {
+      _audioCtx.resume().catch(() => {});
+    }
     return _audioCtx;
   } catch { return null; }
+}
+
+/** 
+ * Unlock AudioContext on first user interaction. 
+ * Must be called from a click/touch handler.
+ */
+export function unlockAudio() {
+  if (_audioUnlocked) return;
+  const ctx = getAudioCtx();
+  if (ctx) {
+    // Play a silent buffer to unlock
+    try {
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+      if (ctx.state === "suspended") ctx.resume();
+      _audioUnlocked = true;
+    } catch { /* ignore */ }
+  }
 }
 
 function playTone(freq: number, duration: number, type: OscillatorType = "sine") {
   const ctx = getAudioCtx();
   if (!ctx) return;
   try {
+    // Try to resume again just in case
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.setValueAtTime(0.5, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + duration);
-  } catch { /* audio not available */ }
+  } catch (e) { 
+    console.warn("playTone failed:", e);
+    // Fallback: use system beep via vibration
+    try { navigator.vibrate?.([200, 100, 200]); } catch { /* ignore */ }
+  }
 }
 
 function playChime() {
@@ -203,6 +237,7 @@ function playShofarSound() {
   const ctx = getAudioCtx();
   if (!ctx) return;
   try {
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "sawtooth";
@@ -214,7 +249,10 @@ function playShofarSound() {
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 1.5);
-  } catch { /* audio not available */ }
+  } catch (e) { 
+    console.warn("playShofarSound failed:", e);
+    try { navigator.vibrate?.([300, 100, 300, 100, 500]); } catch { /* ignore */ }
+  }
 }
 
 function playBellSound() {
@@ -230,7 +268,6 @@ function speakText(text: string) {
     utter.rate = 0.85;
     utter.pitch = 1.0;
 
-    // Voices may load async — try now, retry once if empty
     const trySpeak = () => {
       const voices = window.speechSynthesis.getVoices();
       const heVoice = voices.find((v) => v.lang.startsWith("he"));
@@ -241,27 +278,27 @@ function speakText(text: string) {
     if (window.speechSynthesis.getVoices().length > 0) {
       trySpeak();
     } else {
-      // Voices not loaded yet — wait for them
       window.speechSynthesis.onvoiceschanged = () => { trySpeak(); window.speechSynthesis.onvoiceschanged = null; };
-      // Fallback timeout — if voices never load (WebView), play chime instead
       setTimeout(() => {
         if (window.speechSynthesis.speaking || window.speechSynthesis.pending) return;
-        playChime(); // fallback sound
+        playChime();
       }, 500);
     }
   } else {
-    // SpeechSynthesis not available — play musical fallback
     playChime();
   }
 }
 
 export function playVoiceSound(sound: OmerVoiceSound, omerText?: { blessing: string; countText: string }) {
+  // Always unlock audio context when called from user interaction
+  unlockAudio();
+  
   switch (sound) {
     case "chime": playChime(); break;
     case "shofar": playShofarSound(); break;
     case "bell": playBellSound(); break;
     case "tts-blessing":
-      speakText(omerText?.blessing ?? "בָּרוּךְ אַתָּה ה׳ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל סְפִירַת הָעוֹמֶר.");
+      speakText(omerText?.blessing ?? OMER_BLESSING);
       break;
     case "tts-count":
       if (omerText?.countText) speakText(omerText.countText);
@@ -280,6 +317,12 @@ function deliverReminder(reminder: OmerReminder) {
   const omer = getTodayOmerText();
   const title = omer ? `🕯️ ${omer.dayLine}` : "🕯️ ספירת העומר";
 
+  console.log("[OmerReminder] Delivering reminder:", reminder.id, {
+    channels: reminder.channels,
+    voiceSound: reminder.voiceSound,
+    isNative: Capacitor.isNativePlatform(),
+  });
+
   // Voice / sound alert
   if (reminder.voiceSound && reminder.voiceSound !== "none") {
     playVoiceSound(reminder.voiceSound, omer ? { blessing: omer.blessing, countText: omer.countText } : undefined);
@@ -288,25 +331,29 @@ function deliverReminder(reminder: OmerReminder) {
   // Push notification
   if (reminder.channels.includes("push")) {
     if (Capacitor.isNativePlatform()) {
-      LocalNotifications.schedule({
-        notifications: [{
-          id: Math.floor(Math.random() * 100000),
-          title,
-          body: fullMessage,
-          channelId: CHANNEL_ID,
-          sound: "default",
-          smallIcon: "ic_launcher",
-          largeIcon: "ic_launcher",
-        }],
-      }).catch(() => {});
-    } else if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(title, {
-        body: fullMessage,
-        icon: "/favicon.ico",
-        dir: "rtl",
-        lang: "he",
-        tag: `omer-${reminder.id}`,
+      ensureNotificationChannel().then(() => {
+        LocalNotifications.schedule({
+          notifications: [{
+            id: Math.floor(Math.random() * 100000),
+            title,
+            body: fullMessage,
+            channelId: CHANNEL_ID,
+            sound: "default",
+            smallIcon: "ic_launcher",
+            largeIcon: "ic_launcher",
+          }],
+        }).catch((e) => console.warn("[OmerReminder] Push schedule failed:", e));
       });
+    } else if ("Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification(title, {
+          body: fullMessage,
+          icon: "/favicon.ico",
+          dir: "rtl",
+          lang: "he",
+          tag: `omer-${reminder.id}`,
+        });
+      } catch (e) { console.warn("[OmerReminder] Web notification failed:", e); }
     }
   }
 
@@ -334,6 +381,8 @@ function deliverReminder(reminder: OmerReminder) {
 async function scheduleNative(reminders: OmerReminder[]) {
   if (!Capacitor.isNativePlatform()) return;
   try {
+    await ensureNotificationChannel();
+    
     const pending = await LocalNotifications.getPending();
     // Cancel only omer-prefixed (IDs 5000-5999)
     const omerPending = pending.notifications.filter((n) => n.id >= 5000 && n.id < 6000);
@@ -355,7 +404,7 @@ async function scheduleNative(reminders: OmerReminder[]) {
         title: "🕯️ ספירת העומר",
         body: r.message,
         channelId: CHANNEL_ID,
-        sound: "default",
+        sound: "default" as const,
         schedule: { at: scheduled, every: "day" as const, allowWhileIdle: true },
         smallIcon: "ic_launcher",
         largeIcon: "ic_launcher",
@@ -363,6 +412,7 @@ async function scheduleNative(reminders: OmerReminder[]) {
     });
 
     await LocalNotifications.schedule({ notifications });
+    console.log("[OmerReminder] Scheduled", notifications.length, "native notifications");
   } catch (e) {
     console.warn("Failed to schedule omer notifications:", e);
   }
@@ -437,6 +487,22 @@ export function useOmerReminders() {
         setPermission(r.display === "granted" ? "granted" : "default");
       });
     }
+  }, []);
+
+  // Unlock audio on first user interaction (for Android WebView)
+  useEffect(() => {
+    const handler = () => {
+      unlockAudio();
+      // Remove after first interaction
+      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("click", handler);
+    };
+    document.addEventListener("touchstart", handler, { passive: true });
+    document.addEventListener("click", handler, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("click", handler);
+    };
   }, []);
 
   // Browser polling
@@ -521,10 +587,24 @@ export function useOmerReminders() {
     return result;
   }, []);
 
-  const sendTest = useCallback(() => {
+  const sendTest = useCallback(async () => {
     if (!supported) return;
-    // Use first reminder's voiceSound for the test, or "chime" as default
-    const firstSound = reminders.length > 0 ? (reminders[0].voiceSound ?? "none") : "none";
+    
+    // Auto-request permission if not granted yet
+    if (permission !== "granted") {
+      const result = await requestPermission();
+      setPermission(result);
+      if (result !== "granted") {
+        console.warn("[OmerReminder] Permission denied, cannot send test");
+        return;
+      }
+    }
+    
+    // Unlock audio for the test (we're in a user gesture context)
+    unlockAudio();
+    
+    // Use first reminder's voiceSound, default to "chime" (not "none")
+    const firstSound = reminders.length > 0 ? (reminders[0].voiceSound ?? "chime") : "chime";
     const testReminder: OmerReminder = {
       id: "test",
       enabled: true,
@@ -533,10 +613,10 @@ export function useOmerReminders() {
       message: "🕯️ זו התראת בדיקה לספירת העומר!",
       label: "בדיקה",
       channels: ["push", "popup"],
-      voiceSound: firstSound,
+      voiceSound: firstSound === "none" ? "chime" : firstSound,
     };
     deliverReminder(testReminder);
-  }, [supported, reminders]);
+  }, [supported, permission, reminders]);
 
   const dismissPopup = useCallback(() => setPopupReminder(null), []);
 
