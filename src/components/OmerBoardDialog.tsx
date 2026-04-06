@@ -726,7 +726,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                       ))}
 
                       {/* Test button */}
-                      {omerReminders.length > 0 && notifSupported && permission === "granted" && (
+                      {omerReminders.length > 0 && notifSupported && (
                         <Button
                           size="sm"
                           variant="outline"
