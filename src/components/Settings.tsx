@@ -37,6 +37,7 @@ const API_KEY_FIELDS = [
   'api_openai_key', 'api_google_key', 'api_elevenlabs_key', 'api_anthropic_key',
   'api_twilio_sid', 'api_twilio_token', 'api_twilio_whatsapp_number',
   'api_sendgrid_key', 'api_sendgrid_from', 'api_mailgun_key', 'api_mailgun_domain',
+  'api_vapid_public_key', 'api_vapid_private_key', 'api_vapid_subject',
 ] as const;
 
 type ApiKeys = Partial<Record<string, string>>;
@@ -1407,6 +1408,16 @@ export const Settings = () => {
               {renderApiService('Mailgun', 'חלופה לשליחת מיילים — תמיכה ברשימות תפוצה ותבניות', [
                 { key: 'api_mailgun_key', label: 'API Key', placeholder: 'key-...', type: 'password' },
                 { key: 'api_mailgun_domain', label: 'Domain', placeholder: 'mg.example.com', type: 'text' },
+              ])}
+
+              <Separator className="my-2" />
+              <h3 className="font-semibold text-base text-right">התראות Push</h3>
+
+              {/* VAPID Web Push */}
+              {renderApiService('VAPID – Web Push', 'מפתחות להתראות Push ברקע — גם כשהדפדפן סגור. המפתחות משמשים לאימות מול שרתי Google/Mozilla.', [
+                { key: 'api_vapid_public_key', label: 'Public Key', placeholder: 'BLSFD4oo...', type: 'password' },
+                { key: 'api_vapid_private_key', label: 'Private Key', placeholder: 'MmrMQn...', type: 'password' },
+                { key: 'api_vapid_subject', label: 'Subject (mailto:)', placeholder: 'mailto:you@example.com', type: 'email' },
               ])}
             </Card>
 

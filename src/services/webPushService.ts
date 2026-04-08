@@ -10,8 +10,17 @@ import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 
 /* ─── VAPID Public Key ──────────────────────────────────── */
-const VAPID_PUBLIC_KEY =
+const DEFAULT_VAPID_PUBLIC_KEY =
   "BLSFD4oodnVhrA9IGuDtvDvxqJI9U0E2dT30peC1dX5qwL8FPz_46n1TmNMjjnOeAETBavO_aLuobwXsl3D2L_Y";
+
+/** Read VAPID public key — user-supplied (Settings → API) takes priority */
+function getVapidPublicKey(): string {
+  try {
+    const custom = localStorage.getItem("api_vapid_public_key");
+    if (custom && custom.length > 20) return custom;
+  } catch { /* ignore */ }
+  return DEFAULT_VAPID_PUBLIC_KEY;
+}
 
 /* ─── Types ─────────────────────────────────────────────── */
 export interface ServerReminder {
@@ -103,7 +112,7 @@ export async function ensureSubscribed(): Promise<PushSubscription | null> {
   try {
     _subscription = await _registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey: urlBase64ToUint8Array(getVapidPublicKey()),
     });
 
     let userId: string | undefined;
