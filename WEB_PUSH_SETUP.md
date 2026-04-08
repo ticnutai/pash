@@ -10,10 +10,10 @@
 | חיבור עומר ← Web Push | ✅ מוכן |
 | חיבור תזכורות יומיות ← Web Push | ✅ מוכן |
 | טבלת `push_subscriptions` | ✅ מיגרציה הורצה |
-| Edge Function `push-subscribe` | ❌ לא דופלי |
-| Edge Function `send-push` | ❌ לא דופלי |
-| Secrets ב-Supabase | ❌ לא הוגדרו |
-| pg_cron (שליחת התראות כל דקה) | ❌ לא הוגדר |
+| Edge Function `push-subscribe` | ✅ דופלי |
+| Edge Function `send-push` | ✅ דופלי |
+| Secrets ב-Supabase | ✅ הוגדרו |
+| pg_cron (שליחת התראות כל דקה) | ✅ הוגדר |
 
 ---
 
