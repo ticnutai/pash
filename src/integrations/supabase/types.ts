@@ -53,6 +53,78 @@ export type Database = {
         }
         Relationships: []
       }
+      omer_email_reminders: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          last_sent_date: string | null
+          reminder_time: string
+          status: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          last_sent_date?: string | null
+          reminder_time: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          last_sent_date?: string | null
+          reminder_time?: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      omer_whatsapp_reminders: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          last_sent_date: string | null
+          phone_number: string
+          reminder_time: string
+          status: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_sent_date?: string | null
+          phone_number: string
+          reminder_time: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_sent_date?: string | null
+          phone_number?: string
+          reminder_time?: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
