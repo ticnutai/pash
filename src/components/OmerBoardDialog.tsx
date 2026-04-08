@@ -578,14 +578,21 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                       )}
 
                       {notifSupported && permission !== "granted" && (
-                        <Button
-                          size="sm"
-                          className="w-full text-sm h-10 rounded-full bg-[#d4af37] hover:bg-[#c4a030] text-white font-semibold"
-                          onClick={askPermission}
-                        >
-                          <Bell className="h-4 w-4 ml-1.5" />
-                          אפשר התראות
-                        </Button>
+                        <div className="space-y-2">
+                          <Button
+                            size="sm"
+                            className="w-full text-sm h-10 rounded-full bg-[#d4af37] hover:bg-[#c4a030] text-white font-semibold"
+                            onClick={askPermission}
+                          >
+                            <Bell className="h-4 w-4 ml-1.5" />
+                            אפשר התראות
+                          </Button>
+                          {permission === "denied" && (
+                            <p className="text-center text-xs text-red-600">
+                              ההתראות חסומות — יש ללחוץ על סמל המנעול ליד שורת הכתובת ולאפשר התראות
+                            </p>
+                          )}
+                        </div>
                       )}
 
                       {/* Empty state */}

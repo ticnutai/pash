@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getOmerBoardData } from "@/utils/omerUtils";
 import { getCalendarPreference } from "@/utils/parshaUtils";
 import * as webPushService from "@/services/webPushService";
+import { toast } from "sonner";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -627,9 +628,43 @@ export function useOmerReminders() {
   }, [persist]);
 
   const askPermission = useCallback(async () => {
-    const result = await requestPermission();
-    setPermission(result);
-    return result;
+    try {
+      // On web, check if permission was previously blocked
+      if (!Capacitor.isNativePlatform() && "Notification" in window && Notification.permission === "denied") {
+        toast.error("ההתראות חסומות בדפדפן", {
+          description: "יש ללחוץ על סמל המנעול ליד שורת הכתובת ולאפשר התראות",
+          duration: 8000,
+        });
+        setPermission("denied");
+        return "denied" as NotificationPermission;
+      }
+
+      const result = await requestPermission();
+      setPermission(result);
+
+      if (result === "granted") {
+        toast.success("התראות הופעלו בהצלחה! 🔔");
+        // Immediately subscribe to web push if supported
+        if (webPushService.isWebPushSupported()) {
+          webPushService.ensureSubscribed().catch((err) =>
+            console.warn("[askPermission] web push subscribe failed:", err)
+          );
+        }
+      } else if (result === "denied") {
+        toast.error("ההתראות חסומות בדפדפן", {
+          description: "יש ללחוץ על סמל המנעול ליד שורת הכתובת ולאפשר התראות",
+          duration: 8000,
+        });
+      } else {
+        toast.info("ההרשאה לא אושרה — נסה שוב");
+      }
+
+      return result;
+    } catch (err) {
+      console.error("[askPermission] error:", err);
+      toast.error("שגיאה בבקשת הרשאה להתראות");
+      return "denied" as NotificationPermission;
+    }
   }, []);
 
   const sendTest = useCallback(async () => {
