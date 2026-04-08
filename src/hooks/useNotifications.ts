@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import * as webPushService from "@/services/webPushService";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -118,6 +119,21 @@ export function loadReminderSettings(): ReminderSettings {
 
 export function saveReminderSettings(settings: ReminderSettings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  // Sync enabled reminders to Web Push (VAPID) server for background delivery
+  if (webPushService.isWebPushSupported()) {
+    const pushReminders: webPushService.ServerReminder[] = settings.reminders
+      .filter((r) => r.enabled)
+      .map((r) => ({
+        id: r.id,
+        enabled: true,
+        hour: r.hour,
+        minute: r.minute,
+        message: r.message,
+        type: "daily" as const,
+        days: r.days,
+      }));
+    webPushService.syncReminders(pushReminders);
+  }
 }
 
 /* ─── Auto-enable on first install ───────────────────────── */

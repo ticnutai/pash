@@ -4,6 +4,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { getOmerBoardData } from "@/utils/omerUtils";
 import { getCalendarPreference } from "@/utils/parshaUtils";
+import * as webPushService from "@/services/webPushService";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -553,10 +554,25 @@ export function useOmerReminders() {
     scheduleNative(reminders);
   }, [reminders]);
 
-  // Persist helper
+  // Persist helper — also sync push reminders to Web Push server
   const persist = useCallback((updated: OmerReminder[]) => {
     saveLocal(updated);
     saveToCloud(updated);
+    // Sync enabled push-channel reminders to Web Push (VAPID) server
+    if (webPushService.isWebPushSupported()) {
+      const pushReminders: webPushService.ServerReminder[] = updated
+        .filter((r) => r.enabled && r.channels.includes("push"))
+        .map((r) => ({
+          id: r.id,
+          enabled: true,
+          hour: r.hour,
+          minute: r.minute,
+          message: r.message,
+          type: "omer" as const,
+          days: r.days,
+        }));
+      webPushService.syncReminders(pushReminders);
+    }
   }, []);
 
   const addReminder = useCallback((overrides?: Partial<OmerReminder>) => {
