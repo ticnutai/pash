@@ -629,16 +629,6 @@ export function useOmerReminders() {
 
   const askPermission = useCallback(async () => {
     try {
-      // On web, check if permission was previously blocked
-      if (!Capacitor.isNativePlatform() && "Notification" in window && Notification.permission === "denied") {
-        toast.error("ההתראות חסומות בדפדפן", {
-          description: "יש ללחוץ על סמל המנעול ליד שורת הכתובת ולאפשר התראות",
-          duration: 8000,
-        });
-        setPermission("denied");
-        return "denied" as NotificationPermission;
-      }
-
       const result = await requestPermission();
       setPermission(result);
 
