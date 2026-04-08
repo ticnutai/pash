@@ -32,6 +32,9 @@ import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { OmerThemeDialog } from "@/components/OmerThemeDialog";
 import { TimePickerDialog } from "@/components/TimePickerDialog";
+import { OmerEmailReminderForm } from "@/components/OmerEmailReminderForm";
+import { OmerWhatsAppReminderForm } from "@/components/OmerWhatsAppReminderForm";
+import { FirstTimeTooltip } from "@/components/FirstTimeTooltip";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,6 +84,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
   const [timePickerFor, setTimePickerFor] = useState<string | null>(null);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [reminderTab, setReminderTab] = useState<"push" | "whatsapp" | "email">("push");
   const boardScrollRef = useRef<HTMLDivElement>(null);
   const todayCardRef = useRef<HTMLElement>(null);
   const {
@@ -474,6 +478,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 </DropdownMenu>
 
                 {/* ── Omer Reminder Bell ── */}
+                <FirstTimeTooltip label="תזכורות" delay={450} storageKey="omer-first-tooltips" position="top">
                 <Button
                   variant="outline"
                   size="icon"
@@ -487,6 +492,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                     <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#d4af37] border-2 border-background animate-pulse" />
                   )}
                 </Button>
+                </FirstTimeTooltip>
                 <Dialog open={reminderDialogOpen} onOpenChange={setReminderDialogOpen}>
                   <DialogContent
                     className="w-[95vw] sm:max-w-lg p-0 gap-0 bg-white border-2 border-[#d4af37] max-h-[85vh] overflow-hidden"
@@ -510,9 +516,60 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                           תזכורות ספירת העומר
                         </h4>
                       </div>
+
+                      {/* Reminder channel tabs */}
+                      <div className="flex px-0 gap-1.5 pt-3" dir="rtl">
+                        <button
+                          onClick={() => setReminderTab("push")}
+                          className={cn(
+                            "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all",
+                            reminderTab === "push"
+                              ? "bg-[#1b2a4a] border-[#1b2a4a] text-white"
+                              : "bg-white border-gray-200 text-gray-500 hover:border-[#d4af37]"
+                          )}
+                        >
+                          <Bell className="h-3.5 w-3.5" />
+                          תזכורות
+                        </button>
+                        <button
+                          onClick={() => setReminderTab("whatsapp")}
+                          className={cn(
+                            "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all",
+                            reminderTab === "whatsapp"
+                              ? "bg-green-600 border-green-600 text-white"
+                              : "bg-white border-gray-200 text-gray-500 hover:border-green-400"
+                          )}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          WhatsApp
+                        </button>
+                        <button
+                          onClick={() => setReminderTab("email")}
+                          className={cn(
+                            "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all",
+                            reminderTab === "email"
+                              ? "bg-blue-600 border-blue-600 text-white"
+                              : "bg-white border-gray-200 text-gray-500 hover:border-blue-400"
+                          )}
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                          מייל
+                        </button>
+                      </div>
                     </div>
 
                     <div className="p-4 space-y-4">
+                    {/* WhatsApp subscription form */}
+                    {reminderTab === "whatsapp" && (
+                      <OmerWhatsAppReminderForm onClose={() => setReminderDialogOpen(false)} />
+                    )}
+
+                    {/* Email subscription form */}
+                    {reminderTab === "email" && (
+                      <OmerEmailReminderForm onClose={() => setReminderDialogOpen(false)} />
+                    )}
+
+                    {reminderTab === "push" && (<>
                       {/* Permission prompt */}
                       {!notifSupported && (
                         <div className="text-center text-sm text-red-700 p-3 rounded-lg bg-red-50 border border-red-200">
@@ -749,6 +806,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                           צור תזכורת חדשה
                         </Button>
                       )}
+                    </>)}
                     </div>
                     </div>
                   </DialogContent>

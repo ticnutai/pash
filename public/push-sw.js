@@ -23,6 +23,8 @@ self.addEventListener("push", (event) => {
     lang: "he",
     tag: payload.tag || "torah-push",
     renotify: true,
+    vibrate: [200, 100, 200, 100, 200], // vibration pattern for sound/haptic
+    requireInteraction: true, // stay visible until user interacts
     data: {
       url: payload.url || "/",
       reminderId: payload.reminderId,

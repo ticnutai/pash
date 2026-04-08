@@ -37,6 +37,13 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Check if this is a test/immediate push request
+    let isTest = false;
+    try {
+      const body = await req.json();
+      isTest = body?.test === true;
+    } catch { /* no body = scheduled run */ }
+
     // Get current time in Israel timezone
     const nowIST = new Date(
       new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }),
@@ -45,7 +52,7 @@ serve(async (req) => {
     const currentMinute = nowIST.getMinutes();
     const currentDay = nowIST.getDay(); // 0=Sun
 
-    console.log(`Push check: ${currentHour}:${String(currentMinute).padStart(2, "0")} IST, day=${currentDay}`);
+    console.log(`Push check: ${currentHour}:${String(currentMinute).padStart(2, "0")} IST, day=${currentDay}, test=${isTest}`);
 
     // Fetch all active subscriptions
     const { data: subs, error } = await supabase
@@ -62,6 +69,35 @@ serve(async (req) => {
 
     for (const sub of subs) {
       const reminders: Reminder[] = sub.reminders || [];
+
+      // In test mode: send a test notification to every subscription (no time check)
+      if (isTest) {
+        const payload = JSON.stringify({
+          title: "🔔 בדיקת התראות",
+          body: `התראת בדיקה - ${currentHour}:${String(currentMinute).padStart(2, "0")} שעון ישראל`,
+          icon: "/icon-192x192.png",
+          tag: `push-test-${Date.now()}`,
+          type: "test",
+          reminderId: "test",
+          url: "/",
+        });
+
+        const pushSubscription = {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
+        };
+
+        try {
+          await webPush.sendNotification(pushSubscription, payload, { TTL: 300, urgency: "high" });
+          sentCount++;
+        } catch (pushErr: any) {
+          console.error(`Test push failed for ${sub.endpoint.slice(0, 50)}:`, pushErr.statusCode, pushErr.body);
+          if (pushErr.statusCode === 404 || pushErr.statusCode === 410) {
+            staleEndpoints.push(sub.endpoint);
+          }
+        }
+        continue;
+      }
 
       for (const reminder of reminders) {
         if (!reminder.enabled) continue;
