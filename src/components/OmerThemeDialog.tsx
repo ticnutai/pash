@@ -252,10 +252,10 @@ function ThemeEditor({
         <h3 className="font-bold text-sm">{isBuiltIn ? "עריכה (ישמור כעותק)" : "עריכת ערכת נושא"}</h3>
       </div>
 
-      {/* Side-by-side: preview right, fields left */}
-      <div className="flex gap-4">
-        {/* Right: sticky preview */}
-        <div className="w-1/2 flex-shrink-0 sticky top-0 self-start space-y-2">
+      {/* Preview + fields: stacked on mobile, side-by-side on desktop */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Preview */}
+        <div className="w-full sm:w-1/2 flex-shrink-0 sm:sticky sm:top-0 sm:self-start space-y-2">
           <Label className="text-xs mb-1.5 block font-semibold">
             תצוגה מקדימה — {highlightField ? COLOR_FIELDS.find(f => f.key === highlightField)?.previewHint ?? "" : "לחץ על שדה צבע"}
           </Label>
@@ -271,8 +271,8 @@ function ThemeEditor({
           </div>
         </div>
 
-        {/* Left: scrollable color fields */}
-        <div className="w-1/2 space-y-3 overflow-y-auto max-h-[65vh] pr-1 omer-scrollbar">
+        {/* Color fields */}
+        <div className="w-full sm:w-1/2 space-y-3 sm:overflow-y-auto sm:max-h-[65vh] pr-1 omer-scrollbar">
           {COLOR_FIELDS.map(({ key, label, previewHint, isAccent }) => (
           <div
             key={key}
@@ -427,7 +427,7 @@ export function OmerThemeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("max-h-[90vh] p-0 overflow-hidden", isEditing ? "sm:max-w-[900px]" : "sm:max-w-[540px]")} dir="rtl">
+      <DialogContent className={cn("max-h-[90vh] w-[96vw] p-0 overflow-hidden", isEditing ? "sm:max-w-[900px]" : "sm:max-w-[540px]")} dir="rtl">
         <div className="bg-gradient-to-l from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-4 border-b">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-end gap-2 text-lg">
@@ -459,7 +459,7 @@ export function OmerThemeDialog({
               {/* Built-in themes */}
               <div>
                 <h3 className="text-xs font-semibold text-muted-foreground mb-2 text-right">ערכות מובנות</h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {allThemes.filter((t) => t.builtIn).map((theme) => (
                     <div key={theme.id} className="relative group">
                       <PreviewSwatch
@@ -493,7 +493,7 @@ export function OmerThemeDialog({
                 <div>
                   <Separator className="mb-3" />
                   <h3 className="text-xs font-semibold text-muted-foreground mb-2 text-right">ערכות מותאמות אישית</h3>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {allThemes.filter((t) => !t.builtIn).map((theme) => (
                       <div key={theme.id} className="relative group">
                         <PreviewSwatch

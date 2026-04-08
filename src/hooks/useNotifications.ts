@@ -6,6 +6,41 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 
 const STORAGE_KEY = "dailyLearningReminders_v2";
 const FIRST_INSTALL_KEY = "app_first_install_done";
+const CHANNEL_ID = "daily_learning_reminders_v2";
+const PERMISSION_AUTO_REQUEST_KEY = "daily_notifications_permission_auto_requested_v1";
+
+async function ensureNotificationChannel() {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const channels = await LocalNotifications.listChannels();
+    const exists = channels.channels.some((c) => c.id === CHANNEL_ID);
+    if (!exists) {
+      await LocalNotifications.createChannel({
+        id: CHANNEL_ID,
+        name: "תזכורות לימוד",
+        description: "תזכורות יומיות ללימוד תורה",
+        importance: 5,
+        visibility: 1,
+        sound: "default",
+        vibration: true,
+        lights: true,
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to create daily notification channel:", e);
+  }
+}
+
+function shouldAutoRequestPermission(reminders: SingleReminder[], permission: NotificationPermission): boolean {
+  if (!Capacitor.isNativePlatform()) return false;
+  if (permission !== "default") return false;
+  if (!reminders.some((r) => r.enabled)) return false;
+  try {
+    return localStorage.getItem(PERMISSION_AUTO_REQUEST_KEY) !== "1";
+  } catch {
+    return true;
+  }
+}
 
 export interface SingleReminder {
   id: string;          // unique id
@@ -135,6 +170,7 @@ function triggerPopup(reminder: SingleReminder) {
 async function scheduleNativeNotifications(reminders: SingleReminder[]) {
   if (!Capacitor.isNativePlatform()) return;
   try {
+    await ensureNotificationChannel();
     const pending = await LocalNotifications.getPending();
     if (pending.notifications.length > 0) {
       await LocalNotifications.cancel(pending);
@@ -153,12 +189,13 @@ async function scheduleNativeNotifications(reminders: SingleReminder[]) {
         id: idx + 1,
         title: "חמישה חומשי תורה עם פירושים",
         body: r.message,
+        channelId: CHANNEL_ID,
         schedule: {
           at: scheduled,
           every: "day" as const,
           allowWhileIdle: true,
         },
-        sound: r.sound ? undefined : null,
+        sound: r.sound ? "default" : null,
         smallIcon: "ic_launcher",
         largeIcon: "ic_launcher",
       };
@@ -246,11 +283,28 @@ export function useNotifications() {
   // Check native permission on mount
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
+      ensureNotificationChannel().catch(() => {});
       LocalNotifications.checkPermissions().then((r) => {
         setPermission(r.display === "granted" ? "granted" : "default");
       });
     }
   }, []);
+
+  // Proactively request permission once when user has active reminders.
+  useEffect(() => {
+    if (!shouldAutoRequestPermission(settings.reminders, permission)) return;
+
+    requestNotificationPermission()
+      .then((result) => setPermission(result))
+      .catch(() => {})
+      .finally(() => {
+        try {
+          localStorage.setItem(PERMISSION_AUTO_REQUEST_KEY, "1");
+        } catch {
+          // ignore storage errors
+        }
+      });
+  }, [settings.reminders, permission]);
 
   // Browser polling
   useEffect(() => {
@@ -326,6 +380,8 @@ export function useNotifications() {
           id: 9999,
           title: "חמישה חומשי תורה עם פירושים - בדיקה",
           body: settings.reminders[0]?.message || settings.message,
+          channelId: CHANNEL_ID,
+          sound: "default",
           smallIcon: "ic_launcher",
         }],
       });

@@ -87,6 +87,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     allThemes,
     activeTheme,
     activeId: activeThemeId,
+    textColorHex,
+    textMutedHex,
     selectTheme,
     addCustomTheme,
     updateCustomTheme,
@@ -207,17 +209,6 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     ? board.days.find((day) => day.day === board.currentDay)?.hebrewDay ?? ""
     : "";
 
-  const cycleViewMode = () => {
-    setViewMode((prev) => {
-      if (prev === "grid") return "table";
-      if (prev === "table") return "compact";
-      if (prev === "compact") return "weekly";
-      if (prev === "weekly") return "calendar";
-      return "grid";
-    });
-  };
-
-
 
   const currentViewIcon =
     viewMode === "grid" ? <LayoutGrid className="h-4 w-4" /> :
@@ -254,17 +245,17 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
   // Calendar month view data
   const calendarMonths = useMemo(() => {
     if (board.days.length === 0) return [];
-    // Parse Gregorian dates to group by month
-    const dayWeekdayMap: Record<string, string> = { "ראשון": "0", "שני": "1", "שלישי": "2", "רביעי": "3", "חמישי": "4", "שישי": "5", "שבת": "6" };
+    // Map abbreviated Hebrew weekday → JS day-of-week (0=Sun … 6=Sat)
+    const dayWeekdayMap: Record<string, number> = { "א׳": 0, "ב׳": 1, "ג׳": 2, "ד׳": 3, "ה׳": 4, "ו׳": 5, "שבת": 6 };
     const months: Array<{ label: string; weeks: Array<Array<(typeof board.days)[number] | null>> }> = [];
     let currentMonth = "";
     let currentWeeks: Array<Array<(typeof board.days)[number] | null>> = [];
     let currentWeek: Array<(typeof board.days)[number] | null> = new Array(7).fill(null);
 
     for (const day of board.days) {
-      // Get JS day of week (0=Sun) from Hebrew weekday
-      const jsDay = parseInt(dayWeekdayMap[day.weekdayHebrew] ?? "0");
-      const monthLabel = day.gregorianDate.replace(/\d+\s+/, ""); // e.g. "אפריל 2026"
+      const jsDay = dayWeekdayMap[day.weekdayHebrew] ?? 0;
+      // Extract month+year label by stripping the leading day number
+      const monthLabel = day.gregorianDate.replace(/^\d+\s*/, ""); // e.g. "באפר׳ 2026"
 
       if (monthLabel !== currentMonth) {
         if (currentMonth) {
@@ -423,27 +414,27 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
   const selectedBeforePrayers = beforeCountPrayers[nusach] ?? beforeCountPrayers.sefarad;
 
   const boardContent = (
-      <div className={cn(standalone ? "w-full min-h-[100dvh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]" : "w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
-        <div className={cn("sticky top-0 z-10 px-3 sm:px-5 py-3 sm:py-5 border-b", activeDesign.dialogBg, activeDesign.textColor)} style={{ borderColor: activeDesign.accentColor + "70" }}>
+      <div className={cn(standalone ? "w-full min-h-[100dvh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]" : "w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg)} style={{ color: textColorHex }}>
+        <div className={cn("sticky top-0 z-10 px-3 sm:px-5 py-3 sm:py-5 border-b", activeDesign.dialogBg)} style={{ borderColor: activeDesign.accentColor + "70", color: textColorHex }}>
           <DialogHeader className="text-right space-y-2">
-            <Title className={cn("text-right text-xl sm:text-2xl font-bold flex items-center justify-end gap-2", activeDesign.textColor)}>
+            <Title className="text-lg sm:text-xl font-bold flex items-center justify-end gap-2" style={{ color: textColorHex }}>
               <span>לוח ספירת העומר</span>
-              <CalendarDays className="h-5 w-5" style={{ color: activeDesign.accentColor }} />
+              <CalendarDays className="h-5 w-5 shrink-0" style={{ color: activeDesign.accentColor }} />
             </Title>
-            <Desc className={cn("text-right text-sm", activeDesign.textMuted)}>
+            <Desc className="text-right text-xs" style={{ color: activeDesign.accentColor + "B0" }}>
               {board.isInSeason
-                ? `היום ${todayHebrewDay} לעומר`
-                : `טווח העומר: ${board.startGregorian} - ${board.endGregorian}`}
+                ? `היום ${todayHebrewDay} לעומר · תצוגה: ${currentViewLabel} · עיצוב: ${currentDesignLabel}`
+                : `${board.startGregorian} - ${board.endGregorian}`}
             </Desc>
             <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap" style={{ color: activeDesign.accentColor }}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
                       size="icon"
-                      className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
-                      style={{ borderColor: activeDesign.accentColor }}
+                      className="h-9 w-9 sm:h-8 sm:w-8"
+                      style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
                       title="שתף ספירת העומר"
                     >
                       <Share2 className="h-4 w-4" />
@@ -486,8 +477,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 <Button
                   variant="outline"
                   size="icon"
-                  className={cn("h-9 w-9 sm:h-8 sm:w-8 relative", activeDesign.textColor)}
-                  style={{ borderColor: activeDesign.accentColor }}
+                  className="h-9 w-9 sm:h-8 sm:w-8 relative"
+                  style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
                   title="תזכורות ספירת העומר"
                   onClick={() => setReminderDialogOpen(true)}
                 >
@@ -767,8 +758,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                   variant="outline"
                   size="icon"
                   onClick={() => setThemeDialogOpen(true)}
-                  className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
-                  style={{ borderColor: activeDesign.accentColor }}
+                  className="h-9 w-9 sm:h-8 sm:w-8"
+                  style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
                   title="ערכות נושא"
                 >
                   <Palette className="h-4 w-4" />
@@ -789,8 +780,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                     <Button
                       variant="outline"
                       size="icon"
-                      className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
-                      style={{ borderColor: activeDesign.accentColor }}
+                      className="h-9 w-9 sm:h-8 sm:w-8"
+                      style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
                       title="מצב לילה"
                     >
                       {autoDark !== "off" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
@@ -813,8 +804,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                     <Button
                       variant="outline"
                       size="icon"
-                      className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
-                      style={{ borderColor: activeDesign.accentColor }}
+                      className="h-9 w-9 sm:h-8 sm:w-8"
+                      style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
                       title="טיפוגרפיה"
                     >
                       <Type className="h-4 w-4" />
@@ -879,23 +870,37 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={cycleViewMode}
-                  className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
-                  style={{ borderColor: activeDesign.accentColor }}
-                  title="החלף תצוגה"
-                >
-                  {currentViewIcon}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 sm:h-8 sm:w-8"
+                      style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
+                      title={`תצוגה: ${currentViewLabel}`}
+                    >
+                      {currentViewIcon}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="text-right min-w-[120px]">
+                    {viewOptions.map((option) => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        onClick={() => setViewMode(option.value)}
+                        className={cn(viewMode === option.value && "font-bold")}
+                      >
+                        {option.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {!standalone && (
                 <DialogClose asChild>
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn("h-9 w-9 sm:h-8 sm:w-8", activeDesign.textColor)}
-                    style={{ borderColor: activeDesign.accentColor }}
+                    className="h-9 w-9 sm:h-8 sm:w-8"
+                    style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
                     title="חזרה לאתר"
                   >
                     <Home className="h-4 w-4" />
@@ -910,16 +915,15 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
         <div ref={boardScrollRef} className={cn("px-3 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 max-h-[74vh] sm:max-h-[72vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4 omer-scrollbar", activeDesign.boardBg)}>
           <Card className={cn("p-3 sm:p-4", activeDesign.card)}>
             <div className="flex items-center justify-between gap-2">
-              <p className={cn("text-xs sm:text-sm", activeDesign.textMuted)}>
+              <p className="text-xs sm:text-sm" style={{ color: textMutedHex }}>
                 שנה עברית: {board.hebrewYear}
               </p>
-              <p className={cn("text-sm sm:text-base font-semibold text-right", activeDesign.textColor)}>
+              <p className="text-sm sm:text-base font-semibold text-right" style={{ color: textColorHex }}>
                 {board.isInSeason && board.currentDay
                   ? `היום ${todayHebrewDay} לעומר`
                   : "מחוץ לימי הספירה"}
               </p>
             </div>
-            <p className={cn("text-xs mt-2 text-right", activeDesign.textMuted)}>תצוגה: {currentViewLabel} | עיצוב: {currentDesignLabel}</p>
 
             {/* ── Stats Bar ── */}
             {board.isInSeason && board.currentDay && (
@@ -930,7 +934,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                     {omerStats.totalCounted}/{omerStats.totalDays} נספרו ({omerStats.percentage}%)
                   </span>
                   {omerStats.streak > 0 && (
-                    <span className="flex items-center gap-1 text-orange-500">
+                    <span className="flex items-center gap-1 font-bold" style={{ color: activeDesign.accentColor }}>
                       <Flame className="h-3.5 w-3.5" />
                       רצף: {omerStats.streak} {omerStats.streak === 1 ? "יום" : "ימים"}
                     </span>
@@ -951,41 +955,6 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 </div>
               </div>
             )}
-
-            <div className="mt-3 sm:hidden space-y-2">
-              <div className="flex flex-wrap gap-2 justify-end">
-                {viewOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setViewMode(option.value)}
-                    className={cn(
-                      "min-h-9",
-                      viewMode === option.value ? "font-semibold" : "",
-                    )}
-                    style={{ borderColor: activeDesign.accentColor }}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setThemeDialogOpen(true)}
-                  className="min-h-9 gap-1"
-                  style={{ borderColor: activeDesign.accentColor }}
-                >
-                  <Palette className="h-3.5 w-3.5" />
-                  {currentDesignLabel}
-                </Button>
-              </div>
-            </div>
           </Card>
 
           {viewMode === "grid" && (
@@ -1201,7 +1170,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                   {/* Weekday headers */}
                   <div className="grid grid-cols-7 gap-1 mb-1 text-center">
                     {["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"].map((d) => (
-                      <div key={d} className={cn("text-xs font-semibold py-1", activeDesign.textMuted)}>{d}</div>
+                      <div key={d} className="text-xs font-semibold py-1" style={{ color: textMutedHex }}>{d}</div>
                     ))}
                   </div>
                   {month.weeks.map((week, wIdx) => (
@@ -1228,7 +1197,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                             }}
                           >
                             <span className="text-xs font-bold" style={{ fontSize: `${typo.subFontSize}px` }}>{day.hebrewDay}</span>
-                            <span className={cn("text-[10px]", activeDesign.textMuted)}>{day.gregorianDate.split(" ")[0]}</span>
+                            <span className="text-[10px]" style={{ color: textMutedHex }}>{day.gregorianDate.split(" ")[0]}</span>
                             {/* Indicator dot */}
                             <span
                               className="w-2 h-2 rounded-full mt-0.5"
@@ -1252,12 +1221,12 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
         </div>
 
         <Dialog open={prayerDialogOpen} onOpenChange={(open) => { setPrayerDialogOpen(open); if (!open) setBlessingAnimated(false); }}>
-          <DialogContent className={cn("w-[96vw] sm:w-auto sm:max-w-2xl border-2 overflow-x-hidden max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
+          <DialogContent className={cn("w-[96vw] sm:w-auto sm:max-w-2xl border-2 overflow-x-hidden max-h-[94vh] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg)} style={{ color: textColorHex }}>
             <DialogHeader className="text-right">
-              <DialogTitle className={cn("text-right text-xl font-bold", activeDesign.textColor)}>
+              <DialogTitle className="text-right text-xl font-bold" style={{ color: textColorHex }}>
                 {selectedDay ? `${selectedDay.hebrewDay} לעומר` : "ספירת העומר"}
               </DialogTitle>
-              <DialogDescription className={cn("text-right", activeDesign.textMuted)}>
+              <DialogDescription className="text-right" style={{ color: textMutedHex }}>
                 {selectedDay ? `יום ${selectedDay.weekdayHebrew} | ${selectedDay.hebrewDate} | ${selectedDay.gregorianDate}` : ""}
               </DialogDescription>
             </DialogHeader>
@@ -1265,7 +1234,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
             <div className="max-h-[74vh] sm:max-h-[70vh] overflow-y-auto overflow-x-hidden space-y-3 sm:space-y-4 text-right leading-8 pr-1">
               {selectedDay?.shabbatReading && (
                 <Card className={cn("p-4", activeDesign.card)}>
-                  <p className={cn("text-sm mb-1", activeDesign.textMuted)}>קריאת שבת</p>
+                  <p className="text-sm mb-1" style={{ color: textMutedHex }}>קריאת שבת</p>
                   <p className="text-base font-semibold">פרשת השבוע: {selectedDay.shabbatReading}</p>
                 </Card>
               )}
@@ -1277,9 +1246,9 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 className={cn("w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-colors", activeDesign.card)}
                 style={{ borderColor: activeDesign.accentColor + "50" }}
               >
-                <span className={cn("text-sm font-semibold flex items-center gap-2", activeDesign.textColor)}>
+                <span className="text-sm font-semibold flex items-center gap-2" style={{ color: textColorHex }}>
                   📖 תפילות לפני הספירה
-                  <span className={cn("text-xs font-normal", activeDesign.textMuted)}>
+                  <span className="text-xs font-normal" style={{ color: textMutedHex }}>
                     ({selectedBeforePrayers.length})
                   </span>
                 </span>
@@ -1287,7 +1256,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
               </button>
               {showBeforePrayers && selectedBeforePrayers.map((section) => (
                 <Card key={section.title} className={cn("p-4", activeDesign.card)}>
-                  <p className={cn("text-sm mb-2 font-semibold", activeDesign.textMuted)}>{section.title}</p>
+                  <p className="text-sm mb-2 font-semibold" style={{ color: textMutedHex }}>{section.title}</p>
                   <p className="text-base leading-relaxed">{section.text}</p>
                 </Card>
               ))}
@@ -1296,7 +1265,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 className={cn("p-4 transition-all duration-700", activeDesign.card)}
                 style={blessingAnimated ? { animation: "omer-blessing-in 0.8s ease-out both" } : undefined}
               >
-                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>🕯️ הברכה לפני הספירה</p>
+                <p className="text-sm mb-2 font-medium" style={{ color: activeDesign.accentColor }}>🕯️ הברכה לפני הספירה</p>
                 <p className="text-lg font-bold leading-relaxed">{omerBlessing}</p>
               </Card>
 
@@ -1304,12 +1273,12 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 className={cn("p-4 transition-all duration-700", activeDesign.today)}
                 style={blessingAnimated ? { animation: "omer-blessing-in 0.8s ease-out 0.4s both" } : undefined}
               >
-                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>✨ הספירה של היום</p>
+                <p className="text-sm mb-2 font-medium" style={{ color: activeDesign.accentColor }}>✨ הספירה של היום</p>
                 <p className="text-xl font-bold">{selectedDay?.countText ?? ""}</p>
               </Card>
 
               <Card className={cn("p-3", activeDesign.card)}>
-                <p className={cn("text-sm mb-2", activeDesign.textMuted)}>בחירת נוסח</p>
+                <p className="text-sm mb-2 font-medium" style={{ color: activeDesign.accentColor }}>בחירת נוסח</p>
                 <div className="flex flex-wrap gap-2 justify-end">
                   {nusachOptions.map((option) => (
                     <Button
@@ -1327,12 +1296,12 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                     </Button>
                   ))}
                 </div>
-                <p className={cn("text-xs mt-2", activeDesign.textMuted)}>{selectedNusach.note}</p>
+                <p className="text-xs mt-2" style={{ color: textMutedHex }}>{selectedNusach.note}</p>
               </Card>
 
               {selectedNusach.sections.map((section) => (
                 <Card key={section.title} className={cn("p-4", activeDesign.card)}>
-                  <p className={cn("text-sm mb-2", activeDesign.textMuted)}>{section.title}</p>
+                  <p className="text-sm mb-2" style={{ color: textMutedHex }}>{section.title}</p>
                   <p className="text-base font-semibold">{section.text}</p>
                 </Card>
               ))}
@@ -1344,9 +1313,9 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 className={cn("w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-colors", activeDesign.card)}
                 style={{ borderColor: activeDesign.accentColor + "50" }}
               >
-                <span className={cn("text-sm font-semibold flex items-center gap-2", activeDesign.textColor)}>
+                <span className="text-sm font-semibold flex items-center gap-2" style={{ color: textColorHex }}>
                   🙏 תפילות נוספות אחרי הספירה
-                  <span className={cn("text-xs font-normal", activeDesign.textMuted)}>
+                  <span className="text-xs font-normal" style={{ color: textMutedHex }}>
                     (יהי נועם, יושב בסתר)
                   </span>
                 </span>
@@ -1354,12 +1323,12 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
               </button>
               {showAfterPrayers && afterExtraPrayers.map((section) => (
                 <Card key={section.title} className={cn("p-4", activeDesign.card)}>
-                  <p className={cn("text-sm mb-2 font-semibold", activeDesign.textMuted)}>{section.title}</p>
+                  <p className="text-sm mb-2 font-semibold" style={{ color: textMutedHex }}>{section.title}</p>
                   <p className="text-base leading-relaxed">{section.text}</p>
                 </Card>
               ))}
 
-              <p className={cn("text-xs px-1", activeDesign.textMuted)}>
+              <p className="text-xs px-1" style={{ color: textMutedHex }}>
                 הערה: קיימים הבדלים בין סידורים שונים, והנוסחים כאן מוצגים בתצוגה כללית ומסודרת.
               </p>
 
@@ -1409,7 +1378,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 <button
                   type="button"
                   onClick={dismissTooltipForever}
-                  className={cn("text-xs w-full text-center py-0.5 hover:underline", activeDesign.textMuted)}
+                  className="text-xs w-full text-center py-0.5 hover:underline" style={{ color: textMutedHex }}
                 >
                   לא להציג הנחיה שוב
                 </button>
@@ -1434,7 +1403,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
           <Sparkles className={cn("h-4 w-4", iconClassName)} />
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn("w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg, activeDesign.textColor)}>
+      <DialogContent className={cn("w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg)} style={{ color: textColorHex }}>
         {boardContent}
       </DialogContent>
     </Dialog>

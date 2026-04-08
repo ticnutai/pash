@@ -8,7 +8,8 @@ import { getCalendarPreference } from "@/utils/parshaUtils";
 /* ─── Types ──────────────────────────────────────────────── */
 
 const STORAGE_KEY = "omer_reminders_v1";
-const CHANNEL_ID = "omer_reminders";
+const CHANNEL_ID = "omer_reminders_v2";
+const PERMISSION_AUTO_REQUEST_KEY = "omer_notifications_permission_auto_requested_v1";
 
 /** Ensure notification channel exists on Android (required API 26+) */
 async function ensureNotificationChannel() {
@@ -32,6 +33,18 @@ async function ensureNotificationChannel() {
 }
 // Run on module load
 ensureNotificationChannel();
+
+function shouldAutoRequestPermission(reminders: OmerReminder[], permission: NotificationPermission): boolean {
+  if (!Capacitor.isNativePlatform()) return false;
+  if (permission !== "default") return false;
+  const hasEnabledPush = reminders.some((r) => r.enabled && r.channels.includes("push"));
+  if (!hasEnabledPush) return false;
+  try {
+    return localStorage.getItem(PERMISSION_AUTO_REQUEST_KEY) !== "1";
+  } catch {
+    return true;
+  }
+}
 
 export type OmerChannel = "push" | "popup" | "whatsapp" | "email";
 
@@ -504,6 +517,22 @@ export function useOmerReminders() {
       document.removeEventListener("click", handler);
     };
   }, []);
+
+  // Proactively request permission once when user has active push reminders.
+  useEffect(() => {
+    if (!shouldAutoRequestPermission(reminders, permission)) return;
+
+    requestPermission()
+      .then((result) => setPermission(result))
+      .catch(() => {})
+      .finally(() => {
+        try {
+          localStorage.setItem(PERMISSION_AUTO_REQUEST_KEY, "1");
+        } catch {
+          // ignore storage errors
+        }
+      });
+  }, [reminders, permission]);
 
   // Browser polling
   useEffect(() => {

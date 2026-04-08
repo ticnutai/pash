@@ -1,5 +1,21 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+
+/* ─── Helpers ────────────────────────────────────────────── */
+
+/** Extract hex color from Tailwind text class like "text-[#E5E5E7]" or "text-[#8E8E93]/70" */
+function extractHexFromTwText(cls: string): string {
+  const m = cls.match(/text-\[([^\]]+)\]/);
+  if (!m) return "#ffffff";
+  const hex = m[1];
+  const opMatch = cls.match(/text-\[[^\]]+\]\/(\d+)/);
+  if (opMatch) {
+    // Convert opacity to hex alpha: e.g. /70 → B3
+    const alpha = Math.round((parseInt(opMatch[1]) / 100) * 255).toString(16).padStart(2, "0");
+    return hex + alpha;
+  }
+  return hex;
+}
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -114,7 +130,7 @@ export const BUILT_IN_THEMES: OmerTheme[] = [
       dialogBorder: "border-[#DAA520]",
       dialogBg: "bg-gradient-to-b from-[#1A0F00] to-[#2D1A00]",
       textColor: "text-[#F5DEB3]",
-      textMuted: "text-[#DAA520]/80",
+      textMuted: "text-[#E8C44A]",
       accentColor: "#FFD700",
     },
   },
@@ -128,7 +144,7 @@ export const BUILT_IN_THEMES: OmerTheme[] = [
       dialogBorder: "border-[#334155]",
       dialogBg: "bg-[#0F172A]",
       textColor: "text-[#E2E8F0]",
-      textMuted: "text-[#94A3B8]",
+      textMuted: "text-[#B8C5D6]",
       accentColor: "#60A5FA",
     },
   },
@@ -170,7 +186,7 @@ export const BUILT_IN_THEMES: OmerTheme[] = [
       dialogBorder: "border-[#3A3A3C]",
       dialogBg: "bg-[#1C1C1E]",
       textColor: "text-[#E5E5E7]",
-      textMuted: "text-[#8E8E93]",
+      textMuted: "text-[#D0D0D4]",
       accentColor: "#C8A44D",
     },
   },
@@ -273,6 +289,11 @@ export function useOmerThemes() {
   // If auto-dark is active, override to the "dark" (לילה) theme
   const effectiveId = shouldUseDark ? "dark" : activeId;
   const activeTheme = allThemes.find((t) => t.id === effectiveId) ?? BUILT_IN_THEMES[0];
+
+  // Extract raw hex from Tailwind class strings so inline styles always work
+  // (Tailwind JIT doesn't generate CSS for dynamically-created class names)
+  const textColorHex = useMemo(() => extractHexFromTwText(activeTheme.colors.textColor), [activeTheme.colors.textColor]);
+  const textMutedHex = useMemo(() => extractHexFromTwText(activeTheme.colors.textMuted), [activeTheme.colors.textMuted]);
 
   // Cloud sync on load
   useEffect(() => {
@@ -377,6 +398,8 @@ export function useOmerThemes() {
     customThemes,
     activeTheme,
     activeId,
+    textColorHex,
+    textMutedHex,
     selectTheme,
     addCustomTheme,
     updateCustomTheme,

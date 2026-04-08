@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 /* ─── Types ──────────────────────────────────────────────── */
 
 const STORAGE_KEY = "omer_checklist_v1";
+/** Key that records whether we already seeded the checklist on first launch */
+const FIRST_LAUNCH_KEY = "omer_checklist_seeded";
 
 export interface OmerChecklistData {
   /** Hebrew year the checklist belongs to */
@@ -69,7 +71,23 @@ async function loadFromCloud(year: number): Promise<Set<number> | null> {
 /* ─── Hook ───────────────────────────────────────────────── */
 
 export function useOmerChecklist(hebrewYear: number, currentDay: number | null) {
-  const [counted, setCounted] = useState<Set<number>>(() => loadLocal(hebrewYear));
+  const [counted, setCounted] = useState<Set<number>>(() => {
+    const existing = loadLocal(hebrewYear);
+    // First launch: if no data saved yet and we're in season, mark days 1..today as counted
+    const seedKey = `${FIRST_LAUNCH_KEY}_${hebrewYear}`;
+    if (existing.size === 0 && currentDay && currentDay >= 1) {
+      try {
+        if (!localStorage.getItem(seedKey)) {
+          const seeded = new Set<number>();
+          for (let d = 1; d <= currentDay; d++) seeded.add(d);
+          saveLocal(hebrewYear, seeded);
+          localStorage.setItem(seedKey, String(currentDay));
+          return seeded;
+        }
+      } catch { /* ignore */ }
+    }
+    return existing;
+  });
 
   // Cloud sync on load & auth change
   useEffect(() => {
