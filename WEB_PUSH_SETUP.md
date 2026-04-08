@@ -56,6 +56,29 @@ supabase secrets set VAPID_SUBJECT="mailto:jj1212t@gmail.com"
 | `VAPID_PRIVATE_KEY` | `MmrMQnBStp9ZBgciMuWWa1E3dFJ7f6JO1H2WUMl_2dI` |
 | `VAPID_SUBJECT` | `mailto:jj1212t@gmail.com` |
 
+### ערכים להעתקה ישירה (Add Secrets):
+
+```
+VAPID_PUBLIC_KEY
+```
+```
+BLSFD4oodnVhrA9IGuDtvDvxqJI9U0E2dT30peC1dX5qwL8FPz_46n1TmNMjjnOeAETBavO_aLuobwXsl3D2L_Y
+```
+
+```
+VAPID_PRIVATE_KEY
+```
+```
+MmrMQnBStp9ZBgciMuWWa1E3dFJ7f6JO1H2WUMl_2dI
+```
+
+```
+VAPID_SUBJECT
+```
+```
+mailto:jj1212t@gmail.com
+```
+
 ## שלב 4: דיפלוי ה-Edge Functions
 
 ```powershell
