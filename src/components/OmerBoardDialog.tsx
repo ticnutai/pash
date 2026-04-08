@@ -995,7 +995,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); toggleDay(day.day); }}
-                    className="absolute top-1.5 left-1.5 p-0.5 rounded-full transition-all hover:scale-110"
+                    className="absolute bottom-1.5 left-1.5 p-0.5 rounded-full transition-all hover:scale-110"
                     title={isCounted(day.day) ? "סומן כנספר" : "סמן כנספר"}
                     style={{ color: isCounted(day.day) ? "#22c55e" : activeDesign.accentColor + "60" }}
                   >
