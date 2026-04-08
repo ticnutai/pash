@@ -24,6 +24,7 @@ import { ColorPicker } from "@/components/ColorPicker";
 import { BookmarksDialog } from "@/components/BookmarksDialog";
 import { getCalendarPreference, setCalendarPreference } from "@/utils/parshaUtils";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useWebPush } from "@/hooks/useWebPush";
 import { Input } from "@/components/ui/input";
 import { getRememberedCredentials, getAutoLoginEnabled, setAutoLoginEnabled, clearRememberedCredentials } from "@/pages/Auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -164,6 +165,7 @@ export const Settings = () => {
   const { settings, updateSettings } = useFontAndColorSettings();
   const [isIsrael, setIsIsrael] = useState(getCalendarPreference());
   const { settings: notifSettings, updateSettings: updateNotif, addReminder, updateReminder, removeReminder, permission, requestPermission, sendTestNotification, supported: notifSupported } = useNotifications();
+  const webPush = useWebPush();
   const { user } = useAuth();
   const [devFloatingEnabled, setDevFloatingEnabled] = useState(() => getDevFeatureEnabled(DEV_FLOATING_ENABLED_KEY, true));
   const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
@@ -634,6 +636,105 @@ export const Settings = () => {
                 )}
               </div>
             </Card>
+
+            {/* ── WEB PUSH (background notifications) ── */}
+            {webPush.isSupported && (
+              <Card className="p-6">
+                <div className="space-y-4">
+                  <div className="text-right">
+                    <h3 className="font-semibold text-lg flex items-center gap-2 justify-end">
+                      <span>התראות Push ברקע</span>
+                      <Bell className="h-5 w-5 text-primary" />
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      קבל התראות גם כשהדפדפן סגור. ההתראות נשלחות מהשרת בזמן שהגדרת.
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {webPush.state === "denied" && (
+                    <div className="p-3 bg-destructive/10 rounded-lg text-right text-sm text-destructive">
+                      גישה להתראות Push נחסמה בהגדרות הדפדפן. יש לאפשר אותן שם כדי לקבל התראות ברקע.
+                    </div>
+                  )}
+
+                  {webPush.state === "subscribed" ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive"
+                          disabled={webPush.loading}
+                          onClick={() => webPush.unsubscribe()}
+                        >
+                          בטל הרשמה
+                        </Button>
+                        <div className="flex items-center gap-2 text-right">
+                          <div className="h-2 w-2 rounded-full bg-green-500" />
+                          <span className="text-sm font-medium text-green-600 dark:text-green-400">Push פעיל</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        disabled={webPush.loading}
+                        onClick={async () => {
+                          // Sync current reminders to push server
+                          const pushReminders = notifSettings.reminders
+                            .filter(r => r.enabled)
+                            .map(r => ({
+                              id: r.id,
+                              enabled: true,
+                              hour: r.hour,
+                              minute: r.minute,
+                              message: r.message,
+                              type: "daily" as const,
+                              days: r.days,
+                            }));
+                          await webPush.syncReminders(pushReminders);
+                          toast.success("תזכורות Push עודכנו בשרת");
+                        }}
+                      >
+                        <Bell className="h-4 w-4" />
+                        סנכרן תזכורות לשרת
+                      </Button>
+
+                      <p className="text-xs text-muted-foreground text-right">
+                        לחץ "סנכרן" אחרי כל שינוי בתזכורות כדי שגם התראות הרקע יתעדכנו.
+                      </p>
+                    </div>
+                  ) : (
+                    <Button
+                      className="w-full gap-2"
+                      disabled={webPush.loading || webPush.state === "denied"}
+                      onClick={async () => {
+                        const pushReminders = notifSettings.reminders
+                          .filter(r => r.enabled)
+                          .map(r => ({
+                            id: r.id,
+                            enabled: true,
+                            hour: r.hour,
+                            minute: r.minute,
+                            message: r.message,
+                            type: "daily" as const,
+                            days: r.days,
+                          }));
+                        const sub = await webPush.subscribe(pushReminders);
+                        if (sub) toast.success("התראות Push הופעלו! תקבל הודעות גם כשהדפדפן סגור.");
+                        else toast.error("לא הצלחנו להירשם ל-Push. בדוק שאישרת התראות.");
+                      }}
+                    >
+                      <Bell className="h-4 w-4" />
+                      {webPush.loading ? "מפעיל..." : "הפעל התראות Push ברקע"}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="themes" className="space-y-4">
