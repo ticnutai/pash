@@ -131,13 +131,35 @@ async function loadFromCloud(): Promise<OmerReminder[] | null> {
 /* ─── Permission ─────────────────────────────────────────── */
 
 async function requestPermission(): Promise<NotificationPermission> {
+  console.log("[requestPermission] start, platform:", Capacitor.getPlatform());
+
   if (Capacitor.isNativePlatform()) {
     const result = await LocalNotifications.requestPermissions();
+    console.log("[requestPermission] native result:", result.display);
     return result.display === "granted" ? "granted" : "denied";
   }
-  if (!("Notification" in window)) return "denied";
+
+  // Detect iframe — permission popups are blocked in sandboxed iframes
+  const inIframe = window.self !== window.top;
+  console.log("[requestPermission] inIframe:", inIframe);
+
+  if (!("Notification" in window)) {
+    console.log("[requestPermission] Notification API not available");
+    return "denied";
+  }
+
+  console.log("[requestPermission] current Notification.permission:", Notification.permission);
+
   if (Notification.permission === "granted") return "granted";
-  return Notification.requestPermission();
+
+  try {
+    const result = await Notification.requestPermission();
+    console.log("[requestPermission] browser returned:", result);
+    return result;
+  } catch (err) {
+    console.error("[requestPermission] browser API error:", err);
+    return "denied";
+  }
 }
 
 /* ─── In-App Popup ───────────────────────────────────────── */
@@ -628,8 +650,21 @@ export function useOmerReminders() {
   }, [persist]);
 
   const askPermission = useCallback(async () => {
+    console.log("[askPermission] button clicked");
     try {
+      // Detect iframe (e.g. Lovable preview) — permission popups are blocked
+      const inIframe = window.self !== window.top;
+      if (inIframe) {
+        console.warn("[askPermission] running inside iframe — permission popup will be blocked");
+        toast.error("לא ניתן לאפשר התראות בתצוגה מקדימה", {
+          description: "יש לפתוח את האפליקציה בחלון נפרד (לא בתוך iframe)",
+          duration: 8000,
+        });
+        return "denied" as NotificationPermission;
+      }
+
       const result = await requestPermission();
+      console.log("[askPermission] result:", result);
       setPermission(result);
 
       if (result === "granted") {
