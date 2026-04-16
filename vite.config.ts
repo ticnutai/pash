@@ -110,14 +110,12 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-select', '@radix-ui/react-tooltip', '@radix-ui/react-popover'],
-          'data-bereishit': ['./src/data/bereishit.json'],
-          'data-shemot': ['./src/data/shemot.json'],
-          'data-vayikra': ['./src/data/vayikra.json'],
-          'data-bamidbar': ['./src/data/bamidbar.json'],
-          'data-devarim': ['./src/data/devarim.json'],
+        manualChunks(id) {
+          if (id.includes('/src/data/bereishit.json')) return 'data-bereishit';
+          if (id.includes('/src/data/shemot.json')) return 'data-shemot';
+          if (id.includes('/src/data/vayikra.json')) return 'data-vayikra';
+          if (id.includes('/src/data/bamidbar.json')) return 'data-bamidbar';
+          if (id.includes('/src/data/devarim.json')) return 'data-devarim';
         }
       }
     }
