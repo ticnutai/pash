@@ -627,27 +627,8 @@ const Index = () => {
     }));
   }, [displayedPesukim, textLanguage]);
 
-  useEffect(() => {
-    logInteraction("Index", "selection-state", {
-      selectedSefer,
-      selectedParsha,
-      selectedPerek,
-      selectedPasuk,
-      displayMode,
-      singlePasukMode,
-      filteredCount: filteredPesukim.length,
-      displayedCount: displayedPesukim.length,
-    });
-  }, [
-    selectedSefer,
-    selectedParsha,
-    selectedPerek,
-    selectedPasuk,
-    displayMode,
-    singlePasukMode,
-    filteredPesukim.length,
-    displayedPesukim.length,
-  ]);
+  // Verbose selection-state logging removed — was creating console noise on every render.
+  // Re-enable temporarily by uncommenting if you need to debug selection flow.
 
   const handleNavigate = useCallback((index: number) => {
     setCurrentPasukIndex(index);
