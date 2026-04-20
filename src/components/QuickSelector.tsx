@@ -45,16 +45,10 @@ export const QuickSelector = ({
   // Reset to parsha level when sefer changes
   useEffect(() => {
     setCurrentLevel("parsha");
-    logInteraction("QuickSelector", "sefer-change-reset", { seferId: sefer?.sefer_id });
   }, [sefer?.sefer_id]);
 
   // Keep the dialog in sync with the actual selection state
   useEffect(() => {
-    logInteraction("QuickSelector", "sync-level", {
-      selectedParsha,
-      selectedPerek,
-      selectedPasuk,
-    });
     if (selectedParsha === null) {
       setCurrentLevel("parsha");
       return;
