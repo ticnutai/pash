@@ -70,6 +70,9 @@ export function DevChatWidget() {
 
   // Poll for new messages (including Copilot responses)
   useEffect(() => {
+    // Only poll when widget is open to avoid causing app-wide re-renders every 2s.
+    if (!isOpen) return;
+
     const poll = async () => {
       try {
         const res = await fetch('/__dev-chat/poll');
