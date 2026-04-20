@@ -145,20 +145,22 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
 
   useEffect(() => {
     const cloudNusach = parseNusach(user?.user_metadata?.omer_nusach);
-    if (user && cloudNusach && cloudNusach !== nusach) {
-      setNusach(cloudNusach);
+    if (user && cloudNusach) {
+      setNusach((prev) => (prev === cloudNusach ? prev : cloudNusach));
       return;
     }
 
     if (!user) {
       try {
         const saved = normalizeNusach(localStorage.getItem(OMER_NUSACH_KEY));
-        if (saved !== nusach) setNusach(saved);
+        setNusach((prev) => (prev === saved ? prev : saved));
       } catch {
         // Ignore storage read errors.
       }
     }
-  }, [user, nusach]);
+    // Intentionally exclude `nusach` to avoid an update loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   useEffect(() => {
     const syncNusachToCloud = async () => {
@@ -178,7 +180,9 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     };
 
     void syncNusachToCloud();
-  }, [user, nusach]);
+    // Only re-run when nusach changes; user identity is captured via closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nusach]);
 
   // Auto-scroll to today's card when dialog opens
   useEffect(() => {
