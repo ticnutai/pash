@@ -10,7 +10,7 @@ import pkg from "./package.json" with { type: "json" };
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 6001,
+    port: 7000,
     strictPort: false,
     hmr: {
       protocol: 'ws',

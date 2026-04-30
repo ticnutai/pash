@@ -220,16 +220,82 @@ export const Settings = () => {
 
   useEffect(() => {
     if (!user) return;
-    const cloudVal = user.user_metadata?.dev_floating_enabled;
-    if (cloudVal === true || cloudVal === false) {
-      setDevFloatingEnabled(cloudVal);
-      localStorage.setItem(DEV_FLOATING_ENABLED_KEY, String(cloudVal));
-      window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+    const meta = user.user_metadata ?? {};
+    const pushUpdates: Record<string, unknown> = {};
+
+    // dev_floating_enabled
+    const floatingPush = (() => {
+      const cloudVal = meta.dev_floating_enabled;
+      const cloudTs = meta.dev_floating_enabled_ts ?? 0;
+      const localTs = (() => { try { return Number(localStorage.getItem(DEV_FLOATING_ENABLED_KEY + '-ts')) || 0; } catch { return 0; } })();
+      if (cloudVal !== true && cloudVal !== false) return;
+      if (cloudTs >= localTs) {
+        setDevFloatingEnabled(cloudVal);
+        localStorage.setItem(DEV_FLOATING_ENABLED_KEY, String(cloudVal));
+        localStorage.setItem(DEV_FLOATING_ENABLED_KEY + '-ts', String(cloudTs));
+        window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+      } else {
+        const local = getDevFeatureEnabled(DEV_FLOATING_ENABLED_KEY, true);
+        Object.assign(pushUpdates, { dev_floating_enabled: local, dev_floating_enabled_ts: localTs });
+      }
+    })();
+
+    // dev_chat_enabled
+    (() => {
+      const cloudVal = meta.dev_chat_enabled;
+      const cloudTs = meta.dev_chat_enabled_ts ?? 0;
+      const localTs = (() => { try { return Number(localStorage.getItem(DEV_CHAT_ENABLED_KEY + '-ts')) || 0; } catch { return 0; } })();
+      if (cloudVal !== true && cloudVal !== false) return;
+      if (cloudTs >= localTs) {
+        setDevChatEnabled(cloudVal);
+        localStorage.setItem(DEV_CHAT_ENABLED_KEY, String(cloudVal));
+        localStorage.setItem(DEV_CHAT_ENABLED_KEY + '-ts', String(cloudTs));
+        window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+      } else {
+        const local = getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true);
+        Object.assign(pushUpdates, { dev_chat_enabled: local, dev_chat_enabled_ts: localTs });
+      }
+    })();
+
+    // dev_screenshot_enabled
+    (() => {
+      const cloudVal = meta.dev_screenshot_enabled;
+      const cloudTs = meta.dev_screenshot_enabled_ts ?? 0;
+      const localTs = (() => { try { return Number(localStorage.getItem(DEV_SCREENSHOT_ENABLED_KEY + '-ts')) || 0; } catch { return 0; } })();
+      if (cloudVal !== true && cloudVal !== false) return;
+      if (cloudTs >= localTs) {
+        setDevScreenshotEnabled(cloudVal);
+        localStorage.setItem(DEV_SCREENSHOT_ENABLED_KEY, String(cloudVal));
+        localStorage.setItem(DEV_SCREENSHOT_ENABLED_KEY + '-ts', String(cloudTs));
+        window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+      } else {
+        const local = getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true);
+        Object.assign(pushUpdates, { dev_screenshot_enabled: local, dev_screenshot_enabled_ts: localTs });
+      }
+    })();
+
+    if (Object.keys(pushUpdates).length > 0) {
+      supabase.auth.updateUser({ data: { ...meta, ...pushUpdates } }).catch(() => {});
     }
-    // Sync omer auto-open from cloud
-    const omerAutoOpen = user.user_metadata?.omer_auto_open;
-    if (omerAutoOpen === true || omerAutoOpen === false) {
-      localStorage.setItem('omer-auto-open', String(omerAutoOpen));
+
+    // Sync omer auto-open — last write wins using timestamps
+    const cloudOmerVal = user.user_metadata?.omer_auto_open;
+    const cloudOmerTs = user.user_metadata?.omer_auto_open_ts ?? 0;
+    const localOmerTs = (() => { try { return Number(localStorage.getItem('omer-auto-open-ts')) || 0; } catch { return 0; } })();
+
+    if (cloudOmerVal === true || cloudOmerVal === false) {
+      if (cloudOmerTs >= localOmerTs) {
+        // Cloud is newer (or equal) → apply to local
+        setOmerAutoOpen(cloudOmerVal);
+        localStorage.setItem('omer-auto-open', String(cloudOmerVal));
+        localStorage.setItem('omer-auto-open-ts', String(cloudOmerTs));
+      } else {
+        // Local is newer → push local value to cloud
+        const localVal = (() => { try { const v = localStorage.getItem('omer-auto-open'); return v === null ? true : v === 'true'; } catch { return true; } })();
+        supabase.auth.updateUser({
+          data: { ...user.user_metadata, omer_auto_open: localVal, omer_auto_open_ts: localOmerTs }
+        }).catch(() => {});
+      }
     }
   }, [user]);
 
@@ -251,28 +317,41 @@ export const Settings = () => {
   };
 
   const handleDevChatToggle = (checked: boolean) => {
+    const now = Date.now();
     setDevChatEnabled(checked);
     localStorage.setItem(DEV_CHAT_ENABLED_KEY, String(checked));
+    localStorage.setItem(DEV_CHAT_ENABLED_KEY + '-ts', String(now));
     window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
     toast.success(checked ? "צ'אט פיתוח הופעל" : "צ'אט פיתוח כובה");
+    if (user) {
+      supabase.auth.updateUser({ data: { ...user.user_metadata, dev_chat_enabled: checked, dev_chat_enabled_ts: now } })
+        .catch(() => {});
+    }
   };
 
   const handleDevScreenshotToggle = (checked: boolean) => {
+    const now = Date.now();
     setDevScreenshotEnabled(checked);
     localStorage.setItem(DEV_SCREENSHOT_ENABLED_KEY, String(checked));
+    localStorage.setItem(DEV_SCREENSHOT_ENABLED_KEY + '-ts', String(now));
     window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
     toast.success(checked ? "צילום מסך פיתוח הופעל" : "צילום מסך פיתוח כובה");
+    if (user) {
+      supabase.auth.updateUser({ data: { ...user.user_metadata, dev_screenshot_enabled: checked, dev_screenshot_enabled_ts: now } })
+        .catch(() => {});
+    }
   };
 
   const handleDevFloatingToggle = (checked: boolean) => {
+    const now = Date.now();
     setDevFloatingEnabled(checked);
     localStorage.setItem(DEV_FLOATING_ENABLED_KEY, String(checked));
+    localStorage.setItem(DEV_FLOATING_ENABLED_KEY + '-ts', String(now));
     window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
     toast.success(checked ? "כל כפתורי הפיתוח הופעלו" : "כל כפתורי הפיתוח כובו");
-    // Sync to cloud
     if (user) {
-      supabase.auth.updateUser({ data: { ...user.user_metadata, dev_floating_enabled: checked } })
-        .catch(() => { /* ignore */ });
+      supabase.auth.updateUser({ data: { ...user.user_metadata, dev_floating_enabled: checked, dev_floating_enabled_ts: now } })
+        .catch(() => {});
     }
   };
 
@@ -440,13 +519,16 @@ export const Settings = () => {
                     id="omer-auto-open"
                     checked={omerAutoOpen}
                     onCheckedChange={(checked) => {
+                      const now = Date.now();
                       setOmerAutoOpen(checked);
                       localStorage.setItem('omer-auto-open', String(checked));
+                      localStorage.setItem('omer-auto-open-ts', String(now));
                       toast.success(checked ? "לוח העומר ייפתח אוטומטית" : "פתיחה אוטומטית כובתה");
-                      // Sync to cloud
+                      // Sync to cloud with timestamp
                       if (user) {
-                        supabase.auth.updateUser({ data: { ...user.user_metadata, omer_auto_open: checked } })
-                          .catch(() => {});
+                        supabase.auth.updateUser({
+                          data: { ...user.user_metadata, omer_auto_open: checked, omer_auto_open_ts: now }
+                        }).catch(() => {});
                       }
                     }}
                   />

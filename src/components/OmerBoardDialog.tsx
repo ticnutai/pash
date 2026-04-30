@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle, X, Volume2, ChevronDown, ChevronUp, Moon, Sun } from "lucide-react";
+import { Sparkles, CalendarDays, LayoutGrid, Table2, Rows3, Palette, Share2, Mail, MessageCircle, Bell, BellOff, Plus, Trash2, Clock, Smartphone, MonitorSmartphone, Send, Home, Type, CheckCircle2, Circle, Trophy, Flame, AlertTriangle, X, Volume2, ChevronDown, ChevronUp, Moon, Sun, Tags } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { useOmerReminders, type OmerChannel, type OmerVoiceSound, VOICE_SOUND_OPTIONS, playVoiceSound } from "@/hooks/useOmerReminders";
 import { useOmerThemes } from "@/hooks/useOmerThemes";
-import type { AutoDarkMode } from "@/hooks/useOmerThemes";
+import type { AutoDarkMode, OmerIconStyle } from "@/hooks/useOmerThemes";
 import { useOmerChecklist } from "@/hooks/useOmerChecklist";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
@@ -50,6 +50,9 @@ interface OmerBoardDialogProps {
   iconClassName?: string;
   defaultOpen?: boolean;
   standalone?: boolean;
+  /** Controlled open state — if provided, the internal trigger button is hidden */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 type OmerViewMode = "grid" | "table" | "compact" | "weekly" | "calendar";
@@ -68,8 +71,14 @@ const parseNusach = (value: unknown): OmerNusach | null => {
   return null;
 };
 
-export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, standalone }: OmerBoardDialogProps) {
-  const [dialogOpen, setDialogOpen] = useState(standalone || defaultOpen ? true : false);
+export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, standalone, open: controlledOpen, onOpenChange: controlledOnOpenChange }: OmerBoardDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(standalone || defaultOpen ? true : false);
+  const isControlled = controlledOpen !== undefined;
+  const dialogOpen = isControlled ? controlledOpen : internalOpen;
+  const setDialogOpen = (val: boolean) => {
+    if (!isControlled) setInternalOpen(val);
+    controlledOnOpenChange?.(val);
+  };
 
   // In standalone mode, replace Radix Dialog primitives with plain HTML equivalents
   const Title = standalone
@@ -103,6 +112,8 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
     resetTypography: resetTypo,
     autoDark,
     setAutoDark,
+    iconStyle,
+    setIconStyle,
   } = useOmerThemes();
   const { user } = useAuth();
   const {
@@ -436,16 +447,26 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
             </Desc>
             <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
               <div className="flex items-center gap-1.5 flex-wrap" style={{ color: activeDesign.accentColor }}>
+                {/* Icon style: labels = pill with text, icons = square icon-only */}
+                {(() => {
+                  const isIcons = iconStyle === "icons";
+                  const btnCls = isIcons
+                    ? "h-10 w-10 rounded-xl border-2 bg-[#f5f2ed] shadow-sm"
+                    : "h-9 px-3 gap-1.5 rounded-full border-2 text-xs font-semibold";
+                  const btnStyle = { borderColor: activeDesign.accentColor, color: '#1b2a4a' };
+                  const iconColor = { color: activeDesign.accentColor };
+                  return (<>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      size="icon"
-                      className="h-9 w-9 sm:h-8 sm:w-8"
-                      style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
+                      size={isIcons ? "icon" : undefined}
+                      className={btnCls}
+                      style={btnStyle}
                       title="שתף ספירת העומר"
                     >
-                      <Share2 className="h-4 w-4" />
+                      <Share2 className="h-4 w-4" style={iconColor} />
+                      {!isIcons && <span>שיתוף</span>}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="direction-rtl">
@@ -485,13 +506,14 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 <FirstTimeTooltip label="תזכורות" delay={450} storageKey="omer-first-tooltips" position="top">
                 <Button
                   variant="outline"
-                  size="icon"
-                  className="h-9 w-9 sm:h-8 sm:w-8 relative"
-                  style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
+                  size={isIcons ? "icon" : undefined}
+                  className={cn(btnCls, "relative")}
+                  style={btnStyle}
                   title="תזכורות ספירת העומר"
                   onClick={() => setReminderDialogOpen(true)}
                 >
-                  <Bell className="h-4 w-4" />
+                  <Bell className="h-4 w-4" style={iconColor} />
+                  {!isIcons && <span>תזכורות</span>}
                   {omerReminders.filter((r) => r.enabled).length > 0 && (
                     <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#d4af37] border-2 border-background animate-pulse" />
                   )}
@@ -825,13 +847,14 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
 
                 <Button
                   variant="outline"
-                  size="icon"
+                  size={isIcons ? "icon" : undefined}
                   onClick={() => setThemeDialogOpen(true)}
-                  className="h-9 w-9 sm:h-8 sm:w-8"
-                  style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
+                  className={btnCls}
+                  style={btnStyle}
                   title="ערכות נושא"
                 >
-                  <Palette className="h-4 w-4" />
+                  <Palette className="h-4 w-4" style={iconColor} />
+                  {!isIcons && <span>עיצוב</span>}
                 </Button>
                 <OmerThemeDialog
                   open={themeDialogOpen}
@@ -848,12 +871,13 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      size="icon"
-                      className="h-9 w-9 sm:h-8 sm:w-8"
-                      style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
+                      size={isIcons ? "icon" : undefined}
+                      className={btnCls}
+                      style={btnStyle}
                       title="מצב לילה"
                     >
-                      {autoDark !== "off" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                      {autoDark !== "off" ? <Moon className="h-4 w-4" style={iconColor} /> : <Sun className="h-4 w-4" style={iconColor} />}
+                      {!isIcons && <span>{autoDark !== "off" ? "לילה" : "יום"}</span>}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="text-right min-w-[160px]">
@@ -872,12 +896,13 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      size="icon"
-                      className="h-9 w-9 sm:h-8 sm:w-8"
-                      style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
+                      size={isIcons ? "icon" : undefined}
+                      className={btnCls}
+                      style={btnStyle}
                       title="טיפוגרפיה"
                     >
-                      <Type className="h-4 w-4" />
+                      <Type className="h-4 w-4" style={iconColor} />
+                      {!isIcons && <span>גופן</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-3 space-y-3" dir="rtl" align="start">
@@ -943,12 +968,13 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      size="icon"
-                      className="h-9 w-9 sm:h-8 sm:w-8"
-                      style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
+                      size={isIcons ? "icon" : undefined}
+                      className={btnCls}
+                      style={btnStyle}
                       title={`תצוגה: ${currentViewLabel}`}
                     >
-                      {currentViewIcon}
+                      <span style={iconColor}>{currentViewIcon}</span>
+                      {!isIcons && <span>תצוגה</span>}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="text-right min-w-[120px]">
@@ -967,15 +993,30 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
                 <DialogClose asChild>
                   <Button
                     variant="outline"
-                    size="icon"
-                    className="h-9 w-9 sm:h-8 sm:w-8"
-                    style={{ borderColor: activeDesign.accentColor, color: activeDesign.accentColor }}
+                    size={isIcons ? "icon" : undefined}
+                    className={btnCls}
+                    style={btnStyle}
                     title="חזרה לאתר"
                   >
-                    <Home className="h-4 w-4" />
+                    <Home className="h-4 w-4" style={iconColor} />
+                    {!isIcons && <span>בית</span>}
                   </Button>
                 </DialogClose>
                 )}
+                {/* Toggle icon style */}
+                <Button
+                  variant="outline"
+                  size={isIcons ? "icon" : undefined}
+                  className={btnCls}
+                  style={btnStyle}
+                  title={isIcons ? "עבור לתוויות" : "עבור לאייקונים"}
+                  onClick={() => setIconStyle(isIcons ? "labels" : "icons")}
+                >
+                  {isIcons ? <Tags className="h-4 w-4" style={iconColor} /> : <LayoutGrid className="h-4 w-4" style={iconColor} />}
+                  {!isIcons && <span>אייקונים</span>}
+                </Button>
+                  </>);
+                })()}
               </div>
             </div>
           </DialogHeader>
@@ -1459,6 +1500,17 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
   );
 
   if (standalone) return boardContent;
+
+  // Controlled mode — no trigger button, just the dialog
+  if (isControlled) {
+    return (
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className={cn("w-[98vw] sm:w-auto sm:max-w-5xl p-0 overflow-hidden overflow-x-hidden border-2 max-h-[94vh] pt-[env(safe-area-inset-top)] pb-[max(0.25rem,env(safe-area-inset-bottom))]", activeDesign.dialogBorder, activeDesign.dialogBg)} style={{ color: textColorHex }}>
+          {boardContent}
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

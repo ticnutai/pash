@@ -23,8 +23,22 @@ const STORAGE_KEY = "omer_custom_themes_v1";
 const ACTIVE_KEY = "omer_active_theme_v1";
 const TYPO_KEY = "omer-typography-v1";
 const AUTO_DARK_KEY = "omer_auto_dark_v1";
+const ICON_STYLE_KEY = "omer_icon_style_v1";
 
 export type AutoDarkMode = "off" | "system" | "time";
+export type OmerIconStyle = "labels" | "icons";
+
+function loadIconStyle(): OmerIconStyle {
+  try {
+    const v = localStorage.getItem(ICON_STYLE_KEY);
+    if (v === "labels" || v === "icons") return v;
+  } catch { /* ignore */ }
+  return "labels";
+}
+
+function saveIconStyle(style: OmerIconStyle) {
+  try { localStorage.setItem(ICON_STYLE_KEY, style); } catch { /* ignore */ }
+}
 
 function loadAutoDark(): AutoDarkMode {
   try {
@@ -393,6 +407,12 @@ export function useOmerThemes() {
     saveAutoDark(mode);
   }, []);
 
+  const [iconStyle, setIconStyleState] = useState<OmerIconStyle>(loadIconStyle);
+  const setIconStyle = useCallback((style: OmerIconStyle) => {
+    setIconStyleState(style);
+    saveIconStyle(style);
+  }, []);
+
   return {
     allThemes,
     customThemes,
@@ -410,5 +430,7 @@ export function useOmerThemes() {
     resetTypography,
     autoDark,
     setAutoDark,
+    iconStyle,
+    setIconStyle,
   };
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked } from "lucide-react";
+import React from "react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,12 @@ const getCorpusModeForSefer = (seferId: number): CorpusMode => {
 };
 
 const Index = () => {
+  // ─── DEBUG: track renders ────────────────────────────────────────────
+  const renderCountRef = React.useRef(0);
+  renderCountRef.current++;
+  console.log("[INDEX-RENDER]", new Date().toISOString().slice(11, 23), "render #" + renderCountRef.current);
+  // ────────────────────────────────────────────────────────────────────
+
   const { syncStatus } = useTheme();
   const { displaySettings } = useDisplayMode();
   const { isMobile } = useDevice();
@@ -116,9 +123,6 @@ const Index = () => {
   const [singlePasukMode, setSinglePasukMode] = useState(false);
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const omerAutoOpen = useMemo(() => {
-    try { const v = localStorage.getItem('omer-auto-open'); return v === null ? true : v === 'true'; } catch { return true; }
-  }, []);
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
   const pendingSearchNav = useRef<{ perek: number; pasuk: number } | null>(null); // pending navigation from search
   const seferClickStartedAtRef = useRef<number | null>(null);
@@ -135,6 +139,9 @@ const Index = () => {
   const [sidePanelMode, setSidePanelMode] = useState<"user" | "pasuk">("pasuk");
   const [sidePanelPasuk, setSidePanelPasuk] = useState<FlatPasuk | null>(null);
   const [chumashSelectedPasukId, setChumashSelectedPasukId] = useState<number | null>(null);
+  const [omerDialogOpen, setOmerDialogOpen] = useState(() => {
+    try { const v = localStorage.getItem('omer-auto-open'); return v === null ? true : v === 'true'; } catch { return true; }
+  });
   const currentSeferOptions = corpusMode === "torah" ? TORAH_SEFARIM : NEVIIM_SEFARIM;
   // appTitle removed – no longer shown in mobile header
   const appSubtitle = corpusMode === "torah" ? "חמישה חומשי תורה עם פירושים" : "נביאים ומגילות";
@@ -333,6 +340,7 @@ const Index = () => {
   
   // Load sefer on demand (lazy loading) with non-blocking parsing
   useEffect(() => {
+    console.log("[LOAD-SEFER-EFFECT]", new Date().toISOString().slice(11, 23), "triggered — selectedSefer:", selectedSefer, "corpusMode:", corpusMode, "seferCache size:", seferCache.size);
     let cancelled = false;
     
     const loadSefer = async () => {
@@ -862,82 +870,120 @@ const Index = () => {
                   {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
                 </Button>
                 </span>
-                <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר">
-                  <OmerBoardDialog buttonClassName="h-8 w-8" iconClassName="h-4 w-4" defaultOpen={omerAutoOpen} />
+                <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר" className="sr-only">
+                  <OmerBoardDialog
+                    open={omerDialogOpen}
+                    onOpenChange={setOmerDialogOpen}
+                  />
                 </span>
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
-                <span data-layout="btn-siddur" data-layout-label="🕍 סידור">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/siddur')}
-                  className="h-8 w-8 text-accent"
-                  title="סידור תפילה"
-                >
-                  <BookMarked className="h-4 w-4" />
-                </Button>
-                </span>
-                <span data-layout="btn-corpus" data-layout-label="📚 חומשים/נביאים">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleCorpusMode}
-                  className={cn("h-8 w-8 text-accent")}
-                  title={corpusMode === "torah" ? "מעבר לנביאים (מגילת אסתר)" : "מעבר לחומשים"}
-                >
-                  <ScrollText className="h-4 w-4" />
-                </Button>
+                {/* Mode switcher: חומש / סידור / עומר */}
+                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5 rounded-lg border border-accent/30 bg-accent/5 px-1 py-0.5">
+                  <button
+                    onClick={() => {}}
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all bg-accent text-sidebar"
+                    title="חומש"
+                  >
+                    <Book className="h-3 w-3" />
+                    <span>חומש</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/siddur')}
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent hover:bg-accent/20"
+                    title="סידור תפילה"
+                  >
+                    <BookMarked className="h-3 w-3" />
+                    <span>סידור</span>
+                  </button>
+                  <button
+                    onClick={() => setOmerDialogOpen(true)}
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent hover:bg-accent/20"
+                    title="ספירת העומר"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>עומר</span>
+                  </button>
                 </span>
                 <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
               </div>
             </div>
           </div>
 
-          {/* Desktop/Tablet Layout - Original horizontal layout */}
-          <div data-layout="header-actions-desktop" data-layout-label="כפתורי כותרת (דסקטופ)" className="hidden md:flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2 order-1">
-              <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
-              {process.env.NODE_ENV === 'development' && <DevicePreview />}
-              <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
-              <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
-              <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
-              <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר">
-                <OmerBoardDialog buttonClassName="h-9 w-9" iconClassName="h-5 w-5" />
-              </span>
-              <span data-layout="btn-siddur" data-layout-label="🕍 סידור">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/siddur')}
-                className="h-9 w-9 text-accent"
-                title="סידור תפילה"
-              >
-                <BookMarked className="h-5 w-5" />
-              </Button>
-              </span>
-              <span data-layout="btn-corpus" data-layout-label="📚 חומשים/נביאים">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleCorpusMode}
-                className={cn("h-9 w-9 text-accent")}
-                title={corpusMode === "torah" ? "מעבר לנביאים (מגילת אסתר)" : "מעבר לחומשים"}
-              >
-                <ScrollText className="h-5 w-5" />
-              </Button>
-              </span>
-              <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
+          {/* Desktop/Tablet Layout */}
+          <div data-layout="header-actions-desktop" data-layout-label="כפתורי כותרת (דסקטופ)" className="hidden md:flex flex-col gap-1.5">
+            {/* Row 1: Search (left) + Buttons (right) */}
+            <div className="flex items-center justify-between gap-3">
+              {/* Left: Search */}
+              <div className="flex items-center gap-2 flex-1 max-w-sm">
+                <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
+              </div>
+              {/* Right: Action buttons */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
+                {process.env.NODE_ENV === 'development' && <DevicePreview />}
+                <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
+                <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
+                <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+                {/* Mode switcher: חומש / סידור / עומר */}
+                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5 rounded-xl border border-accent/30 bg-accent/5 px-1.5 py-1">
+                  <button
+                    onClick={() => {}}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-all bg-accent text-sidebar shadow-sm"
+                    title="חומש"
+                  >
+                    <Book className="h-4 w-4" />
+                    <span>חומש</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/siddur')}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent hover:bg-accent/20"
+                    title="סידור תפילה"
+                  >
+                    <BookMarked className="h-4 w-4" />
+                    <span>סידור</span>
+                  </button>
+                  <button
+                    onClick={() => setOmerDialogOpen(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent hover:bg-accent/20"
+                    title="ספירת העומר"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>ספירת העומר</span>
+                  </button>
+                </span>
+                <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 order-2 lg:order-none flex-1 lg:flex-initial justify-center">
-              <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
-              <h1 className="text-2xl lg:text-3xl font-bold text-primary-foreground text-center leading-tight">
-                {appSubtitle}
-              </h1>
-              <Book className="h-8 w-8 text-accent flex-shrink-0" />
+            {/* Row 2: Luxurious title — left aligned */}
+            <div className="flex items-center gap-3 pl-1">
+              <div className="flex items-center gap-2">
+                <Book className="h-6 w-6 flex-shrink-0" style={{ color: 'hsl(var(--accent))' }} />
+                <div className="flex flex-col leading-none">
+                  <h1
+                    className="font-bold text-primary-foreground tracking-wide"
+                    style={{
+                      fontSize: '1.25rem',
+                      fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                      background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--primary-foreground)))',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {appSubtitle}
+                  </h1>
+                  <span
+                    className="text-xs tracking-widest uppercase"
+                    style={{ color: 'hsl(var(--accent) / 0.7)', fontFamily: "'Noto Serif Hebrew', serif", letterSpacing: '0.15em' }}
+                  >
+                    ✦ &nbsp; Torah Study &nbsp; ✦
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="hidden lg:block w-32" /> {/* Spacer for balance */}
           </div>
         </div>
       </header>
