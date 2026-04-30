@@ -9,6 +9,7 @@ function nowStamp() {
 
 export function logInteraction(scope: string, event: string, details?: DebugDetails) {
   if (typeof window === "undefined") return;
+  if (import.meta.env.PROD) return;
 
   const payload = {
     t: nowStamp(),

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import React from "react";
 import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles, Cog } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
@@ -82,12 +81,6 @@ const getCorpusModeForSefer = (seferId: number): CorpusMode => {
 };
 
 const Index = () => {
-  // ─── DEBUG: track renders ────────────────────────────────────────────
-  const renderCountRef = React.useRef(0);
-  renderCountRef.current++;
-  console.log("[INDEX-RENDER]", new Date().toISOString().slice(11, 23), "render #" + renderCountRef.current);
-  // ────────────────────────────────────────────────────────────────────
-
   const { displaySettings } = useDisplayMode();
   const { isMobile } = useDevice();
   const navigate = useNavigate();
@@ -336,7 +329,6 @@ const Index = () => {
   
   // Load sefer on demand (lazy loading) with non-blocking parsing
   useEffect(() => {
-    console.log("[LOAD-SEFER-EFFECT]", new Date().toISOString().slice(11, 23), "triggered — selectedSefer:", selectedSefer, "corpusMode:", corpusMode, "seferCache size:", seferCache.size);
     let cancelled = false;
     
     const loadSefer = async () => {

@@ -14,7 +14,7 @@ export const SelectionModeButton = () => {
       <Button
         size="icon"
         variant="secondary"
-        className="h-9 w-9 bg-primary/20 text-primary-foreground border border-primary-foreground/30"
+        className="h-9 w-9 bg-accent/20 text-accent border border-accent/30"
         title="יציאה ממצב בחירה"
         onClick={disableSelectionMode}
       >
@@ -27,7 +27,7 @@ export const SelectionModeButton = () => {
     <Button
       size="icon"
       variant="ghost"
-      className="h-9 w-9 text-primary-foreground hover:bg-primary-foreground/10"
+      className="h-9 w-9 text-accent hover:text-accent hover:bg-accent/10"
       title="בחר פסוקים לשיתוף"
       onClick={enableSelectionMode}
     >
