@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
 import React from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles, Cog } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
@@ -8,15 +8,12 @@ import { PARSHA_START } from "@/utils/parshaStartPositions";
 import { SeferSelector } from "@/components/SeferSelector";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { UserMenu } from "@/components/UserMenu";
-import { SyncIndicator } from "@/components/SyncIndicator";
 import { GlobalSearchTrigger } from "@/components/GlobalSearchTrigger";
 import { InlineSearch } from "@/components/InlineSearch";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
-import { DevicePreview } from "@/components/DevicePreview";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import { PasukSimpleNavigator } from "@/components/PasukSimpleNavigator";
 // ReadingProgress removed - replaced with nav buttons
-import { useTheme } from "@/contexts/ThemeContext";
 import { useDisplayMode, DisplayMode } from "@/contexts/DisplayModeContext";
 import { useDevice } from "@/contexts/DeviceContext";
 import { Card } from "@/components/ui/card";
@@ -91,7 +88,6 @@ const Index = () => {
   console.log("[INDEX-RENDER]", new Date().toISOString().slice(11, 23), "render #" + renderCountRef.current);
   // ────────────────────────────────────────────────────────────────────
 
-  const { syncStatus } = useTheme();
   const { displaySettings } = useDisplayMode();
   const { isMobile } = useDevice();
   const navigate = useNavigate();
@@ -839,7 +835,7 @@ const Index = () => {
     >
       {/* Header - Fully Responsive */}
       <header data-layout="header" data-layout-label="הדר ראשי" className="sticky top-0 z-50 bg-sidebar shadow-lg">
-        <div className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-sidebar sm:rounded-3xl">
+        <div className="w-full px-3 sm:px-4 py-2 sm:py-3">
           {/* Mobile Layout - Stack vertically */}
           <div
             className="flex flex-col gap-1 md:hidden"
@@ -853,7 +849,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleTextLanguage}
-                  className="h-8 w-8 text-muted-foreground"
+                  className="h-8 w-8 text-accent hover:text-accent hover:bg-accent/10"
                   title={textLanguage === "he" ? "Switch to English" : "החלף לעברית"}
                 >
                   <Languages className="h-4 w-4" />
@@ -864,7 +860,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleAutoWeeklyParsha}
-                  className={cn("h-8 w-8", autoWeeklyParsha ? "text-accent" : "text-muted-foreground")}
+                  className={cn("h-8 w-8 hover:bg-accent/10", autoWeeklyParsha ? "text-accent" : "text-accent/40")}
                   title={autoWeeklyParsha ? "פרשת השבוע אוטומטית: פעיל" : "פרשת השבוע אוטומטית: כבוי"}
                 >
                   {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
@@ -880,10 +876,10 @@ const Index = () => {
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
                 {/* Mode switcher: חומש / סידור / עומר */}
-                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5 rounded-lg border border-accent/30 bg-accent/5 px-1 py-0.5">
+                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center rounded-lg border border-accent/30 bg-accent/10 p-0.5 gap-0.5">
                   <button
                     onClick={() => {}}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all bg-accent text-sidebar"
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-semibold transition-all bg-accent/25 text-accent"
                     title="חומש"
                   >
                     <Book className="h-3 w-3" />
@@ -891,7 +887,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => navigate('/siddur')}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent hover:bg-accent/20"
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent/60 hover:text-accent hover:bg-accent/15"
                     title="סידור תפילה"
                   >
                     <BookMarked className="h-3 w-3" />
@@ -899,7 +895,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => setOmerDialogOpen(true)}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent hover:bg-accent/20"
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent/60 hover:text-accent hover:bg-accent/15"
                     title="ספירת העומר"
                   >
                     <Sparkles className="h-3 w-3" />
@@ -921,16 +917,14 @@ const Index = () => {
               </div>
               {/* Right: Action buttons */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span data-layout="btn-sync" data-layout-label="🔄 סנכרון"><SyncIndicator status={syncStatus} /></span>
-                {process.env.NODE_ENV === 'development' && <DevicePreview />}
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
                 {/* Mode switcher: חומש / סידור / עומר */}
-                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5 rounded-xl border border-accent/30 bg-accent/5 px-1.5 py-1">
+                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center rounded-xl border border-accent/30 bg-accent/10 p-0.5 gap-0.5">
                   <button
                     onClick={() => {}}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-all bg-accent text-sidebar shadow-sm"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-all bg-accent/25 text-accent"
                     title="חומש"
                   >
                     <Book className="h-4 w-4" />
@@ -938,7 +932,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => navigate('/siddur')}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent hover:bg-accent/20"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/60 hover:text-accent hover:bg-accent/15"
                     title="סידור תפילה"
                   >
                     <BookMarked className="h-4 w-4" />
@@ -946,12 +940,23 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => setOmerDialogOpen(true)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent hover:bg-accent/20"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/60 hover:text-accent hover:bg-accent/15"
                     title="ספירת העומר"
                   >
                     <Sparkles className="h-4 w-4" />
                     <span>ספירת העומר</span>
                   </button>
+                </span>
+                <span data-layout="btn-settings" data-layout-label="⚙️ הגדרות">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => (document.querySelector('[data-settings-trigger]') as HTMLElement)?.click()}
+                    className="h-8 w-8 text-accent hover:text-accent hover:bg-accent/10"
+                    title="הגדרות"
+                  >
+                    <Cog className="h-4 w-4" />
+                  </Button>
                 </span>
                 <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
               </div>
