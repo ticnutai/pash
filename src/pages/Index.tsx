@@ -918,9 +918,9 @@ const Index = () => {
 
           {/* Desktop/Tablet Layout */}
           <div data-layout="header-actions-desktop" data-layout-label="כפתורי כותרת (דסקטופ)" className="hidden md:flex flex-col gap-1.5">
-            {/* Single row: Title (right/RTL-start) + Buttons + Search (left/RTL-end) */}
+            {/* Single row: Title (right) | Mode switcher (center) | Icons + Search (left) */}
             <div className="flex items-center justify-between gap-3">
-              {/* Right side (RTL start): Title */}
+              {/* Right: Title */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Book className="h-6 w-6 flex-shrink-0" style={{ color: 'hsl(var(--accent))' }} />
                 <div className="flex flex-col leading-none">
@@ -946,38 +946,40 @@ const Index = () => {
                   </span>
                 </div>
               </div>
-              {/* Left side (RTL end): Action buttons + Search at far left */}
-              <div className="flex items-center gap-2 flex-shrink-0">
+
+              {/* Center: Mode switcher — חומש / סידור / עומר */}
+              <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
+                <button
+                  onClick={() => {}}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-all text-accent"
+                  title="חומש"
+                >
+                  <Book className="h-4 w-4" />
+                  <span>חומש</span>
+                </button>
+                <button
+                  onClick={() => navigate('/siddur')}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
+                  title="סידור תפילה"
+                >
+                  <BookMarked className="h-4 w-4" />
+                  <span>סידור</span>
+                </button>
+                <button
+                  onClick={() => setOmerDialogOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
+                  title="ספירת העומר"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>ספירת העומר</span>
+                </button>
+              </span>
+
+              {/* Left: Icons clustered together + Search at far left */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
-                {/* Mode switcher: חומש / סידור / עומר */}
-                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
-                  <button
-                    onClick={() => {}}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-all text-accent"
-                    title="חומש"
-                  >
-                    <Book className="h-4 w-4" />
-                    <span>חומש</span>
-                  </button>
-                  <button
-                    onClick={() => navigate('/siddur')}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
-                    title="סידור תפילה"
-                  >
-                    <BookMarked className="h-4 w-4" />
-                    <span>סידור</span>
-                  </button>
-                  <button
-                    onClick={() => setOmerDialogOpen(true)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
-                    title="ספירת העומר"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <span>ספירת העומר</span>
-                  </button>
-                </span>
                 <span data-layout="btn-settings" data-layout-label="⚙️ הגדרות">
                   <Button
                     variant="ghost"
@@ -990,8 +992,7 @@ const Index = () => {
                   </Button>
                 </span>
                 <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
-                {/* Search — far left */}
-                <div className="flex items-center gap-2 w-56">
+                <div className="flex items-center gap-2 w-56 mr-1">
                   <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
                 </div>
               </div>
