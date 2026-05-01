@@ -1677,12 +1677,12 @@ export const Siddur = () => {
         <div className="w-full px-3 sm:px-5">
 
           {/* ── Row 1: Title right, actions left ── */}
-          <div className="flex items-center justify-between gap-2 pt-2.5 pb-2">
+          <div className="flex items-center justify-between gap-1 pt-2.5 pb-2 flex-nowrap min-w-0">
 
             {/* Right side: Title + Back */}
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
               <h1
-                className="text-xl sm:text-2xl font-bold tracking-wide"
+                className="text-lg sm:text-2xl font-bold tracking-wide whitespace-nowrap"
                 style={{
                   color: activeTheme.textColor,
                   fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
@@ -1699,7 +1699,7 @@ export const Siddur = () => {
                 style={{ color: `${activeTheme.textColor}bf`, background: "transparent" }}
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span>חזרה</span>
+                <span className="hidden sm:inline">חזרה</span>
               </Button>
             </div>
 
@@ -1746,9 +1746,9 @@ export const Siddur = () => {
                 </DropdownMenu>
               )}
 
-              {/* Mode switcher: חומש | סידור | עומר */}
+              {/* Mode switcher: חומש | סידור | עומר — hidden on xs */}
               <div
-                className="flex items-center rounded-full flex-shrink-0"
+                className="hidden sm:flex items-center rounded-full flex-shrink-0"
                 style={{ }}
               >
                 <button
