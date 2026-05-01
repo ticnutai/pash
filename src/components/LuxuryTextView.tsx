@@ -725,6 +725,8 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
                     fontSize: `${effectiveSize}px`,
                     lineHeight: `${effectiveLineHeight}`,
                     textAlign: template.textAlign,
+                    letterSpacing: displayStyles.letterSpacing,
+                    wordSpacing: displayStyles.wordSpacing,
                     paddingInlineStart: displayStyles.isMobile ? "0.15rem" : "1.1rem",
                   }}
                 >
@@ -769,6 +771,8 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
               color: "hsl(var(--foreground))",
               lineHeight: `${effectiveLineHeight}`,
               textAlign: template.textAlign,
+              letterSpacing: displayStyles.letterSpacing,
+              wordSpacing: displayStyles.wordSpacing,
             }}
           >
             {perekGroups.map((group) => (
