@@ -1328,8 +1328,16 @@ export const Siddur = () => {
   const [omerOpen, setOmerOpen] = useState(false);
 
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
+  const { settings: fontSettings } = useFontAndColorSettings();
   const isSpecial = NUSACH_INDEP.has(catId);
   const settingsTab = catId === "tehillim" ? "tehillim" : catId === "kria" ? "pasuk" : "siddur";
+
+  const activeWidth = catId === "tehillim" ? fontSettings.tehillimContentWidth : fontSettings.siddurContentWidth;
+  const containerMaxW =
+    activeWidth === "narrow" ? "max-w-2xl" :
+    activeWidth === "wide"   ? "max-w-6xl" :
+    activeWidth === "full"   ? "max-w-full" :
+    "max-w-4xl";
 
   // If active category disappeared in new nusach, fall back to first
   useEffect(() => {
@@ -1619,11 +1627,12 @@ export const Siddur = () => {
       <main
         className={cn(
           "flex-1 flex flex-col pt-4 sm:pt-6 mx-auto w-full",
+          containerMaxW,
           viewMode === "split" || viewMode === "book"
-            ? "px-3 sm:px-5 max-w-5xl"
+            ? "px-3 sm:px-5"
             : viewMode === "scroll"
-            ? "px-4 sm:px-6 max-w-3xl"
-            : "px-5 sm:px-7 max-w-2xl"
+            ? "px-4 sm:px-6"
+            : "px-5 sm:px-7"
         )}
       >
         {/* ── Text filter toggles (nikud / taamim) ── */}
