@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
+import { OmerBoardDialog } from "@/components/OmerBoardDialog";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -1073,6 +1074,7 @@ export const Siddur = () => {
   const [displayStyle, setDisplayStyleState] = useState<DisplayStyle>(() =>
     (localStorage.getItem("siddur-display-style") as DisplayStyle) ?? "classic"
   );
+  const [omerOpen, setOmerOpen] = useState(false);
 
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
   const isSpecial = NUSACH_INDEP.has(catId);
@@ -1112,55 +1114,86 @@ export const Siddur = () => {
         direction: "rtl",
       }}
     >
+      {/* ── Omer dialog (accessible from header) ── */}
+      <OmerBoardDialog open={omerOpen} onOpenChange={setOmerOpen} />
+
       {/* ── Header ── */}
       <header
-        className="sticky top-0 z-40 shadow-lg"
+        className="sticky top-0 z-40"
         style={{
           background: displayStyle === "ornate"
             ? "linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, #1a2f63 100%)"
             : "hsl(var(--sidebar-background))",
-          paddingTop: "max(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)), 28px)",
+          paddingTop: "max(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)), 24px)",
+          boxShadow: "0 2px 16px rgba(0,0,0,0.18), 0 1px 0 rgba(200,160,77,0.15)",
         }}
       >
-        <div className="w-full px-3 sm:px-6 py-2 max-w-4xl mx-auto">
-          <div className="flex items-center justify-between gap-2">
-            {/* Back button */}
+        <div className="w-full px-3 sm:px-5 max-w-4xl mx-auto">
+
+          {/* ── Row 1: back | mode switcher | actions ── */}
+          <div className="flex items-center justify-between gap-2 pt-2 pb-1.5">
+
+            {/* Back */}
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={() => navigate(-1)}
-              className="h-9 w-9 flex-shrink-0"
-              style={{ color: "hsl(var(--sidebar-foreground))" }}
+              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0"
+              style={{ color: "hsl(var(--sidebar-foreground)/0.75)", background: "rgba(255,255,255,0.07)" }}
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">חזרה</span>
             </Button>
 
-            {/* Title */}
-            <div className="flex-1 flex items-center justify-center gap-2">
-              <BookMarked className="h-6 w-6 flex-shrink-0" style={{ color: GOLD }} />
-              <h1
-                className="text-xl font-bold text-center"
-                style={{
-                  color:      "hsl(var(--sidebar-foreground))",
-                  fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                }}
+            {/* ── Mode switcher ── */}
+            <div
+              className="flex items-center rounded-full overflow-hidden"
+              style={{ background: "rgba(255,255,255,0.10)", border: `1px solid rgba(200,160,77,0.25)` }}
+            >
+              {/* חומש */}
+              <button
+                onClick={() => navigate("/")}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
+                style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
+                title="חומש"
               >
-                סידור תפילה
-              </h1>
+                <Book className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline">חומש</span>
+              </button>
+              {/* divider */}
+              <span className="w-px h-4 opacity-30" style={{ background: GOLD }} />
+              {/* סידור — active */}
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
+                style={{ color: GOLD }}
+              >
+                <BookMarked className="h-3.5 w-3.5" />
+                <span>סידור</span>
+              </div>
+              {/* divider */}
+              <span className="w-px h-4 opacity-30" style={{ background: GOLD }} />
+              {/* ספירת העומר */}
+              <button
+                onClick={() => setOmerOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
+                style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
+                title="ספירת העומר"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline">עומר</span>
+              </button>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Right actions: view mode + T */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {!isSpecial && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="gap-1.5 h-8 text-xs font-medium"
-                      style={{
-                        borderColor: `${GOLD}66`,
-                        color: GOLD,
-                        background: `${GOLD}15`,
-                      }}
+                      className="h-8 gap-1.5 px-2.5 text-xs font-medium rounded-lg"
+                      style={{ color: GOLD, background: `${GOLD}18`, border: `1px solid ${GOLD}44` }}
                     >
                       <Layers className="h-3.5 w-3.5" />
                       <span className="hidden sm:inline">{VIEW_MODES.find(m => m.id === viewMode)?.title ?? "תצוגה"}</span>
@@ -1188,25 +1221,42 @@ export const Siddur = () => {
             </div>
           </div>
 
-          {/* ── Nusach tabs ── */}
+          {/* ── Row 2: Title ── */}
+          <div className="flex items-center justify-center gap-2.5 py-1">
+            <div
+              className="w-5 h-px opacity-40"
+              style={{ background: `linear-gradient(to left, ${GOLD}, transparent)` }}
+            />
+            <h1
+              className="text-lg sm:text-xl font-bold tracking-wide"
+              style={{
+                color: "hsl(var(--sidebar-foreground))",
+                fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                textShadow: `0 0 20px ${GOLD}33`,
+              }}
+            >
+              סידור תפילה
+            </h1>
+            <div
+              className="w-5 h-px opacity-40"
+              style={{ background: `linear-gradient(to right, ${GOLD}, transparent)` }}
+            />
+          </div>
+
+          {/* ── Row 3: Nusach pills ── */}
           <div
-            className="flex gap-1 mt-2 overflow-x-auto pb-1 justify-center flex-wrap [&::-webkit-scrollbar]:hidden"
+            className="flex gap-1.5 pb-2.5 pt-0.5 justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden"
             style={{ scrollbarWidth: "none", opacity: isSpecial ? 0.45 : 1, transition: "opacity 0.2s" }}
           >
             {NUSACHOT.map(n => (
               <button
                 key={n.id}
                 onClick={() => { setNusach(n.id); if (isSpecial) setCatId("shacharit"); }}
-                className={cn(
-                  "px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-all",
-                  nusach === n.id
-                    ? "text-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+                className="px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-all"
                 style={
                   nusach === n.id
-                    ? { background: GOLD, color: "hsl(var(--sidebar-background))" }
-                    : { background: "hsl(var(--sidebar-accent))", color: "hsl(var(--sidebar-foreground)/0.7)" }
+                    ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 2px 8px ${GOLD}55`, fontWeight: 700 }
+                    : { background: "rgba(255,255,255,0.09)", color: "hsl(var(--sidebar-foreground)/0.65)", border: "1px solid rgba(255,255,255,0.12)" }
                 }
               >
                 {n.label}

@@ -73,9 +73,11 @@ export function useSyncedState<T>({
   const syncQueueRef = useRef<T | null>(null);
   const isOnlineRef = useRef(navigator.onLine);
 
-  // Save to localStorage immediately
-  const saveToLocalStorage = useCallback((data: T) => {
+  // Save to localStorage immediately, also update local timestamp metadata
+  const saveToLocalStorage = useCallback((data: T, tsOverride?: number) => {
     localStorage.setItem(localStorageKey, JSON.stringify(data));
+    const ts = tsOverride !== undefined ? tsOverride : Date.now();
+    localStorage.setItem(`${localStorageKey}__meta`, JSON.stringify({ updatedAt: ts }));
   }, [localStorageKey]);
 
   // Re-read from localStorage when key changes (e.g., device type switch)
@@ -105,7 +107,7 @@ export function useSyncedState<T>({
     try {
       setSyncState(prev => ({ ...prev, status: 'syncing' }));
 
-      const updateData = { [column]: data };
+      const updateData = { [column]: data, updated_at: new Date().toISOString() };
       const { error } = await supabase
         .from(tableName as never)
         .update(updateData as never)
@@ -133,25 +135,48 @@ export function useSyncedState<T>({
       try {
         const { data: cloudData, error } = await supabase
           .from(tableName as never)
-          .select(column)
+          .select(`${column},updated_at` as never)
           .eq('user_id', userId)
           .maybeSingle();
 
         if (error) throw error;
 
-        if (cloudData && cloudData[column]) {
-          const cloudValue = cloudData[column] as T;
-          // Merge with defaultValue to ensure all properties exist
-          const merged = typeof cloudValue === 'object' && cloudValue !== null && typeof defaultValue === 'object' && defaultValue !== null
-            ? { ...defaultValue, ...cloudValue }
-            : cloudValue;
-          
-          setSyncState({
-            data: merged,
-            status: 'synced',
-            lastSynced: Date.now(),
-          });
-          saveToLocalStorage(merged);
+        if (cloudData && (cloudData as Record<string, unknown>)[column]) {
+          const cloudValue = (cloudData as Record<string, unknown>)[column] as T;
+          const rawCloudTs = (cloudData as Record<string, unknown>)['updated_at'];
+          const cloudUpdatedAt = rawCloudTs ? new Date(rawCloudTs as string).getTime() : 0;
+
+          // Get local timestamp metadata
+          const localMetaRaw = localStorage.getItem(`${localStorageKey}__meta`);
+          const localUpdatedAt: number = localMetaRaw
+            ? (JSON.parse(localMetaRaw).updatedAt ?? 0)
+            : 0;
+
+          if (localUpdatedAt > cloudUpdatedAt) {
+            // Local is newer (e.g. edited while offline) → push local to cloud, keep local
+            const currentRaw = localStorage.getItem(localStorageKey);
+            if (currentRaw) {
+              try {
+                const currentLocal = JSON.parse(currentRaw) as T;
+                saveToCloud(currentLocal);
+              } catch { /* ignore */ }
+            }
+          } else {
+            // Cloud is newer or equal → use cloud data
+            const merged = typeof cloudValue === 'object' && cloudValue !== null && typeof defaultValue === 'object' && defaultValue !== null
+              ? { ...defaultValue, ...cloudValue }
+              : cloudValue;
+
+            setSyncState({
+              data: merged,
+              status: 'synced',
+              lastSynced: Date.now(),
+            });
+            // Save to localStorage with cloud's timestamp so we don't falsely detect
+            // local as newer on next load
+            localStorage.setItem(localStorageKey, JSON.stringify(merged));
+            localStorage.setItem(`${localStorageKey}__meta`, JSON.stringify({ updatedAt: cloudUpdatedAt }));
+          }
         }
       } catch (error) {
         console.error('Failed to load from cloud:', error);

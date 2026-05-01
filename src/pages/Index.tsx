@@ -33,6 +33,7 @@ import { SidePanelTrigger } from "@/components/SidePanelTrigger";
 import { LayoutOverlay } from "@/components/LayoutOverlay";
 import { logInteraction } from "@/utils/interactionDebug";
 import { OmerBoardDialog } from "@/components/OmerBoardDialog";
+import { useReadingPositionSync } from "@/hooks/useReadingPositionSync";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
@@ -112,6 +113,7 @@ const Index = () => {
   const [singlePasukMode, setSinglePasukMode] = useState(false);
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const { syncDone: readingPosSyncDone, resolvedState: resolvedReadingState, savePosition } = useReadingPositionSync();
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
   const pendingSearchNav = useRef<{ perek: number; pasuk: number } | null>(null); // pending navigation from search
   const seferClickStartedAtRef = useRef<number | null>(null);
@@ -160,6 +162,7 @@ const Index = () => {
   
   // PRIORITY: Load weekly parsha FIRST - before sefer data loads
   useEffect(() => {
+    if (!readingPosSyncDone) return; // wait for cloud sync to resolve before reading state
     if (initialLoadDone) return;
 
     if (corpusMode === "neviim") {
@@ -180,15 +183,16 @@ const Index = () => {
 
     // If auto weekly parsha is disabled, load saved state instead
     if (!autoWeeklyParsha) {
-      const savedState = localStorage.getItem('lastReadingState');
+      const savedState = resolvedReadingState ?? (() => {
+        try { const r = localStorage.getItem('lastReadingState'); return r ? JSON.parse(r) : null; } catch { return null; }
+      })();
       if (savedState) {
         try {
-          const state = JSON.parse(savedState);
-          if (state.selectedSefer) setSelectedSefer(state.selectedSefer);
-          if (state.selectedParsha) setSelectedParsha(state.selectedParsha);
-          if (state.selectedPerek) setSelectedPerek(state.selectedPerek);
-          if (state.selectedPasuk) setSelectedPasuk(state.selectedPasuk);
-          if (state.singlePasukMode !== undefined) setSinglePasukMode(state.singlePasukMode);
+          if (savedState.selectedSefer) setSelectedSefer(savedState.selectedSefer);
+          if (savedState.selectedParsha) setSelectedParsha(savedState.selectedParsha);
+          if (savedState.selectedPerek) setSelectedPerek(savedState.selectedPerek);
+          if (savedState.selectedPasuk) setSelectedPasuk(savedState.selectedPasuk);
+          if (savedState.singlePasukMode !== undefined) setSinglePasukMode(savedState.singlePasukMode);
         } catch { /* ignore */ }
       }
       setInitialLoadDone(true);
@@ -207,25 +211,25 @@ const Index = () => {
       weeklyParshaLoadedRef.current = weeklyParsha.sefer;
       setInitialLoadDone(true);
 
-      // Check if user was reading something different and offer to continue
-      const savedState = localStorage.getItem('lastReadingState');
+      const savedState = resolvedReadingState ?? (() => {
+        try { const r = localStorage.getItem('lastReadingState'); return r ? JSON.parse(r) : null; } catch { return null; }
+      })();
       if (savedState) {
         try {
-          const state = JSON.parse(savedState);
-          if (state.selectedParsha && state.selectedParsha !== weeklyParsha.parshaId && state.selectedPerek) {
+          if (savedState.selectedParsha && savedState.selectedParsha !== weeklyParsha.parshaId && savedState.selectedPerek) {
             const seferNames: Record<number, string> = { 1: "בראשית", 2: "שמות", 3: "ויקרא", 4: "במדבר", 5: "דברים" };
-            const savedSeferName = seferNames[state.selectedSefer] || "";
+            const savedSeferName = seferNames[savedState.selectedSefer] || "";
             setTimeout(() => {
               toast("המשך מהמקום האחרון?", {
-                description: `${savedSeferName} - פרק ${toHebrewNumber(state.selectedPerek)}${state.selectedPasuk ? ` פסוק ${toHebrewNumber(state.selectedPasuk)}` : ""}`,
+                description: `${savedSeferName} - פרק ${toHebrewNumber(savedState.selectedPerek)}${savedState.selectedPasuk ? ` פסוק ${toHebrewNumber(savedState.selectedPasuk)}` : ""}`,
                 action: {
                   label: "המשך",
                   onClick: () => {
-                    if (state.selectedSefer) setSelectedSefer(state.selectedSefer);
-                    if (state.selectedParsha) setSelectedParsha(state.selectedParsha);
-                    if (state.selectedPerek) setSelectedPerek(state.selectedPerek);
-                    if (state.selectedPasuk) setSelectedPasuk(state.selectedPasuk);
-                    if (state.singlePasukMode !== undefined) setSinglePasukMode(state.singlePasukMode);
+                    if (savedState.selectedSefer) setSelectedSefer(savedState.selectedSefer);
+                    if (savedState.selectedParsha) setSelectedParsha(savedState.selectedParsha);
+                    if (savedState.selectedPerek) setSelectedPerek(savedState.selectedPerek);
+                    if (savedState.selectedPasuk) setSelectedPasuk(savedState.selectedPasuk);
+                    if (savedState.singlePasukMode !== undefined) setSinglePasukMode(savedState.singlePasukMode);
                   },
                 },
                 duration: 8000,
@@ -238,23 +242,24 @@ const Index = () => {
     }
 
     // If no weekly parsha (e.g., during certain holidays), try to load saved state
-    const savedState = localStorage.getItem('lastReadingState');
+    const savedState = resolvedReadingState ?? (() => {
+      try { const r = localStorage.getItem('lastReadingState'); return r ? JSON.parse(r) : null; } catch { return null; }
+    })();
     if (savedState) {
       try {
-        const state = JSON.parse(savedState);
-        if (state.selectedSefer) setSelectedSefer(state.selectedSefer);
-        if (state.selectedParsha) setSelectedParsha(state.selectedParsha);
-        if (state.selectedPerek) setSelectedPerek(state.selectedPerek);
-        if (state.selectedPasuk) setSelectedPasuk(state.selectedPasuk);
-        if (state.singlePasukMode !== undefined) setSinglePasukMode(state.singlePasukMode);
+        if (savedState.selectedSefer) setSelectedSefer(savedState.selectedSefer);
+        if (savedState.selectedParsha) setSelectedParsha(savedState.selectedParsha);
+        if (savedState.selectedPerek) setSelectedPerek(savedState.selectedPerek);
+        if (savedState.selectedPasuk) setSelectedPasuk(savedState.selectedPasuk);
+        if (savedState.singlePasukMode !== undefined) setSinglePasukMode(savedState.singlePasukMode);
       } catch (error) {
         console.error('Error loading saved reading state:', error);
       }
     }
     setInitialLoadDone(true);
-  }, [searchParams, initialLoadDone, autoWeeklyParsha, corpusMode]);
+  }, [searchParams, initialLoadDone, autoWeeklyParsha, corpusMode, readingPosSyncDone, resolvedReadingState]);
 
-  // Save reading state to localStorage whenever it changes
+  // Save reading state to localStorage and cloud whenever it changes
   useEffect(() => {
     const stateToSave = {
       corpusMode,
@@ -263,10 +268,9 @@ const Index = () => {
       selectedPerek,
       selectedPasuk,
       singlePasukMode,
-      timestamp: Date.now()
     };
-    localStorage.setItem('lastReadingState', JSON.stringify(stateToSave));
-  }, [corpusMode, selectedSefer, selectedParsha, selectedPerek, selectedPasuk, singlePasukMode]);
+    savePosition(stateToSave);
+  }, [corpusMode, selectedSefer, selectedParsha, selectedPerek, selectedPasuk, singlePasukMode, savePosition]);
   
   // Handle URL parameters for direct navigation
   useEffect(() => {
@@ -868,10 +872,10 @@ const Index = () => {
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
                 {/* Mode switcher: חומש / סידור / עומר */}
-                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center rounded-lg border border-accent/30 bg-accent/10 p-0.5 gap-0.5">
+                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
                   <button
                     onClick={() => {}}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-semibold transition-all bg-accent/25 text-accent"
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-semibold transition-all text-accent"
                     title="חומש"
                   >
                     <Book className="h-3 w-3" />
@@ -879,7 +883,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => navigate('/siddur')}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent/60 hover:text-accent hover:bg-accent/15"
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
                     title="סידור תפילה"
                   >
                     <BookMarked className="h-3 w-3" />
@@ -887,7 +891,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => setOmerDialogOpen(true)}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent/60 hover:text-accent hover:bg-accent/15"
+                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
                     title="ספירת העומר"
                   >
                     <Sparkles className="h-3 w-3" />
@@ -913,10 +917,10 @@ const Index = () => {
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
                 {/* Mode switcher: חומש / סידור / עומר */}
-                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center rounded-xl border border-accent/30 bg-accent/10 p-0.5 gap-0.5">
+                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
                   <button
                     onClick={() => {}}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-all bg-accent/25 text-accent"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-all text-accent"
                     title="חומש"
                   >
                     <Book className="h-4 w-4" />
@@ -924,7 +928,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => navigate('/siddur')}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/60 hover:text-accent hover:bg-accent/15"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
                     title="סידור תפילה"
                   >
                     <BookMarked className="h-4 w-4" />
@@ -932,7 +936,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => setOmerDialogOpen(true)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/60 hover:text-accent hover:bg-accent/15"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
                     title="ספירת העומר"
                   >
                     <Sparkles className="h-4 w-4" />
