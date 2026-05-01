@@ -62,18 +62,18 @@ export const PasukNavigator = ({ pesukim, currentIndex, onNavigate }: PasukNavig
             size="icon"
             onClick={handleLast}
             disabled={currentIndex >= pesukim.length - 1}
-            className="h-7 w-7 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-10 w-10 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <ChevronsLeft className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-200" />
+            <ChevronsLeft className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-200" />
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={handleNext}
             disabled={currentIndex >= pesukim.length - 1}
-            className="h-7 w-7 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-10 w-10 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <ChevronLeft className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-200" />
+            <ChevronLeft className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-200" />
           </Button>
         </div>
 
@@ -102,18 +102,18 @@ export const PasukNavigator = ({ pesukim, currentIndex, onNavigate }: PasukNavig
             size="icon"
             onClick={handlePrevious}
             disabled={currentIndex <= 0}
-            className="h-7 w-7 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-10 w-10 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <ChevronRight className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-200" />
+            <ChevronRight className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-200" />
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={handleFirst}
             disabled={currentIndex <= 0}
-            className="h-7 w-7 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="h-10 w-10 md:h-9 md:w-9 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
           >
-            <ChevronsRight className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-200" />
+            <ChevronsRight className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-200" />
           </Button>
           
           {/* Quick jump input - hidden on mobile for space */}

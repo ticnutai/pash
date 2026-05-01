@@ -1377,7 +1377,7 @@ export const Siddur = () => {
           background: displayStyle === "ornate"
             ? "linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, #1a2f63 100%)"
             : "hsl(var(--sidebar-background))",
-          paddingTop: "max(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)), 24px)",
+          paddingTop: "max(var(--safe-area-inset-top, var(--sai-top, env(safe-area-inset-top, 0px))), 24px)",
           boxShadow: "0 2px 16px rgba(0,0,0,0.18), 0 1px 0 rgba(200,160,77,0.15)",
         }}
       >

@@ -364,7 +364,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
       const cy = "touches" in me ? (me as TouchEvent).touches[0].clientY : (me as MouseEvent).clientY;
       setPos({
         x: Math.max(0, Math.min(window.innerWidth  - 250, px0 + cx - cx0)),
-        y: Math.max(0, Math.min(window.innerHeight - 80,  py0 + cy - cy0)),
+        y: Math.max(56, Math.min(window.innerHeight - 80,  py0 + cy - cy0)),
       });
     };
     const onUp = () => {

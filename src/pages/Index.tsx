@@ -858,7 +858,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleTextLanguage}
-                  className="h-8 w-8 text-accent hover:text-accent hover:bg-accent/10"
+                  className="h-10 w-10 text-accent hover:text-accent hover:bg-accent/10"
                   title={textLanguage === "he" ? "Switch to English" : "החלף לעברית"}
                 >
                   <Languages className="h-4 w-4" />
@@ -869,7 +869,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleAutoWeeklyParsha}
-                  className={cn("h-8 w-8 hover:bg-accent/10", autoWeeklyParsha ? "text-accent" : "text-accent/40")}
+                  className={cn("h-10 w-10 hover:bg-accent/10", autoWeeklyParsha ? "text-accent" : "text-accent/40")}
                   title={autoWeeklyParsha ? "פרשת השבוע אוטומטית: פעיל" : "פרשת השבוע אוטומטית: כבוי"}
                 >
                   {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
@@ -888,7 +888,7 @@ const Index = () => {
                 <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
                   <button
                     onClick={() => {}}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-semibold transition-all text-accent"
+                    className="flex items-center gap-1 px-2 py-2 rounded-md text-xs font-semibold transition-all text-accent min-h-[44px]"
                     title="חומש"
                   >
                     <Book className="h-3 w-3" />
@@ -896,7 +896,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => navigate('/siddur')}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
+                    className="flex items-center gap-1 px-2 py-2 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent min-h-[44px]"
                     title="סידור תפילה"
                   >
                     <BookMarked className="h-3 w-3" />
@@ -904,7 +904,7 @@ const Index = () => {
                   </button>
                   <button
                     onClick={() => setOmerDialogOpen(true)}
-                    className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
+                    className="flex items-center gap-1 px-2 py-2 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent min-h-[44px]"
                     title="ספירת העומר"
                   >
                     <Sparkles className="h-3 w-3" />
@@ -1165,7 +1165,7 @@ const Index = () => {
                   size="icon"
                   onClick={() => navigateToParsha('prev')}
                   disabled={!canNavigatePrev}
-                  className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
+                  className="h-10 w-10 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Button>
@@ -1177,7 +1177,7 @@ const Index = () => {
                   size="icon"
                   onClick={() => navigateToParsha('next')}
                   disabled={!canNavigateNext}
-                  className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
+                  className="h-10 w-10 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </Button>

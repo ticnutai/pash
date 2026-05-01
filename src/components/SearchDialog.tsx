@@ -168,7 +168,7 @@ export function SearchDialog({ open, onOpenChange, onNavigateToPasuk }: SearchDi
 
           <div className="overflow-y-auto max-h-[calc(85vh-8rem)]">
 
-            <Card className="p-6 mt-2">
+            <Card className="p-3 sm:p-6 mt-2">
               <Tabs defaultValue="exact" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="exact">חיפוש מדויק</TabsTrigger>

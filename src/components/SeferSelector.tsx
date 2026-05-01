@@ -157,7 +157,7 @@ export const SeferSelector = ({
             <button
               onClick={() => handleBreadcrumbClick("sefer")}
               className={cn(
-                "hover:text-primary transition-colors",
+                "hover:text-primary transition-colors min-h-[44px] px-1",
                 level === "sefer" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
               )}
             >
@@ -170,7 +170,7 @@ export const SeferSelector = ({
               <button
                 onClick={() => handleBreadcrumbClick("parsha")}
                 className={cn(
-                  "hover:text-primary transition-colors",
+                  "hover:text-primary transition-colors min-h-[44px] px-1",
                   level === "parsha" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
                 )}
               >
@@ -184,7 +184,7 @@ export const SeferSelector = ({
               <button
                 onClick={() => handleBreadcrumbClick("perek")}
                 className={cn(
-                  "hover:text-primary transition-colors",
+                  "hover:text-primary transition-colors min-h-[44px] px-1",
                   level === "perek" ? "text-primary" : "text-muted-foreground hover:underline cursor-pointer"
                 )}
               >
