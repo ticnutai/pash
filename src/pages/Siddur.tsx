@@ -1389,7 +1389,7 @@ export const Siddur = () => {
           boxShadow: "0 2px 16px rgba(0,0,0,0.18), 0 1px 0 rgba(200,160,77,0.15)",
         }}
       >
-        <div className="w-full px-3 sm:px-5 max-w-4xl mx-auto">
+        <div className="w-full px-3 sm:px-5">
 
           {/* ── Row 1: 3-column grid — [back | title-center | actions] ── */}
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-2.5 pb-2">
@@ -1410,7 +1410,7 @@ export const Siddur = () => {
             <div className="flex items-center justify-center gap-2 min-w-0">
               <div className="w-4 h-px opacity-35 flex-shrink-0" style={{ background: `linear-gradient(to left, ${GOLD}, transparent)` }} />
               <h1
-                className="text-base sm:text-lg font-bold tracking-wide truncate"
+                className="text-xl sm:text-2xl font-bold tracking-wide truncate"
                 style={{
                   color: "hsl(var(--sidebar-foreground))",
                   fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
@@ -1524,8 +1524,13 @@ export const Siddur = () => {
 
       {/* ── Category tabs ── */}
       <div
-        className="border-b border-border/40 flex items-stretch"
-        style={{ background: "hsl(var(--card))" }}
+        className="border-b flex items-stretch"
+        style={{
+          background: displayStyle === "ornate"
+            ? "hsl(var(--sidebar-background))"
+            : "hsl(var(--sidebar-background))",
+          borderColor: "rgba(200,160,77,0.18)",
+        }}
       >
         {/* Scrollable tabs */}
         <div
@@ -1549,10 +1554,13 @@ export const Siddur = () => {
               className={cn(
                 "flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all",
                 catId === cat.id
-                  ? "border-[#c8a04d] text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                  ? "border-[#c8a04d]"
+                  : "border-transparent hover:border-white/30"
               )}
-              style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
+              style={{
+                fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                color: catId === cat.id ? GOLD : "hsl(var(--sidebar-foreground) / 0.65)",
+              }}
             >
               <CatIcon id={cat.id} />
               {cat.name}
@@ -1561,7 +1569,7 @@ export const Siddur = () => {
 
           {/* Separator before special tabs */}
           {!catsLoading && categories.length > 0 && (
-            <div className="self-stretch w-px bg-border/40 mx-1 my-2" />
+            <div className="self-stretch w-px bg-white/15 mx-1 my-2" />
           )}
 
           {/* Static tabs — always shown */}
@@ -1572,10 +1580,13 @@ export const Siddur = () => {
               className={cn(
                 "flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all",
                 catId === tab.id
-                  ? "border-[#c8a04d] text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                  ? "border-[#c8a04d]"
+                  : "border-transparent hover:border-white/30"
               )}
-              style={{ fontFamily: "'Noto Serif Hebrew', 'David Libre', serif" }}
+              style={{
+                fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                color: catId === tab.id ? GOLD : "hsl(var(--sidebar-foreground) / 0.65)",
+              }}
             >
               <CatIcon id={tab.id} />
               {tab.name}
@@ -1589,7 +1600,7 @@ export const Siddur = () => {
 
         {/* View mode picker — clickable dropdown in tab bar */}
         {!isSpecial && (
-          <div className="flex-shrink-0 flex items-center px-2 border-l border-border/40" dir="ltr">
+          <div className="flex-shrink-0 flex items-center px-2 border-r border-white/10" dir="ltr">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
