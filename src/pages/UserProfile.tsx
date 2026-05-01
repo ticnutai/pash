@@ -25,10 +25,13 @@ import {
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Shield } from "lucide-react";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 export const UserProfile = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { isAdmin } = useUserRoles();
   const { bookmarks, removeBookmark, updateBookmark } = useBookmarks();
   const { notes, questions, deleteNote, deleteQuestion } = useNotes();
   const { titles, questions: contentQuestions, answers, deleteTitle, deleteQuestion: deleteContentQuestion, deleteAnswer, updateTitleSharing, updateQuestionSharing, updateAnswerSharing } = useContent();
@@ -84,6 +87,16 @@ export const UserProfile = () => {
           </Button>
           <h1 className="text-4xl font-bold mb-2 text-right">המערכת שלי</h1>
           <p className="text-muted-foreground text-right">{user.email}</p>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/permissions")}
+              className="mt-3 gap-2"
+            >
+              <Shield className="h-4 w-4" />
+              <span>ניהול הרשאות משתמשים</span>
+            </Button>
+          )}
         </div>
 
         <Tabs defaultValue="bookmarks" className="w-full">
