@@ -1,4 +1,5 @@
 import { HebrewCalendar, HDate, ParshaEvent, Event } from '@hebcal/core';
+import { getLeyningForParshaHaShavua } from '@hebcal/leyning';
 
 // Mapping between Hebrew parsha names and our internal parsha IDs
 const PARSHA_NAME_TO_ID: Record<string, { sefer: number; parshaId: number }> = {
@@ -216,3 +217,97 @@ export function setCalendarPreference(isIsrael: boolean): void {
     console.error('Error setting calendar preference:', error);
   }
 }
+
+/* ─── Weekday (Mon/Thu) leyning ────────────────────────── */
+
+export interface AliyahRef {
+  /** English book name from hebcal (Genesis, Exodus, …) */
+  book: string;
+  /** Hebrew book name */
+  bookHe: string;
+  /** Start "perek:pasuk" */
+  begin: string;
+  /** End "perek:pasuk" */
+  end: string;
+  /** Number of verses */
+  verses: number;
+}
+
+export interface WeekdayLeyning {
+  /** Hebrew parsha name, e.g. "פרשת אמור" */
+  parshaHe: string;
+  /** English parsha name */
+  parshaEn: string;
+  /** The 3 aliyot read on Mon/Thu */
+  aliyot: AliyahRef[];
+  /** Sefer id (1-5) for navigation */
+  seferId: number;
+  /** Opening perek (for linking into the app) */
+  openPerek: number;
+}
+
+const EN_BOOK_TO_HE: Record<string, string> = {
+  Genesis:      "בראשית",
+  Exodus:       "שמות",
+  Leviticus:    "ויקרא",
+  Numbers:      "במדבר",
+  Deuteronomy:  "דברים",
+};
+
+const EN_BOOK_TO_SEFER: Record<string, number> = {
+  Genesis: 1, Exodus: 2, Leviticus: 3, Numbers: 4, Deuteronomy: 5,
+};
+
+/**
+ * Returns the 3-aliyah Monday/Thursday reading for the current week's parsha.
+ * Returns null if cannot be determined (e.g. Shabbat with no sedra).
+ */
+export function getWeekdayLeyning(il?: boolean): WeekdayLeyning | null {
+  try {
+    const useIl = il ?? getCalendarPreference();
+    const hdate = new HDate(new Date());
+    const dayOfWeek = hdate.getDay();
+    const shabbat = dayOfWeek === 6 ? hdate : hdate.onOrAfter(6);
+
+    const events = HebrewCalendar.calendar({
+      start: shabbat.greg(),
+      end: shabbat.greg(),
+      sedrot: true,
+      il: useIl,
+    });
+
+    const parshaEvent = events.find((ev: Event) => ev instanceof ParshaEvent) as ParshaEvent | undefined;
+    if (!parshaEvent) return null;
+
+    const leyning = getLeyningForParshaHaShavua(parshaEvent, useIl);
+    if (!leyning?.fullkriyah) return null;
+
+    const aliyot: AliyahRef[] = (['1', '2', '3'] as const).map(k => {
+      const a = leyning.fullkriyah[k];
+      if (!a) return null;
+      return {
+        book:   a.k,
+        bookHe: EN_BOOK_TO_HE[a.k] ?? a.k,
+        begin:  a.b,
+        end:    a.e,
+        verses: a.v ?? 0,
+      } as AliyahRef;
+    }).filter(Boolean) as AliyahRef[];
+
+    if (!aliyot.length) return null;
+
+    const firstAliyah = aliyot[0];
+    const perek = Number(firstAliyah.begin.split(':')[0]);
+
+    return {
+      parshaHe: parshaEvent.render('he').replace(/^פָּרָשַׁת\s*/, 'פרשת '),
+      parshaEn: parshaEvent.render('en').replace(/^Parashat\s+/, ''),
+      aliyot,
+      seferId: EN_BOOK_TO_SEFER[firstAliyah.book] ?? 1,
+      openPerek: perek,
+    };
+  } catch {
+    return null;
+  }
+}
+

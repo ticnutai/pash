@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useSiddurCategories, useSiddurSections, useTehillimData } from "@/hooks/useSiddurData";
+import { getWeekdayLeyning, getCalendarPreference, type WeekdayLeyning } from "@/utils/parshaUtils";
 
 /* ─── Types ─────────────────────────────────────────────── */
 type SiddurSection   = { title: string; lines: string[] };
@@ -1114,6 +1115,103 @@ const TehillimPane = () => {
 };
 
 /* ─── KriaPane ───────────────────────────────────────────── */
+const ALIYAH_NUM_HE: Record<number, string> = { 1: 'ראשון', 2: 'שני', 3: 'שלישי' };
+
+function pasukRef(ref: string): string {
+  const [p, v] = ref.split(':').map(Number);
+  return `פרק\u00a0${p} פסוק\u00a0${v}`;
+}
+
+const WeekdayReadingCard = ({ onNavigate }: { onNavigate: (seferId: number, perek: number) => void }) => {
+  const [leyning, setLeyning] = useState<WeekdayLeyning | null>(null);
+  const [loadingL, setLoadingL] = useState(true);
+
+  useEffect(() => {
+    try { setLeyning(getWeekdayLeyning(getCalendarPreference())); }
+    catch { /* ignore */ }
+    setLoadingL(false);
+  }, []);
+
+  if (loadingL)
+    return (
+      <div className="flex justify-center py-6">
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: GOLD }} />
+      </div>
+    );
+
+  if (!leyning)
+    return (
+      <div
+        className="my-4 rounded-xl border px-4 py-3 text-sm text-right text-muted-foreground"
+        dir="rtl"
+        style={{ borderColor: `${GOLD}30`, background: `${GOLD}0a` }}
+      >
+        קריאת שני וחמישי אינה זמינה כעת
+      </div>
+    );
+
+  const todayLabel = (() => {
+    const d = new Date().getDay();
+    return d === 1 ? 'שני' : d === 4 ? 'חמישי' : 'שני / חמישי';
+  })();
+
+  return (
+    <div
+      className="my-4 rounded-xl border overflow-hidden"
+      dir="rtl"
+      style={{ borderColor: `${GOLD}44`, boxShadow: `0 2px 12px ${GOLD}18` }}
+    >
+      {/* Card header */}
+      <div
+        className="px-4 py-3 flex items-center justify-between gap-3"
+        style={{ background: `${GOLD}14`, borderBottom: `1px solid ${GOLD}30` }}
+      >
+        <Button
+          size="sm"
+          onClick={() => onNavigate(leyning.seferId, leyning.openPerek)}
+          className="flex items-center gap-1.5 text-xs font-medium shrink-0"
+          style={{ background: GOLD, color: '#1a1a1a' }}
+        >
+          <ExternalLink className="h-3 w-3" />
+          פתח בסידור
+        </Button>
+        <div className="text-right">
+          <p className="font-bold" style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', serif", fontSize: '1rem' }}>
+            {leyning.parshaHe}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            קריאת {todayLabel} שבוע זה — ג׳ עולים
+          </p>
+        </div>
+      </div>
+
+      {/* Aliyot rows */}
+      <div className="divide-y divide-border/30">
+        {leyning.aliyot.map((a, i) => (
+          <div key={i} className="flex items-center justify-between px-4 py-2.5 gap-3" dir="rtl">
+            <span
+              className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
+              style={{ background: `${GOLD}22`, color: GOLD, fontFamily: "'Noto Serif Hebrew', serif" }}
+            >
+              {ALIYAH_NUM_HE[i + 1] ?? `עלייה ${i + 1}`}
+            </span>
+            <div className="flex-1 text-right">
+              <span className="text-sm font-medium" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
+                {a.bookHe} {pasukRef(a.begin)}
+              </span>
+              <span className="text-xs text-muted-foreground"> עד </span>
+              <span className="text-sm font-medium" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
+                {pasukRef(a.end)}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground shrink-0">{a.verses}&nbsp;פסוקים</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const KRIA_BLESSINGS: SiddurSection[] = [
   {
     title: "ברכה לפני הקריאה",
@@ -1161,35 +1259,13 @@ const KRIA_SCHEDULE = [
   { days: "יום כיפור",   aliyot: "ו׳ שחרית + ג׳ מנחה", note: "" },
 ];
 
-const KriaPane = ({ onNavigate }: { onNavigate: () => void }) => (
+const KriaPane = ({ onNavigate }: { onNavigate: (seferId?: number, perek?: number) => void }) => (
   <div className="pb-8" dir="rtl">
     <OrnamentTitle text="קריאה בתורה" />
     <Divider />
 
-    {/* Quick link to Torah reader */}
-    <div
-      className="my-4 rounded-xl border flex items-center justify-between gap-3 px-4 py-3"
-      style={{ borderColor: `${GOLD}55`, background: `${GOLD}0d` }}
-    >
-      <div>
-        <p
-          className="font-semibold text-foreground text-sm"
-          style={{ fontFamily: "'Noto Serif Hebrew', serif" }}
-        >
-          פרשת השבוע
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5">קרא ישירות מהאפליקציה</p>
-      </div>
-      <Button
-        size="sm"
-        onClick={onNavigate}
-        className="flex items-center gap-1.5 text-sm font-medium shrink-0"
-        style={{ background: GOLD, color: "#1a1a1a" }}
-      >
-        <ExternalLink className="h-3.5 w-3.5" />
-        פתח
-      </Button>
-    </div>
+    {/* Live Mon/Thu reading for this week */}
+    <WeekdayReadingCard onNavigate={(sid, perek) => onNavigate(sid, perek)} />
 
     {/* Reading schedule table */}
     <div
@@ -1555,7 +1631,17 @@ export const Siddur = () => {
 
         {/* Special — nusach-independent panes */}
         {catId === "tehillim" && <TehillimPane />}
-        {catId === "kria"     && <KriaPane onNavigate={() => navigate("/")} />}
+        {catId === "kria"     && (
+          <KriaPane
+            onNavigate={(seferId, perek) => {
+              if (seferId && perek) {
+                navigate(`/?sefer=${seferId}&perek=${perek}`);
+              } else {
+                navigate("/");
+              }
+            }}
+          />
+        )}
 
         {/* Regular siddur prayer content */}
         {!isSpecial && (viewMode === "accordion" || viewMode === "continuous") && (
