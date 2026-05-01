@@ -85,8 +85,8 @@ export const UserProfile = () => {
             <ChevronLeft className="mr-2 h-4 w-4" />
             <span>חזרה לדף הראשי</span>
           </Button>
-          <h1 className="text-4xl font-bold mb-2 text-right">המערכת שלי</h1>
-          <p className="text-muted-foreground text-right">{user.email}</p>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-right">המערכת שלי</h1>
+          <p className="text-muted-foreground text-right truncate overflow-hidden">{user.email}</p>
           {isAdmin && (
             <Button
               variant="outline"
@@ -101,24 +101,24 @@ export const UserProfile = () => {
 
         <Tabs defaultValue="bookmarks" className="w-full">
           <TabsList className="grid w-full grid-cols-5 mb-8">
-            <TabsTrigger value="bookmarks" className="gap-2">
-              <BookmarkCheck className="h-4 w-4" />
+            <TabsTrigger value="bookmarks" className="gap-2 min-h-[44px]">
+              <BookmarkCheck className="h-5 w-5" />
               <span className="hidden sm:inline">סימניות</span>
             </TabsTrigger>
-            <TabsTrigger value="notes" className="gap-2">
-              <StickyNote className="h-4 w-4" />
+            <TabsTrigger value="notes" className="gap-2 min-h-[44px]">
+              <StickyNote className="h-5 w-5" />
               <span className="hidden sm:inline">הערות</span>
             </TabsTrigger>
-            <TabsTrigger value="content" className="gap-2">
-              <FileText className="h-4 w-4" />
+            <TabsTrigger value="content" className="gap-2 min-h-[44px]">
+              <FileText className="h-5 w-5" />
               <span className="hidden sm:inline">תוכן</span>
             </TabsTrigger>
-            <TabsTrigger value="highlights" className="gap-2">
-              <Highlighter className="h-4 w-4" />
+            <TabsTrigger value="highlights" className="gap-2 min-h-[44px]">
+              <Highlighter className="h-5 w-5" />
               <span className="hidden sm:inline">הדגשות</span>
             </TabsTrigger>
-            <TabsTrigger value="account" className="gap-2">
-              <User className="h-4 w-4" />
+            <TabsTrigger value="account" className="gap-2 min-h-[44px]">
+              <User className="h-5 w-5" />
               <span className="hidden sm:inline">חשבון</span>
             </TabsTrigger>
           </TabsList>

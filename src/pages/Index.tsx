@@ -888,27 +888,24 @@ const Index = () => {
                 <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
                   <button
                     onClick={() => {}}
-                    className="flex items-center gap-1 px-2 py-2 rounded-md text-xs font-semibold transition-all text-accent min-h-[44px]"
+                    className="flex items-center justify-center h-10 w-10 rounded-md text-xs font-semibold transition-all text-accent"
                     title="חומש"
                   >
-                    <Book className="h-3 w-3" />
-                    <span>חומש</span>
+                    <Book className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => navigate('/siddur')}
-                    className="flex items-center gap-1 px-2 py-2 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent min-h-[44px]"
+                    className="flex items-center justify-center h-10 w-10 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
                     title="סידור תפילה"
                   >
-                    <BookMarked className="h-3 w-3" />
-                    <span>סידור</span>
+                    <BookMarked className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setOmerDialogOpen(true)}
-                    className="flex items-center gap-1 px-2 py-2 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent min-h-[44px]"
+                    className="flex items-center justify-center h-10 w-10 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
                     title="ספירת העומר"
                   >
-                    <Sparkles className="h-3 w-3" />
-                    <span>עומר</span>
+                    <Sparkles className="h-4 w-4" />
                   </button>
                 </span>
                 <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>

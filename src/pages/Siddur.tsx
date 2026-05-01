@@ -396,7 +396,7 @@ const ThemePicker = () => {
         <>
           <div className="fixed inset-0 z-[998]" onClick={() => setOpen(false)} />
           <div
-            className="absolute left-0 top-10 z-[999] w-80 rounded-xl shadow-2xl overflow-hidden"
+            className="absolute left-0 top-10 z-[999] w-80 max-w-[calc(100vw-1.5rem)] rounded-xl shadow-2xl overflow-hidden"
             style={{ background: theme.headerBg, border: `1px solid ${theme.accentColor}44`, direction: "rtl" }}
             onClick={e => e.stopPropagation()}
           >
@@ -869,10 +869,10 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
   const sec = sections[Math.min(selIdx, sections.length - 1)];
 
   return (
-    <div className="flex gap-0 min-h-[60vh] pb-8" dir="rtl">
+    <div className="flex flex-col sm:flex-row gap-0 pb-8" dir="rtl">
       {/* Section nav panel (right side in RTL) */}
       <div
-        className="w-40 sm:w-52 flex-shrink-0 border-l border-border/50 overflow-y-auto"
+        className="w-full sm:w-52 flex-shrink-0 border-b sm:border-b-0 sm:border-l border-border/50 max-h-36 sm:max-h-none overflow-y-auto"
         style={{ paddingLeft: "0.5rem" }}
       >
         <div
@@ -886,12 +886,12 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
         >
           {catName}
         </div>
-        <div className="space-y-0.5 pb-4">
+        <div className="flex sm:flex-col flex-row gap-1 sm:gap-0 sm:space-y-0.5 pb-2 sm:pb-4 overflow-x-auto sm:overflow-x-hidden">
           {sections.map((item, i) => (
             <button
               key={i}
               onClick={() => setSelIdx(i)}
-              className="w-full text-right text-sm px-2.5 py-2 rounded-lg transition-all leading-snug"
+              className="sm:w-full flex-shrink-0 whitespace-nowrap sm:whitespace-normal text-right text-sm px-2.5 py-2 rounded-lg transition-all leading-snug"
               style={{
                 fontFamily: "'Noto Serif Hebrew', serif",
                 color: i === selIdx ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))",
@@ -907,7 +907,7 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
       </div>
 
       {/* Prayer text (left side in RTL) */}
-      <div className="flex-1 min-w-0 pr-4 sm:pr-6 overflow-y-auto">
+      <div className="flex-1 min-w-0 pt-4 sm:pt-0 pr-0 sm:pr-4 overflow-y-auto">
         <OrnamentTitle text={sec.title} fontSize={s.siddurSize} />
         <Divider />
         <div
@@ -956,6 +956,12 @@ const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) =>
   const { sections, catName, loading } = useSiddurSections(nusach, catId);
   const { settings: s } = useFontAndColorSettings();
   const { theme } = useSiddurTheme();
+  const [isMobileView, setIsMobileView] = useState(typeof window !== "undefined" && window.innerWidth < 640);
+  useEffect(() => {
+    const h = () => setIsMobileView(window.innerWidth < 640);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
   const lineSettings: SiddurLineSettings = {
     ...s,
     textAlignment: s.siddurTextAlignment,
@@ -977,9 +983,9 @@ const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) =>
       <Divider />
       <div
         style={{
-          columnCount: 2,
+          columnCount: isMobileView ? 1 : 2,
           columnGap: "2.5rem",
-          columnRule: `1px solid ${theme.accentColor}44`,
+          columnRule: isMobileView ? undefined : `1px solid ${theme.accentColor}44`,
           direction: "rtl",
         }}
       >
@@ -1051,7 +1057,7 @@ const TextFiltersBar = ({ scope }: { scope: "siddur" | "tehillim" }) => {
   );
 
   return (
-    <div className="flex justify-center gap-2 mb-3">
+    <div className="flex flex-wrap justify-center gap-2 mb-3">
       {pill(showNikud,  () => updateSettings({ showNikud:  !showNikud  }), "ניקוד",  "בָּ")}
       {pill(showTaamim, () => updateSettings({ showTaamim: !showTaamim }), "טעמים", "֑")}
       {pill(true, () => updateSettings(scope === "tehillim" ? { tehillimContentWidth: scopedNextWidth } : { siddurContentWidth: scopedNextWidth }), `שוליים: ${widthLabels[scopedWidth]}`, "↔")}
@@ -1242,7 +1248,7 @@ const TehillimPane = () => {
                 </button>
               </div>
 
-              <div className="grid gap-1 mb-4 justify-items-center grid-cols-10 sm:grid-cols-[repeat(15,minmax(0,1fr))]">
+              <div className="grid gap-1 mb-4 justify-items-center grid-cols-7 sm:grid-cols-10 lg:grid-cols-[repeat(15,minmax(0,1fr))]">
                 {Array.from({ length: 150 }, (_, i) => i + 1).map(ch => (
                   <button
                     key={ch}

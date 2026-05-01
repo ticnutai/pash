@@ -220,7 +220,7 @@ export const Auth = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-amber-400 hover:text-[#1b2a4a] transition-colors"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 p-3 text-amber-400 hover:text-[#1b2a4a] transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (

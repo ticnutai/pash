@@ -46,9 +46,9 @@ export const UserMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="gap-2 text-white hover:text-white hover:bg-white/10 flex-row-reverse">
-          <span>{isAnonymous ? "אורח" : user.email?.split("@")[0]}</span>
-          <CircleUser className="h-4 w-4" />
+        <Button variant="ghost" className="gap-2 text-white hover:text-white hover:bg-white/10 flex-row-reverse max-w-[140px]">
+          <span className="truncate">{isAnonymous ? "אורח" : user.email?.split("@")[0]}</span>
+          <CircleUser className="h-4 w-4 flex-shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
