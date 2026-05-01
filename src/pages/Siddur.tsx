@@ -243,7 +243,7 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
 
   if (type === "instruction") {
     return (
-      <p className="text-foreground/60" style={{
+      <p style={{ color: "hsl(var(--sidebar-foreground)/0.6)",
         ...nikudStyle,
         fontSize: `${Math.round(s.siddurSize * 0.72)}px`,
         fontStyle: "italic",
@@ -257,8 +257,9 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
   }
 
   return (
-    <p className="text-foreground" style={{
+    <p style={{
       ...nikudStyle,
+      color: "hsl(var(--sidebar-foreground))",
       fontSize: `${s.siddurSize}px`,
       fontWeight: s.siddurBold ? 700 : 400,
       textAlign: s.textAlignment as React.CSSProperties["textAlign"],
@@ -284,22 +285,22 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
   };
 
   return (
-    <div className="rounded-lg border border-border/50 overflow-hidden mb-2" style={{
-      background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : "hsl(var(--card))",
-      borderColor: ornate ? `${GOLD}44` : undefined,
-      boxShadow: ornate ? `0 4px 16px ${GOLD}1f, inset 0 1px 0 #ffffff` : "0 1px 4px rgba(0,0,0,0.06)",
+    <div className="rounded-lg border overflow-hidden mb-2" style={{
+      background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : "rgba(255,255,255,0.07)",
+      borderColor: ornate ? `${GOLD}44` : "rgba(255,255,255,0.13)",
+      boxShadow: ornate ? `0 4px 16px ${GOLD}1f, inset 0 1px 0 #ffffff` : "0 1px 6px rgba(0,0,0,0.18)",
     }}>
       {/* Section header / toggle */}
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-right transition-colors hover:bg-accent/10 focus:outline-none"
+        className="w-full flex items-center justify-between px-4 py-3 text-right transition-colors hover:bg-white/10 focus:outline-none"
         style={{ direction: "rtl" }}
       >
         <div className="flex items-center gap-2">
           <span className="inline-block w-1.5 h-4 rounded-full" style={{ background: GOLD, opacity: 0.7 }} />
           <span
-            className="text-foreground"
             style={{
+              color: "hsl(var(--sidebar-foreground))",
               fontFamily: siddurSettings.siddurFont,
               fontSize: `${siddurSettings.siddurSize}px`,
               fontWeight: siddurSettings.siddurBold ? 700 : 600,
@@ -308,7 +309,7 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
             {section.title}
           </span>
         </div>
-        <span className="text-muted-foreground ml-2">
+        <span className="ml-2" style={{ color: "hsl(var(--sidebar-foreground)/0.5)" }}>
           {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </span>
       </button>
@@ -374,8 +375,8 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
           </h3>
           <Divider />
           <div
-            className="space-y-1.5 mt-2 rounded-xl border border-border/40 bg-card/60 py-3"
-            style={{ paddingInline: gutter }}
+            className="space-y-1.5 mt-2 rounded-xl border py-3"
+            style={{ paddingInline: gutter, background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.11)" }}
           >
             {sec.lines.map((line, j) => (
               <SiddurLine key={j} html={line} s={lineSettings} />
@@ -499,8 +500,8 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
               {sec.title}
             </h3>
             <div
-              className="space-y-1.5 mt-2 rounded-xl border border-border/40 bg-card/60 py-3"
-              style={{ paddingInline: gutter }}
+              className="space-y-1.5 mt-2 rounded-xl border py-3"
+              style={{ paddingInline: gutter, background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.11)" }}
             >
               {sec.lines.map((line, j) => (
                 <SiddurLine key={j} html={line} s={lineSettings} />
@@ -598,7 +599,7 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
           style={{
             color: GOLD,
             fontFamily: "'Noto Serif Hebrew', serif",
-            background: ornate ? "#fffdf7" : "hsl(var(--background))",
+            background: ornate ? "#fffdf7" : "hsl(var(--sidebar-background))",
             borderBottom: `1px solid ${GOLD}22`,
           }}
         >
@@ -629,11 +630,11 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
         <OrnamentTitle text={sec.title} fontSize={s.siddurSize} />
         <Divider />
         <div
-          className="space-y-1.5 mt-3 rounded-xl border border-border/40 py-4"
+          className="space-y-1.5 mt-3 rounded-xl border py-4"
           style={{
             paddingInline: gutter,
-            background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : "hsl(var(--card)/0.6)",
-            borderColor: ornate ? `${GOLD}44` : undefined,
+            background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : "rgba(255,255,255,0.06)",
+            borderColor: ornate ? `${GOLD}44` : "rgba(255,255,255,0.11)",
             boxShadow: ornate ? `0 4px 16px ${GOLD}1f` : undefined,
           }}
         >
@@ -1370,8 +1371,8 @@ export const Siddur = () => {
       className="min-h-screen flex flex-col"
       style={{
         background: displayStyle === "ornate"
-          ? "linear-gradient(180deg, #fffefb 0%, #fff7e9 52%, #fffdf7 100%)"
-          : "hsl(var(--background))",
+          ? "linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, #1a2f63 60%, hsl(var(--sidebar-background)) 100%)"
+          : "hsl(var(--sidebar-background))",
         direction: "rtl",
       }}
     >
@@ -1391,26 +1392,13 @@ export const Siddur = () => {
       >
         <div className="w-full px-3 sm:px-5">
 
-          {/* ── Row 1: 3-column grid — [back | title-center | actions] ── */}
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-2.5 pb-2">
+          {/* ── Row 1: Title right, actions left ── */}
+          <div className="flex items-center justify-between gap-2 pt-2.5 pb-2">
 
-            {/* Col 1 (visual right in RTL): Back */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0 whitespace-nowrap"
-              style={{ color: "hsl(var(--sidebar-foreground)/0.75)", background: "rgba(255,255,255,0.07)" }}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>חזרה</span>
-            </Button>
-
-            {/* Col 2 (center): Title */}
-            <div className="flex items-center justify-center gap-2 min-w-0">
-              <div className="w-4 h-px opacity-35 flex-shrink-0" style={{ background: `linear-gradient(to left, ${GOLD}, transparent)` }} />
+            {/* Right side: Title + Back */}
+            <div className="flex items-center gap-2.5 min-w-0">
               <h1
-                className="text-xl sm:text-2xl font-bold tracking-wide truncate"
+                className="text-xl sm:text-2xl font-bold tracking-wide"
                 style={{
                   color: "hsl(var(--sidebar-foreground))",
                   fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
@@ -1419,10 +1407,19 @@ export const Siddur = () => {
               >
                 סידור תפילה
               </h1>
-              <div className="w-4 h-px opacity-35 flex-shrink-0" style={{ background: `linear-gradient(to right, ${GOLD}, transparent)` }} />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0 whitespace-nowrap"
+                style={{ color: "hsl(var(--sidebar-foreground)/0.75)", background: "rgba(255,255,255,0.07)" }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>חזרה</span>
+              </Button>
             </div>
 
-            {/* Col 3 (visual left in RTL): actions — ltr so order is predictable */}
+            {/* Left side: actions — ltr so order is predictable */}
             <div className="flex items-center gap-1.5 flex-shrink-0" dir="ltr">
               {/* T — text settings */}
               <TextDisplaySettings initialTab={settingsTab} />
