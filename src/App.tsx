@@ -58,6 +58,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const LayoutEditor = lazy(() => import("./pages/LayoutEditor").then(m => ({ default: m.LayoutEditor })));
 const Siddur = lazy(() => import("./pages/Siddur").then(m => ({ default: m.Siddur })));
 const Omer = lazy(() => import("./pages/Omer"));
+const AdminPermissions = lazy(() => import("./pages/AdminPermissions"));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -146,6 +147,7 @@ const App = () => {
                               <Route path="/siddur" element={<Siddur />} />
                               <Route path="/omer" element={<Omer />} />
                               <Route path="/layout-editor" element={<LayoutEditor />} />
+                              <Route path="/admin/permissions" element={<AdminPermissions />} />
                               <Route path="*" element={<NotFound />} />
                             </Routes>
                           </Suspense>
