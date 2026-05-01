@@ -23,6 +23,7 @@ import { ReminderPopup } from "@/components/ReminderPopup";
 import { OmerReminderPopup } from "@/components/OmerReminderPopup";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useOmerReminders } from "@/hooks/useOmerReminders";
+import { MetaSyncInitializer } from "@/components/MetaSyncInitializer";
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
@@ -113,6 +114,7 @@ const App = () => {
   return (
     <ErrorBoundary fallbackTitle="שגיאה כללית באפליקציה">
     <AuthProvider>
+      <MetaSyncInitializer />
       <DeviceProvider>
         <ThemeProvider>
           <FontAndColorSettingsProvider>

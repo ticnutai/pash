@@ -155,7 +155,19 @@ const Index = () => {
       setSinglePasukMode(false);
     }
   }, [currentSeferOptions, selectedSefer]);
-  
+
+  // Re-sync omer dialog state after MetaSyncInitializer fetches cloud settings
+  useEffect(() => {
+    const handleOmerSync = () => {
+      try {
+        const v = localStorage.getItem('omer-auto-open');
+        setOmerDialogOpen(v === null ? true : v === 'true');
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('omer-settings:synced', handleOmerSync);
+    return () => window.removeEventListener('omer-settings:synced', handleOmerSync);
+  }, []);
+
   // Enable pinch-to-zoom for dynamic font scaling
   usePinchZoom({ minScale: 0.6, maxScale: 1.8, step: 0.1 });
   
