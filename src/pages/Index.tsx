@@ -918,13 +918,35 @@ const Index = () => {
 
           {/* Desktop/Tablet Layout */}
           <div data-layout="header-actions-desktop" data-layout-label="כפתורי כותרת (דסקטופ)" className="hidden md:flex flex-col gap-1.5">
-            {/* Row 1: Search (left) + Buttons (right) */}
+            {/* Single row: Title (right/RTL-start) + Buttons + Search (left/RTL-end) */}
             <div className="flex items-center justify-between gap-3">
-              {/* Left: Search */}
-              <div className="flex items-center gap-2 flex-1 max-w-sm">
-                <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
+              {/* Right side (RTL start): Title */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Book className="h-6 w-6 flex-shrink-0" style={{ color: 'hsl(var(--accent))' }} />
+                <div className="flex flex-col leading-none">
+                  <h1
+                    className="font-bold text-primary-foreground tracking-wide"
+                    style={{
+                      fontSize: '1.15rem',
+                      fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                      background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--primary-foreground)))',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {appSubtitle}
+                  </h1>
+                  <span
+                    className="text-xs tracking-widest uppercase"
+                    style={{ color: 'hsl(var(--accent) / 0.7)', fontFamily: "'Noto Serif Hebrew', serif", letterSpacing: '0.15em' }}
+                  >
+                    ✦ &nbsp; Torah Study &nbsp; ✦
+                  </span>
+                </div>
               </div>
-              {/* Right: Action buttons */}
+              {/* Left side (RTL end): Action buttons + Search at far left */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
@@ -968,33 +990,9 @@ const Index = () => {
                   </Button>
                 </span>
                 <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
-              </div>
-            </div>
-            {/* Row 2: Luxurious title — left aligned */}
-            <div className="flex items-center gap-3 pl-1">
-              <div className="flex items-center gap-2">
-                <Book className="h-6 w-6 flex-shrink-0" style={{ color: 'hsl(var(--accent))' }} />
-                <div className="flex flex-col leading-none">
-                  <h1
-                    className="font-bold text-primary-foreground tracking-wide"
-                    style={{
-                      fontSize: '1.25rem',
-                      fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                      background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--primary-foreground)))',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    {appSubtitle}
-                  </h1>
-                  <span
-                    className="text-xs tracking-widest uppercase"
-                    style={{ color: 'hsl(var(--accent) / 0.7)', fontFamily: "'Noto Serif Hebrew', serif", letterSpacing: '0.15em' }}
-                  >
-                    ✦ &nbsp; Torah Study &nbsp; ✦
-                  </span>
+                {/* Search — far left */}
+                <div className="flex items-center gap-2 w-56">
+                  <InlineSearch onNavigateToPasuk={handleSearchNavigate} />
                 </div>
               </div>
             </div>
