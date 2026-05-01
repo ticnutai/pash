@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface ReadingState {
   corpusMode?: string;
   selectedSefer?: number | null;
-  selectedParsha?: string | null;
+  selectedParsha?: number | string | null;
   selectedPerek?: number | null;
   selectedPasuk?: number | null;
   singlePasukMode?: boolean;
@@ -65,7 +65,7 @@ export function useReadingPositionSync() {
           if (localState) {
             await supabase
               .from('user_reading_position')
-              .upsert({ user_id: user.id, state: localState, updated_at: new Date().toISOString() });
+              .upsert({ user_id: user.id, state: localState as any, updated_at: new Date().toISOString() } as any);
           }
           setResolvedState(localState);
         } else if (cloudTs > localTs && cloudState) {
