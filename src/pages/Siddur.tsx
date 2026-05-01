@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { OmerBoardDialog } from "@/components/OmerBoardDialog";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Maximize2, type LucideProps } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -338,8 +338,9 @@ const CAT_ICON: Record<string, React.ComponentType<LucideProps>> = {
   kria:              Book,
 };
 const CatIcon = ({ id }: { id: string }) => {
+  const { theme } = useSiddurTheme();
   const Icon = CAT_ICON[id];
-  return Icon ? <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: GOLD }} /> : null;
+  return Icon ? <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: theme.accentColor }} /> : null;
 };
 const Divider = () => {
   const { theme } = useSiddurTheme();
@@ -358,7 +359,7 @@ const OrnamentTitle = ({ text, fontSize }: { text: string; fontSize?: number }) 
       <span className="font-bold tracking-wide" style={{ color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif", fontSize: fontSize ? `${fontSize}px` : "0.9em" }}>
         {text}
       </span>
-    <span style={{ color: GOLD, fontSize: "0.9em", transform: "scaleX(-1)", display: "inline-block" }}>❧</span>
+    <span style={{ color: theme.accentColor, fontSize: "0.9em", transform: "scaleX(-1)", display: "inline-block" }}>❧</span>
   </div>
   );
 };
@@ -662,7 +663,7 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
       ))}
       {visibleCount < sections.length && (
         <div ref={sentinelRef} className="flex justify-center items-center py-4 gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" style={{ color: GOLD }} />
+          <Loader2 className="h-4 w-4 animate-spin" style={{ color: theme.accentColor }} />
           <span className="text-sm" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
             טוען {sections.length - visibleCount} סעיפים נוספים...
           </span>
@@ -684,11 +685,12 @@ const CategoryPane = ({
 }) => {
   const { sections, catName, loading, error } = useSiddurSections(nusach, catId);
   const { settings: siddurSettings } = useFontAndColorSettings();
+  const { theme } = useSiddurTheme();
 
   if (loading)
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.accentColor }} />
         <p className="text-sm text-muted-foreground" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
           טוען סידור...
         </p>
@@ -742,6 +744,7 @@ const SERIF = "'Noto Serif Hebrew', 'David Libre', serif";
 const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: string; name: string } }) => {
   const { sections, loading } = useSiddurSections(nusach, cat.id);
   const { settings: siddurSettings } = useFontAndColorSettings();
+  const { theme } = useSiddurTheme();
   const gutter = readingGutter(siddurSettings.siddurContentWidth);
   const lineSettings: SiddurLineSettings = {
     ...siddurSettings,
@@ -752,7 +755,7 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
   if (loading)
     return (
       <div className="flex justify-center py-6">
-        <Loader2 className="h-5 w-5 animate-spin" style={{ color: GOLD }} />
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: theme.accentColor }} />
       </div>
     );
   if (!sections?.length) return null;
@@ -766,18 +769,18 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
             <h3
               className="mb-1 flex items-center gap-2"
               style={{
-                color: GOLD,
+                color: theme.accentColor,
                 fontFamily: siddurSettings.siddurFont,
                 fontSize: `${siddurSettings.siddurSize}px`,
                 fontWeight: siddurSettings.siddurBold ? 700 : 600,
               }}
             >
-              <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
+              <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: theme.accentColor, opacity: 0.7 }} />
               {sec.title}
             </h3>
             <div
               className="space-y-1.5 mt-2 rounded-xl border py-3"
-              style={{ paddingInline: gutter, background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.11)" }}
+              style={{ paddingInline: gutter, background: theme.cardBg, borderColor: theme.cardBorder }}
             >
               {sec.lines.map((line, j) => (
                 <SiddurLine key={j} html={line} s={lineSettings} />
@@ -794,6 +797,7 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
 // Renders ALL categories in a single infinite scroll, loading one category at a time
 const FullContinuousPane = ({ nusach }: { nusach: string }) => {
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
+  const { theme } = useSiddurTheme();
   const [visibleCount, setVisibleCount] = useState(1);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -814,7 +818,7 @@ const FullContinuousPane = ({ nusach }: { nusach: string }) => {
   if (catsLoading)
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.accentColor }} />
         <p className="text-sm text-muted-foreground" style={{ fontFamily: SERIF }}>טוען סידור...</p>
       </div>
     );
@@ -826,7 +830,7 @@ const FullContinuousPane = ({ nusach }: { nusach: string }) => {
       ))}
       {visibleCount < categories.length && (
         <div ref={sentinelRef} className="flex justify-center items-center py-6 gap-2 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" style={{ color: GOLD }} />
+          <Loader2 className="h-5 w-5 animate-spin" style={{ color: theme.accentColor }} />
           <span className="text-sm" style={{ fontFamily: SERIF }}>
             טוען {categories[visibleCount]?.name}...
           </span>
@@ -842,6 +846,7 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
   const [selIdx, setSelIdx] = useState(0);
   const { settings: s } = useFontAndColorSettings();
   const { displayStyle } = useSiddurDisplayStyle();
+  const { theme } = useSiddurTheme();
   const ornate = displayStyle === "ornate";
   const gutter = readingGutter(s.siddurContentWidth);
   const lineSettings: SiddurLineSettings = {
@@ -856,7 +861,7 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
   if (loading)
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.accentColor }} />
       </div>
     );
   if (!sections?.length) return null;
@@ -873,10 +878,10 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
         <div
           className="text-xs font-bold mb-2 px-2 py-1.5 text-center sticky top-0 z-10"
           style={{
-            color: GOLD,
+            color: theme.accentColor,
             fontFamily: "'Noto Serif Hebrew', serif",
-            background: ornate ? "#fffdf7" : "hsl(var(--sidebar-background))",
-            borderBottom: `1px solid ${GOLD}22`,
+            background: ornate ? "#fffdf7" : theme.headerBg,
+            borderBottom: `1px solid ${theme.accentColor}22`,
           }}
         >
           {catName}
@@ -890,8 +895,8 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
               style={{
                 fontFamily: "'Noto Serif Hebrew', serif",
                 color: i === selIdx ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))",
-                background: i === selIdx ? `${GOLD}18` : "transparent",
-                borderRight: i === selIdx ? `3px solid ${GOLD}` : "3px solid transparent",
+                background: i === selIdx ? `${theme.accentColor}18` : "transparent",
+                borderRight: i === selIdx ? `3px solid ${theme.accentColor}` : "3px solid transparent",
                 fontWeight: i === selIdx ? 600 : 400,
               }}
             >
@@ -909,9 +914,9 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
           className="space-y-1.5 mt-3 rounded-xl border py-4"
           style={{
             paddingInline: gutter,
-            background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : "rgba(255,255,255,0.06)",
-            borderColor: ornate ? `${GOLD}44` : "rgba(255,255,255,0.11)",
-            boxShadow: ornate ? `0 4px 16px ${GOLD}1f` : undefined,
+            background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : theme.cardBg,
+            borderColor: ornate ? `${theme.accentColor}44` : theme.cardBorder,
+            boxShadow: ornate ? `0 4px 16px ${theme.accentColor}1f` : undefined,
           }}
         >
           {sec.lines.map((line, i) => (
@@ -925,7 +930,7 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
             onClick={() => setSelIdx(v => Math.min(v + 1, sections.length - 1))}
             disabled={selIdx >= sections.length - 1}
             className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
-            style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+            style={{ background: `${theme.accentColor}22`, color: theme.accentColor, border: `1px solid ${theme.accentColor}55` }}
           >
             « הבא
           </button>
@@ -936,7 +941,7 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
             onClick={() => setSelIdx(v => Math.max(v - 1, 0))}
             disabled={selIdx <= 0}
             className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
-            style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+            style={{ background: `${theme.accentColor}22`, color: theme.accentColor, border: `1px solid ${theme.accentColor}55` }}
           >
             קודם »
           </button>
@@ -950,6 +955,7 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
 const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
   const { sections, catName, loading } = useSiddurSections(nusach, catId);
   const { settings: s } = useFontAndColorSettings();
+  const { theme } = useSiddurTheme();
   const lineSettings: SiddurLineSettings = {
     ...s,
     textAlignment: s.siddurTextAlignment,
@@ -960,7 +966,7 @@ const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) =>
   if (loading)
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.accentColor }} />
       </div>
     );
   if (!sections?.length) return null;
@@ -973,7 +979,7 @@ const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) =>
         style={{
           columnCount: 2,
           columnGap: "2.5rem",
-          columnRule: `1px solid ${GOLD}44`,
+          columnRule: `1px solid ${theme.accentColor}44`,
           direction: "rtl",
         }}
       >
@@ -985,11 +991,11 @@ const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) =>
             <div className="flex items-center gap-2 mb-1.5" style={{ direction: "rtl" }}>
               <span
                 className="inline-block h-3 w-0.5 rounded-full flex-shrink-0"
-                style={{ background: GOLD, opacity: 0.7 }}
+                style={{ background: theme.accentColor, opacity: 0.7 }}
               />
               <span
                 style={{
-                  color: GOLD,
+                  color: theme.accentColor,
                   fontFamily: "'Noto Serif Hebrew', serif",
                   fontSize: `${Math.round(s.siddurSize * 0.85)}px`,
                   fontWeight: 700,
@@ -1014,6 +1020,7 @@ const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) =>
 const TextFiltersBar = ({ scope }: { scope: "siddur" | "tehillim" }) => {
   const { settings, updateSettings } = useFontAndColorSettings();
   const { displayStyle, setDisplayStyle } = useSiddurDisplayStyle();
+  const { theme } = useSiddurTheme();
   const showNikud  = settings.showNikud  ?? true;
   const showTaamim = settings.showTaamim ?? true;
   const widthOrder: Array<"narrow" | "normal" | "wide" | "full"> = ["narrow", "normal", "wide", "full"];
@@ -1031,9 +1038,9 @@ const TextFiltersBar = ({ scope }: { scope: "siddur" | "tehillim" }) => {
       onClick={onClick}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all select-none"
       style={{
-        background: active ? GOLD : "hsl(var(--muted))",
+        background: active ? theme.accentColor : "hsl(var(--muted))",
         color:      active ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
-        boxShadow:  active ? `0 2px 8px ${GOLD}44` : "none",
+        boxShadow:  active ? `0 2px 8px ${theme.accentColor}44` : "none",
         fontFamily: "'Noto Serif Hebrew', serif",
         opacity:    active ? 1 : 0.6,
       }}
@@ -1060,6 +1067,7 @@ const TEHILLIM_DAY_HEB: Record<number, string> = { 0: "ראשון", 1: "שני",
 const TehillimPane = () => {
   const { tehillim, loading } = useTehillimData();
   const { displayStyle } = useSiddurDisplayStyle();
+  const { theme } = useSiddurTheme();
   const ornate = displayStyle === "ornate";
   const [chapter, setChapter] = useState(1);
   const [pasuk,   setPasuk]   = useState<number | null>(null);  // 1-based
@@ -1111,7 +1119,7 @@ const TehillimPane = () => {
   if (loading)
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: theme.accentColor }} />
         <p className="text-sm text-muted-foreground" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
           טוען תהילים...
         </p>
@@ -1151,7 +1159,7 @@ const TehillimPane = () => {
   );
 
   const verseNumStyle: React.CSSProperties = {
-    color: GOLD, fontSize: "0.7em", opacity: 0.9,
+    color: theme.accentColor, fontSize: "0.7em", opacity: 0.9,
     fontFamily: "'Noto Serif Hebrew', serif",
     minWidth: "1.4em", verticalAlign: "super", lineHeight: 1,
     display: "inline-block", marginLeft: "0.3em",
@@ -1160,8 +1168,8 @@ const TehillimPane = () => {
   const renderVerseCard = (lines: string[], highlightPasuk: number | null, trackRefs = false) => (
     <div className="rounded-xl border border-border/50 py-5 space-y-3" style={{
       background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fff8eb 100%)" : "hsl(var(--card))",
-      borderColor: ornate ? `${GOLD}44` : undefined,
-      boxShadow: ornate ? `0 6px 18px ${GOLD}1f` : undefined,
+      borderColor: ornate ? `${theme.accentColor}44` : undefined,
+      boxShadow: ornate ? `0 6px 18px ${theme.accentColor}1f` : undefined,
       paddingInline: gutter,
     }}>
       {lines.map((line, i) => (
@@ -1172,9 +1180,9 @@ const TehillimPane = () => {
           style={{
             ...textStyle,
             ...nikudTextStyle,
-            background:  highlightPasuk === i + 1 ? `${GOLD}18` : "transparent",
+            background:  highlightPasuk === i + 1 ? `${theme.accentColor}18` : "transparent",
             padding:     highlightPasuk === i + 1 ? "2px 6px" : "0",
-            borderRight: highlightPasuk === i + 1 ? `3px solid ${GOLD}` : "3px solid transparent",
+            borderRight: highlightPasuk === i + 1 ? `3px solid ${theme.accentColor}` : "3px solid transparent",
           }}
         >
           <span style={verseNumStyle}>{heNum(i + 1)}</span>
@@ -1205,9 +1213,9 @@ const TehillimPane = () => {
               onClick={() => setModeWithSave(m.id)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
               style={{
-                background: mode === m.id ? GOLD : "transparent",
+                background: mode === m.id ? theme.accentColor : "transparent",
                 color:      mode === m.id ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
-                boxShadow:  mode === m.id ? `0 2px 8px ${GOLD}55` : "none",
+                boxShadow:  mode === m.id ? `0 2px 8px ${theme.accentColor}55` : "none",
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
               }}
             >
@@ -1228,7 +1236,7 @@ const TehillimPane = () => {
                 <button
                   onClick={() => handleChapterSelect(todayChapter)}
                   className="text-xs font-bold px-2 py-0.5 rounded-full transition-all"
-                  style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+                  style={{ background: `${theme.accentColor}22`, color: theme.accentColor, border: `1px solid ${theme.accentColor}55` }}
                 >
                   פרק {heNum(todayChapter)} ({todayChapter})
                 </button>
@@ -1243,7 +1251,7 @@ const TehillimPane = () => {
                     className="w-full aspect-square flex items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-all leading-none"
                     style={
                       ch === chapter
-                        ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 0 0 2px ${GOLD}` }
+                        ? { background: theme.accentColor, color: "hsl(var(--sidebar-background))", boxShadow: `0 0 0 2px ${theme.accentColor}` }
                         : { background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }
                     }
                   >
@@ -1266,13 +1274,13 @@ const TehillimPane = () => {
                   תהילים
                 </button>
                 <span className="opacity-40 text-foreground">›</span>
-                <span className="font-semibold" style={{ color: GOLD }}>
+                <span className="font-semibold" style={{ color: theme.accentColor }}>
                   {`פרק ${heNum(chapter)} (${chapter})`}
                 </span>
                 {pasuk && (
                   <>
                     <span className="opacity-40 text-foreground">›</span>
-                    <span className="font-semibold" style={{ color: GOLD }}>פסוק {heNum(pasuk)}</span>
+                    <span className="font-semibold" style={{ color: theme.accentColor }}>פסוק {heNum(pasuk)}</span>
                   </>
                 )}
               </div>
@@ -1286,9 +1294,9 @@ const TehillimPane = () => {
                       onClick={() => handlePasukSelect(i)}
                       className="min-w-[30px] h-7 px-1 rounded-md text-[10px] font-bold transition-all"
                       style={{
-                        background: pasuk === i + 1 ? GOLD : "hsl(var(--muted))",
+                        background: pasuk === i + 1 ? theme.accentColor : "hsl(var(--muted))",
                         color:      pasuk === i + 1 ? "hsl(var(--sidebar-background))" : "hsl(var(--muted-foreground))",
-                        boxShadow:  pasuk === i + 1 ? `0 2px 6px ${GOLD}55` : "none",
+                        boxShadow:  pasuk === i + 1 ? `0 2px 6px ${theme.accentColor}55` : "none",
                         fontFamily: "'Noto Serif Hebrew', serif",
                       }}
                     >
@@ -1308,7 +1316,7 @@ const TehillimPane = () => {
                   onClick={() => chapter > 1 && handleChapterSelect(chapter - 1)}
                   disabled={chapter <= 1}
                   className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
-                  style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+                  style={{ background: `${theme.accentColor}22`, color: theme.accentColor, border: `1px solid ${theme.accentColor}55` }}
                 >
                   פרק קודם «
                 </button>
@@ -1323,7 +1331,7 @@ const TehillimPane = () => {
                   onClick={() => chapter < 150 && handleChapterSelect(chapter + 1)}
                   disabled={chapter >= 150}
                   className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
-                  style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+                  style={{ background: `${theme.accentColor}22`, color: theme.accentColor, border: `1px solid ${theme.accentColor}55` }}
                 >
                   » פרק הבא
                 </button>
@@ -1338,12 +1346,12 @@ const TehillimPane = () => {
         <div className="animate-fade-in">
           <div
             className="flex items-center justify-center gap-2 mb-4 py-2.5 rounded-xl"
-            style={{ background: `${GOLD}12`, border: `1px solid ${GOLD}30` }}
+            style={{ background: `${theme.accentColor}12`, border: `1px solid ${theme.accentColor}30` }}
           >
-            <Star className="h-4 w-4 flex-shrink-0" style={{ color: GOLD }} />
+            <Star className="h-4 w-4 flex-shrink-0" style={{ color: theme.accentColor }} />
             <span
               className="text-sm font-semibold"
-              style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', serif" }}
+              style={{ color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', serif" }}
             >
               {`מזמור של יום ${todayDayName} — פרק ${heNum(todayChapter)}`}
             </span>
@@ -1361,13 +1369,13 @@ const TehillimPane = () => {
               <h3
                 className="mb-2 flex items-center gap-2"
                 style={{
-                  color:      GOLD,
+                  color:      theme.accentColor,
                   fontFamily: tehillimSettings.tehillimFont,
                   fontSize:   `${tehillimSettings.tehillimSize}px`,
                   fontWeight: tehillimSettings.tehillimBold ? 700 : 600,
                 }}
               >
-                <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
+                <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: theme.accentColor, opacity: 0.7 }} />
                 {`פרק ${heNum(ch.chapter)}`}
                 {ch.title && ch.title !== "תהילים" && (
                   <span style={{ fontSize: "0.7em", fontWeight: 400, opacity: 0.7 }}>— {ch.title}</span>
@@ -1379,7 +1387,7 @@ const TehillimPane = () => {
           ))}
           {visibleCount < allChapters.length && (
             <div ref={continuousSentinelRef} className="flex justify-center items-center py-6 gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" style={{ color: GOLD }} />
+              <Loader2 className="h-4 w-4 animate-spin" style={{ color: theme.accentColor }} />
               <span className="text-sm" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
                 טוען פרקים נוספים...
               </span>
@@ -1402,6 +1410,7 @@ function pasukRef(ref: string): string {
 const WeekdayReadingCard = ({ onNavigate }: { onNavigate: (seferId: number, perek: number) => void }) => {
   const [leyning, setLeyning] = useState<WeekdayLeyning | null>(null);
   const [loadingL, setLoadingL] = useState(true);
+  const { theme } = useSiddurTheme();
 
   useEffect(() => {
     try { setLeyning(getWeekdayLeyning(getCalendarPreference())); }
@@ -1412,7 +1421,7 @@ const WeekdayReadingCard = ({ onNavigate }: { onNavigate: (seferId: number, pere
   if (loadingL)
     return (
       <div className="flex justify-center py-6">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: GOLD }} />
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: theme.accentColor }} />
       </div>
     );
 
@@ -1421,7 +1430,7 @@ const WeekdayReadingCard = ({ onNavigate }: { onNavigate: (seferId: number, pere
       <div
         className="my-4 rounded-xl border px-4 py-3 text-sm text-right text-muted-foreground"
         dir="rtl"
-        style={{ borderColor: `${GOLD}30`, background: `${GOLD}0a` }}
+        style={{ borderColor: `${theme.accentColor}30`, background: `${theme.accentColor}0a` }}
       >
         קריאת שני וחמישי אינה זמינה כעת
       </div>
@@ -1436,24 +1445,24 @@ const WeekdayReadingCard = ({ onNavigate }: { onNavigate: (seferId: number, pere
     <div
       className="my-4 rounded-xl border overflow-hidden"
       dir="rtl"
-      style={{ borderColor: `${GOLD}44`, boxShadow: `0 2px 12px ${GOLD}18` }}
+      style={{ borderColor: `${theme.accentColor}44`, boxShadow: `0 2px 12px ${theme.accentColor}18` }}
     >
       {/* Card header */}
       <div
         className="px-4 py-3 flex items-center justify-between gap-3"
-        style={{ background: `${GOLD}14`, borderBottom: `1px solid ${GOLD}30` }}
+        style={{ background: `${theme.accentColor}14`, borderBottom: `1px solid ${theme.accentColor}30` }}
       >
         <Button
           size="sm"
           onClick={() => onNavigate(leyning.seferId, leyning.openPerek)}
           className="flex items-center gap-1.5 text-xs font-medium shrink-0"
-          style={{ background: GOLD, color: '#1a1a1a' }}
+          style={{ background: theme.accentColor, color: '#1a1a1a' }}
         >
           <ExternalLink className="h-3 w-3" />
           פתח בסידור
         </Button>
         <div className="text-right">
-          <p className="font-bold" style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', serif", fontSize: '1rem' }}>
+          <p className="font-bold" style={{ color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', serif", fontSize: '1rem' }}>
             {leyning.parshaHe}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -1468,7 +1477,7 @@ const WeekdayReadingCard = ({ onNavigate }: { onNavigate: (seferId: number, pere
           <div key={i} className="flex items-center justify-between px-4 py-2.5 gap-3" dir="rtl">
             <span
               className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
-              style={{ background: `${GOLD}22`, color: GOLD, fontFamily: "'Noto Serif Hebrew', serif" }}
+              style={{ background: `${theme.accentColor}22`, color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', serif" }}
             >
               {ALIYAH_NUM_HE[i + 1] ?? `עלייה ${i + 1}`}
             </span>
@@ -1536,7 +1545,9 @@ const KRIA_SCHEDULE = [
   { days: "יום כיפור",   aliyot: "ו׳ שחרית + ג׳ מנחה", note: "" },
 ];
 
-const KriaPane = ({ onNavigate }: { onNavigate: (seferId?: number, perek?: number) => void }) => (
+const KriaPane = ({ onNavigate }: { onNavigate: (seferId?: number, perek?: number) => void }) => {
+  const { theme } = useSiddurTheme();
+  return (
   <div className="pb-8" dir="rtl">
     <OrnamentTitle text="קריאה בתורה" />
     <Divider />
@@ -1574,7 +1585,7 @@ const KriaPane = ({ onNavigate }: { onNavigate: (seferId?: number, perek?: numbe
           </div>
           <span
             className="text-xs font-medium px-2 py-0.5 rounded-full shrink-0"
-            style={{ background: `${GOLD}22`, color: GOLD }}
+            style={{ background: `${theme.accentColor}22`, color: theme.accentColor }}
           >
             {row.aliyot}
           </span>
@@ -1589,7 +1600,8 @@ const KriaPane = ({ onNavigate }: { onNavigate: (seferId?: number, perek?: numbe
       ))}
     </div>
   </div>
-);
+  );
+};
 
 /* ─── Main Siddur component ──────────────────────────────── */
 export const Siddur = () => {
@@ -1718,7 +1730,7 @@ export const Siddur = () => {
                       variant="ghost"
                       size="sm"
                       className="h-8 gap-1 px-2 text-xs font-medium rounded-lg"
-                      style={{ color: GOLD, background: `${GOLD}18`, border: `1px solid ${GOLD}44` }}
+                      style={{ color: activeTheme.accentColor, background: `${activeTheme.accentColor}18`, border: `1px solid ${activeTheme.accentColor}44` }}
                     >
                       <Layers className="h-3.5 w-3.5 flex-shrink-0" />
                       <span className="hidden md:inline max-w-[80px] truncate">{VIEW_MODES.find(m => m.id === viewMode)?.title ?? "תצוגה"}</span>
@@ -1734,12 +1746,12 @@ export const Siddur = () => {
                         onClick={() => setMode(m.id)}
                         className="flex items-center gap-2 cursor-pointer"
                       >
-                        <span style={{ color: viewMode === m.id ? GOLD : "hsl(var(--muted-foreground))" }}>{m.icon}</span>
+                        <span style={{ color: viewMode === m.id ? activeTheme.accentColor : "hsl(var(--muted-foreground))" }}>{m.icon}</span>
                         <div className="flex-1 min-w-0">
                           <span className={cn("block text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
                           {m.desc && <span className="block text-[10px] text-muted-foreground">{m.desc}</span>}
                         </div>
-                        {viewMode === m.id && <span className="text-xs flex-shrink-0" style={{ color: GOLD }}>✓</span>}
+                        {viewMode === m.id && <span className="text-xs flex-shrink-0" style={{ color: activeTheme.accentColor }}>✓</span>}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -1760,15 +1772,15 @@ export const Siddur = () => {
                   <Book className="h-3.5 w-3.5 flex-shrink-0" />
                   <span className="hidden sm:inline">חומש</span>
                 </button>
-                <span className="w-px h-3.5 opacity-25" style={{ background: GOLD }} />
+                <span className="w-px h-3.5 opacity-25" style={{ background: activeTheme.accentColor }} />
                 <div
                   className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold"
-                  style={{ color: GOLD }}
+                  style={{ color: activeTheme.accentColor }}
                 >
                   <BookMarked className="h-3.5 w-3.5 flex-shrink-0" />
                   <span className="hidden sm:inline">סידור</span>
                 </div>
-                <span className="w-px h-3.5 opacity-25" style={{ background: GOLD }} />
+                <span className="w-px h-3.5 opacity-25" style={{ background: activeTheme.accentColor }} />
                 <button
                   onClick={() => setOmerOpen(true)}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-80"
@@ -1794,8 +1806,8 @@ export const Siddur = () => {
                 className="px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-all"
                 style={
                   nusach === n.id
-                    ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 2px 8px ${GOLD}55`, fontWeight: 700 }
-                    : { background: "transparent", color: "hsl(var(--sidebar-foreground)/0.65)" }
+                    ? { background: activeTheme.accentColor, color: "hsl(var(--sidebar-background))", boxShadow: `0 2px 8px ${activeTheme.accentColor}55`, fontWeight: 700 }
+                    : { background: "transparent", color: `${activeTheme.textColor}a0` }
                 }
               >
                 {n.label}
@@ -1809,10 +1821,8 @@ export const Siddur = () => {
       <div
         className="border-b flex items-stretch"
         style={{
-          background: displayStyle === "ornate"
-            ? "hsl(var(--sidebar-background))"
-            : "hsl(var(--sidebar-background))",
-          borderColor: "rgba(200,160,77,0.18)",
+          background: activeTheme.headerBg,
+          borderColor: `${activeTheme.accentColor}30`,
         }}
       >
         {/* Scrollable tabs */}
@@ -1834,15 +1844,11 @@ export const Siddur = () => {
             <button
               key={cat.id}
               onClick={() => setCatId(cat.id)}
-              className={cn(
-                "flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all",
-                catId === cat.id
-                  ? "border-[#c8a04d]"
-                  : "border-transparent hover:border-white/30"
-              )}
+              className="flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all"
               style={{
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                color: catId === cat.id ? GOLD : "hsl(var(--sidebar-foreground) / 0.65)",
+                color: catId === cat.id ? activeTheme.accentColor : `${activeTheme.textColor}99`,
+                borderBottomColor: catId === cat.id ? activeTheme.accentColor : "transparent",
               }}
             >
               <CatIcon id={cat.id} />
@@ -1860,15 +1866,11 @@ export const Siddur = () => {
             <button
               key={tab.id}
               onClick={() => setCatId(tab.id)}
-              className={cn(
-                "flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all",
-                catId === tab.id
-                  ? "border-[#c8a04d]"
-                  : "border-transparent hover:border-white/30"
-              )}
+              className="flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all"
               style={{
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                color: catId === tab.id ? GOLD : "hsl(var(--sidebar-foreground) / 0.65)",
+                color: catId === tab.id ? activeTheme.accentColor : `${activeTheme.textColor}99`,
+                borderBottomColor: catId === tab.id ? activeTheme.accentColor : "transparent",
               }}
             >
               <CatIcon id={tab.id} />
@@ -1888,7 +1890,7 @@ export const Siddur = () => {
               <DropdownMenuTrigger asChild>
                 <button
                   className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
-                  style={{ background: `${GOLD}18`, color: GOLD }}
+                  style={{ background: `${activeTheme.accentColor}18`, color: activeTheme.accentColor }}
                   title={VIEW_MODES.find(m => m.id === viewMode)?.title}
                 >
                   {VIEW_MODES.find(m => m.id === viewMode)?.icon}
@@ -1903,12 +1905,12 @@ export const Siddur = () => {
                     onClick={() => setMode(m.id)}
                     className="flex items-center gap-2 cursor-pointer"
                   >
-                    <span style={{ color: viewMode === m.id ? GOLD : "hsl(var(--muted-foreground))" }}>{m.icon}</span>
+                    <span style={{ color: viewMode === m.id ? activeTheme.accentColor : "hsl(var(--muted-foreground))" }}>{m.icon}</span>
                     <div className="flex-1 min-w-0">
                       <span className={cn("block text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
                       {m.desc && <span className="block text-[10px] text-muted-foreground">{m.desc}</span>}
                     </div>
-                    {viewMode === m.id && <span className="text-xs flex-shrink-0" style={{ color: GOLD }}>✓</span>}
+                    {viewMode === m.id && <span className="text-xs flex-shrink-0" style={{ color: activeTheme.accentColor }}>✓</span>}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
