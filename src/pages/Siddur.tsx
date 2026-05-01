@@ -492,7 +492,7 @@ const ThemePicker = () => {
 };
 
 /* ─── SiddurLine — renders one siddur line with semantic styling ─── */
-type SiddurLineSettings = { siddurFont: string; siddurSize: number; siddurBold: boolean; textAlignment: string; lineHeight: string; lineHeightCustom: number; showNikud: boolean; showTaamim: boolean };
+type SiddurLineSettings = { siddurFont: string; siddurSize: number; siddurBold: boolean; textAlignment: string; lineHeight: string; lineHeightCustom: number; showNikud: boolean; showTaamim: boolean; letterSpacing: string; letterSpacingCustom: number; wordSpacing: number; };
 
 const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
   html = stripText(html, s.showNikud, s.showTaamim);
@@ -500,6 +500,14 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
   const lh = lineHeightCSS(s.lineHeight, s.lineHeightCustom);
   const nikudStyle = withNikudTypography(s.siddurFont, lh, s.showNikud);
   const { theme } = useSiddurTheme();
+
+  const letterSpacingCSS = s.letterSpacing === "custom"
+    ? `${s.letterSpacingCustom ?? 0}em`
+    : s.letterSpacing === "tight"  ? "-0.02em"
+    : s.letterSpacing === "wide"   ? "0.05em"
+    : s.letterSpacing === "wider"  ? "0.1em"
+    : "0em";
+  const wordSpacingCSS = `${s.wordSpacing ?? 0}em`;
 
   if (type === "heading") {
     return (
@@ -510,7 +518,8 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
           fontSize: `${Math.round(s.siddurSize * 0.82)}px`,
           fontWeight: 700,
           color: theme.accentColor,
-          letterSpacing: "0.04em",
+          letterSpacing: letterSpacingCSS,
+          wordSpacing: wordSpacingCSS,
         }}>
           {renderLineContent(html)}
         </span>
@@ -520,13 +529,16 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
 
   if (type === "instruction") {
     return (
-      <p style={{ color: theme.textColor,
+      <p style={{
+        color: theme.textColor,
         ...nikudStyle,
         fontSize: `${Math.round(s.siddurSize * 0.72)}px`,
         fontStyle: "italic",
         textAlign: s.textAlignment as React.CSSProperties["textAlign"],
         direction: "rtl",
         opacity: 0.6,
+        letterSpacing: letterSpacingCSS,
+        wordSpacing: wordSpacingCSS,
       }}>
         {renderLineContent(html)}
       </p>
@@ -541,6 +553,8 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
       fontWeight: s.siddurBold ? 700 : 400,
       textAlign: s.textAlignment as React.CSSProperties["textAlign"],
       direction: "rtl",
+      letterSpacing: letterSpacingCSS,
+      wordSpacing: wordSpacingCSS,
     }}>
       {renderLineContent(html)}
     </p>
