@@ -26,6 +26,148 @@ type TehillimMap     = Record<string, TehillimChapter>;
 type DisplayStyle    = "classic" | "ornate";
 type ViewMode        = "accordion" | "continuous" | "scroll" | "split" | "book";
 
+/* ─── Theme system ───────────────────────────────────────── */
+export interface SiddurTheme {
+  id: string;
+  name: string;
+  emoji: string;
+  bg: string;           // page background
+  headerBg: string;     // header/tabs background
+  textColor: string;    // prayer text color
+  accentColor: string;  // GOLD replacement
+  cardBg: string;       // section card bg
+  cardBorder: string;   // section card border
+  bgImage?: string;     // optional CSS background-image
+  isCustom?: boolean;
+}
+
+const DEFAULT_ACCENT = "#c8a04d";
+
+export const SIDDUR_PRESET_THEMES: SiddurTheme[] = [
+  {
+    id: "dark_navy",
+    name: "כחול לילה",
+    emoji: "🌙",
+    bg: "hsl(var(--sidebar-background))",
+    headerBg: "hsl(var(--sidebar-background))",
+    textColor: "hsl(var(--sidebar-foreground))",
+    accentColor: DEFAULT_ACCENT,
+    cardBg: "transparent",
+    cardBorder: `${DEFAULT_ACCENT}33`,
+  },
+  {
+    id: "parchment",
+    name: "קלף עתיק",
+    emoji: "📜",
+    bg: "linear-gradient(180deg, #fffefb 0%, #fff7e9 52%, #fffdf7 100%)",
+    headerBg: "linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, #1a2f63 100%)",
+    textColor: "#2d1e0e",
+    accentColor: "#9a6b1a",
+    cardBg: "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)",
+    cardBorder: "#c8a04d44",
+  },
+  {
+    id: "midnight",
+    name: "שחור לילה",
+    emoji: "⬛",
+    bg: "#0a0a0f",
+    headerBg: "#111118",
+    textColor: "#e8e6e0",
+    accentColor: "#c8a04d",
+    cardBg: "rgba(255,255,255,0.04)",
+    cardBorder: "rgba(200,160,77,0.22)",
+  },
+  {
+    id: "deep_blue",
+    name: "כחול עמוק",
+    emoji: "🔷",
+    bg: "#0d1b2e",
+    headerBg: "#0a1520",
+    textColor: "#cfe2f5",
+    accentColor: "#7ab8e8",
+    cardBg: "rgba(100,160,220,0.07)",
+    cardBorder: "rgba(122,184,232,0.22)",
+  },
+  {
+    id: "forest",
+    name: "יער ירוק",
+    emoji: "🌿",
+    bg: "#0d1f0f",
+    headerBg: "#091508",
+    textColor: "#d4edda",
+    accentColor: "#66bb6a",
+    cardBg: "rgba(102,187,106,0.07)",
+    cardBorder: "rgba(102,187,106,0.22)",
+  },
+  {
+    id: "burgundy",
+    name: "בורדו",
+    emoji: "🍷",
+    bg: "#1a0a0e",
+    headerBg: "#120609",
+    textColor: "#f5d5db",
+    accentColor: "#d4728a",
+    cardBg: "rgba(212,114,138,0.07)",
+    cardBorder: "rgba(212,114,138,0.22)",
+  },
+  {
+    id: "sepia",
+    name: "ספיה",
+    emoji: "🟤",
+    bg: "#1c130b",
+    headerBg: "#130d06",
+    textColor: "#e8d5b0",
+    accentColor: "#c49a47",
+    cardBg: "rgba(196,154,71,0.07)",
+    cardBorder: "rgba(196,154,71,0.22)",
+  },
+];
+
+const CUSTOM_THEME_KEY = "siddur-custom-theme";
+const ACTIVE_THEME_KEY = "siddur-active-theme";
+
+function loadCustomTheme(): SiddurTheme {
+  try {
+    const raw = localStorage.getItem(CUSTOM_THEME_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {
+    id: "custom",
+    name: "מותאם אישית",
+    emoji: "🎨",
+    bg: "#0d1b2e",
+    headerBg: "#0a1520",
+    textColor: "#ffffff",
+    accentColor: "#c8a04d",
+    cardBg: "transparent",
+    cardBorder: "rgba(200,160,77,0.25)",
+    isCustom: true,
+  };
+}
+
+function saveCustomTheme(t: SiddurTheme) {
+  localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(t));
+}
+
+/* ─── Theme context ──────────────────────────────────────── */
+interface SiddurThemeCtx {
+  theme: SiddurTheme;
+  setTheme: (t: SiddurTheme) => void;
+  customTheme: SiddurTheme;
+  setCustomTheme: (t: SiddurTheme) => void;
+}
+const SiddurThemeContext = createContext<SiddurThemeCtx | null>(null);
+const useSiddurTheme = (): SiddurThemeCtx => {
+  const ctx = useContext(SiddurThemeContext);
+  if (!ctx) return {
+    theme: SIDDUR_PRESET_THEMES[0],
+    setTheme: () => {},
+    customTheme: loadCustomTheme(),
+    setCustomTheme: () => {},
+  };
+  return ctx;
+};
+
 const SiddurDisplayStyleContext = createContext<{
   displayStyle: DisplayStyle;
   setDisplayStyle: (style: DisplayStyle) => void;
@@ -199,21 +341,154 @@ const CatIcon = ({ id }: { id: string }) => {
   const Icon = CAT_ICON[id];
   return Icon ? <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: GOLD }} /> : null;
 };
-const Divider = () => (
-  <div className="my-1 mx-auto" style={{
-    width: "60%", height: "1px",
-    background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`
-  }} />
-);
-const OrnamentTitle = ({ text, fontSize }: { text: string; fontSize?: number }) => (
-  <div className="flex items-center justify-center gap-2 my-2">
-    <span style={{ color: GOLD, fontSize: "0.9em" }}>❧</span>
-    <span className="font-bold tracking-wide" style={{ color: GOLD, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif", fontSize: fontSize ? `${fontSize}px` : "0.9em" }}>
-      {text}
-    </span>
+const Divider = () => {
+  const { theme } = useSiddurTheme();
+  return (
+    <div className="my-1 mx-auto" style={{
+      width: "60%", height: "1px",
+      background: `linear-gradient(90deg, transparent, ${theme.accentColor}, transparent)`
+    }} />
+  );
+};
+const OrnamentTitle = ({ text, fontSize }: { text: string; fontSize?: number }) => {
+  const { theme } = useSiddurTheme();
+  return (
+    <div className="flex items-center justify-center gap-2 my-2">
+      <span style={{ color: theme.accentColor, fontSize: "0.9em" }}>❧</span>
+      <span className="font-bold tracking-wide" style={{ color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', 'David Libre', serif", fontSize: fontSize ? `${fontSize}px` : "0.9em" }}>
+        {text}
+      </span>
     <span style={{ color: GOLD, fontSize: "0.9em", transform: "scaleX(-1)", display: "inline-block" }}>❧</span>
   </div>
-);
+  );
+};
+
+/* ─── ThemePicker ────────────────────────────────────────── */
+const ThemePicker = () => {
+  const { theme, setTheme, customTheme, setCustomTheme } = useSiddurTheme();
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"presets" | "custom">("presets");
+  const [draft, setDraft] = useState<SiddurTheme>({ ...customTheme });
+
+  const allThemes = [...SIDDUR_PRESET_THEMES, { ...customTheme }];
+
+  const applyCustom = () => {
+    const t = { ...draft, id: "custom", name: "מותאם אישית", emoji: "🎨", isCustom: true };
+    saveCustomTheme(t);
+    setCustomTheme(t);
+    setTheme(t);
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        title="ערכת נושא"
+        className="flex items-center justify-center h-8 w-8 rounded-lg transition-all hover:opacity-80"
+        style={{ background: open ? `${theme.accentColor}22` : "transparent", border: `1px solid ${theme.accentColor}44`, color: theme.accentColor }}
+      >
+        <span style={{ fontSize: "1rem" }}>🎨</span>
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[998]" onClick={() => setOpen(false)} />
+          <div
+            className="absolute left-0 top-10 z-[999] w-80 rounded-xl shadow-2xl overflow-hidden"
+            style={{ background: theme.headerBg, border: `1px solid ${theme.accentColor}44`, direction: "rtl" }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: `${theme.accentColor}22` }}>
+              <span className="text-sm font-bold" style={{ color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', serif" }}>ערכת נושא</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setTab("presets")}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                  style={{ background: tab === "presets" ? theme.accentColor : "transparent", color: tab === "presets" ? "#1a1a1a" : theme.textColor }}
+                >
+                  מובנות
+                </button>
+                <button
+                  onClick={() => setTab("custom")}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                  style={{ background: tab === "custom" ? theme.accentColor : "transparent", color: tab === "custom" ? "#1a1a1a" : theme.textColor }}
+                >
+                  מותאם אישית
+                </button>
+              </div>
+            </div>
+
+            {tab === "presets" && (
+              <div className="p-3 grid grid-cols-4 gap-2">
+                {allThemes.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => { setTheme(t); setOpen(false); }}
+                    className="flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all hover:scale-105"
+                    style={{
+                      background: theme.id === t.id ? `${theme.accentColor}22` : "rgba(255,255,255,0.05)",
+                      border: `1.5px solid ${theme.id === t.id ? theme.accentColor : "transparent"}`,
+                    }}
+                  >
+                    {/* Color preview swatch */}
+                    <div className="h-8 w-8 rounded-full flex items-center justify-center text-base" style={{ background: t.bg.startsWith("linear") ? t.bg : t.bg, border: `1px solid ${t.accentColor}55` }}>
+                      <span style={{ fontSize: "1rem" }}>{t.emoji}</span>
+                    </div>
+                    <span className="text-[10px] text-center leading-tight" style={{ color: theme.textColor }}>{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {tab === "custom" && (
+              <div className="p-4 space-y-3" dir="rtl">
+                {[
+                  { key: "bg",          label: "רקע דף"         },
+                  { key: "headerBg",    label: "רקע כותרת"      },
+                  { key: "textColor",   label: "צבע טקסט"       },
+                  { key: "accentColor", label: "צבע הדגשה"      },
+                  { key: "cardBg",      label: "רקע כרטיס"      },
+                  { key: "cardBorder",  label: "מסגרת כרטיס"    },
+                ].map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between gap-2">
+                    <span className="text-xs" style={{ color: theme.textColor }}>{label}</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={(draft as Record<string,string>)[key]?.startsWith("#") ? (draft as Record<string,string>)[key] : "#1a2f63"}
+                        onChange={e => setDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="h-7 w-10 rounded cursor-pointer border-0 p-0.5"
+                        style={{ background: "transparent" }}
+                      />
+                      <input
+                        type="text"
+                        value={(draft as Record<string,string>)[key] ?? ""}
+                        onChange={e => setDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-28 rounded px-2 py-1 text-xs font-mono"
+                        style={{ background: "rgba(255,255,255,0.08)", border: `1px solid ${theme.accentColor}33`, color: theme.textColor }}
+                        dir="ltr"
+                        placeholder="CSS color or linear-gradient(...)"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={applyCustom}
+                  className="w-full py-2 rounded-lg text-sm font-bold mt-2 transition-all hover:opacity-90"
+                  style={{ background: theme.accentColor, color: "#1a1a1a" }}
+                >
+                  החל ושמור
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 /* ─── SiddurLine — renders one siddur line with semantic styling ─── */
 type SiddurLineSettings = { siddurFont: string; siddurSize: number; siddurBold: boolean; textAlignment: string; lineHeight: string; lineHeightCustom: number; showNikud: boolean; showTaamim: boolean };
@@ -223,16 +498,17 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
   const type = classifyLine(html);
   const lh = lineHeightCSS(s.lineHeight, s.lineHeightCustom);
   const nikudStyle = withNikudTypography(s.siddurFont, lh, s.showNikud);
+  const { theme } = useSiddurTheme();
 
   if (type === "heading") {
     return (
       <div className="flex items-center gap-2 mt-3 mb-0.5" style={{ direction: "rtl" }}>
-        <span className="inline-block h-3 w-0.5 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
+        <span className="inline-block h-3 w-0.5 rounded-full flex-shrink-0" style={{ background: theme.accentColor, opacity: 0.7 }} />
         <span style={{
           ...nikudStyle,
           fontSize: `${Math.round(s.siddurSize * 0.82)}px`,
           fontWeight: 700,
-          color: GOLD,
+          color: theme.accentColor,
           letterSpacing: "0.04em",
         }}>
           {renderLineContent(html)}
@@ -243,13 +519,13 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
 
   if (type === "instruction") {
     return (
-      <p style={{ color: "hsl(var(--sidebar-foreground)/0.6)",
+      <p style={{ color: theme.textColor,
         ...nikudStyle,
         fontSize: `${Math.round(s.siddurSize * 0.72)}px`,
         fontStyle: "italic",
         textAlign: s.textAlignment as React.CSSProperties["textAlign"],
         direction: "rtl",
-        opacity: 0.7,
+        opacity: 0.6,
       }}>
         {renderLineContent(html)}
       </p>
@@ -259,7 +535,7 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
   return (
     <p style={{
       ...nikudStyle,
-      color: "hsl(var(--sidebar-foreground))",
+      color: theme.textColor,
       fontSize: `${s.siddurSize}px`,
       fontWeight: s.siddurBold ? 700 : 400,
       textAlign: s.textAlignment as React.CSSProperties["textAlign"],
@@ -274,8 +550,7 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
 const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection; initialOpen?: boolean }) => {
   const [open, setOpen] = useState(initialOpen);
   const { settings: siddurSettings } = useFontAndColorSettings();
-  const { displayStyle } = useSiddurDisplayStyle();
-  const ornate = displayStyle === "ornate";
+  const { theme } = useSiddurTheme();
   const gutter = readingGutter(siddurSettings.siddurContentWidth);
   const lineSettings: SiddurLineSettings = {
     ...siddurSettings,
@@ -286,8 +561,8 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
 
   return (
     <div className="rounded-lg border overflow-hidden mb-2" style={{
-      background: "transparent",
-      borderColor: `${GOLD}33`,
+      background: theme.cardBg,
+      borderColor: theme.cardBorder,
       boxShadow: "none",
     }}>
       {/* Section header / toggle */}
@@ -297,10 +572,10 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
         style={{ direction: "rtl" }}
       >
         <div className="flex items-center gap-2">
-          <span className="inline-block w-1.5 h-4 rounded-full" style={{ background: GOLD, opacity: 0.7 }} />
+          <span className="inline-block w-1.5 h-4 rounded-full" style={{ background: theme.accentColor, opacity: 0.7 }} />
           <span
             style={{
-              color: "hsl(var(--sidebar-foreground))",
+              color: theme.textColor,
               fontFamily: siddurSettings.siddurFont,
               fontSize: `${siddurSettings.siddurSize}px`,
               fontWeight: siddurSettings.siddurBold ? 700 : 600,
@@ -309,7 +584,7 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
             {section.title}
           </span>
         </div>
-        <span className="ml-2" style={{ color: "hsl(var(--sidebar-foreground)/0.5)" }}>
+        <span className="ml-2" style={{ color: theme.textColor, opacity: 0.5 }}>
           {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </span>
       </button>
@@ -318,7 +593,7 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
       {open && (
         <div
         className="pb-4 pt-2 space-y-1.5 animate-fade-in border-t"
-          style={{ direction: "rtl", paddingInline: gutter, borderColor: `${GOLD}22` }}
+          style={{ direction: "rtl", paddingInline: gutter, borderColor: `${theme.accentColor}22` }}
         >
           {section.lines.map((line, i) => (
             <SiddurLine key={i} html={line} s={lineSettings} />
@@ -334,6 +609,7 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
   const [visibleCount, setVisibleCount] = useState(8);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const { settings: siddurSettings } = useFontAndColorSettings();
+  const { theme } = useSiddurTheme();
   const gutter = readingGutter(siddurSettings.siddurContentWidth);
   const lineSettings: SiddurLineSettings = {
     ...siddurSettings,
@@ -364,19 +640,19 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
           <h3
             className="mb-1 flex items-center gap-2"
             style={{
-              color: GOLD,
+              color: theme.accentColor,
               fontFamily: siddurSettings.siddurFont,
               fontSize: `${siddurSettings.siddurSize}px`,
               fontWeight: siddurSettings.siddurBold ? 700 : 600,
             }}
           >
-            <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: GOLD, opacity: 0.7 }} />
+            <span className="inline-block w-1.5 h-4 rounded-full flex-shrink-0" style={{ background: theme.accentColor, opacity: 0.7 }} />
             {sec.title}
           </h3>
           <Divider />
           <div
             className="space-y-1.5 mt-2 rounded-xl border py-3"
-            style={{ paddingInline: gutter, background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.11)" }}
+            style={{ paddingInline: gutter, background: theme.cardBg, borderColor: theme.cardBorder }}
           >
             {sec.lines.map((line, j) => (
               <SiddurLine key={j} html={line} s={lineSettings} />
@@ -1327,6 +1603,12 @@ export const Siddur = () => {
     (localStorage.getItem("siddur-display-style") as DisplayStyle) ?? "classic"
   );
   const [omerOpen, setOmerOpen] = useState(false);
+  const [activeTheme, setActiveTheme] = useState<SiddurTheme>(() => {
+    const saved = localStorage.getItem(ACTIVE_THEME_KEY);
+    if (saved) { const found = SIDDUR_PRESET_THEMES.find(t => t.id === saved); if (found) return found; }
+    return SIDDUR_PRESET_THEMES[0];
+  });
+  const [customTheme, setCustomTheme] = useState<SiddurTheme>(loadCustomTheme);
 
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
   const { settings: fontSettings } = useFontAndColorSettings();
@@ -1366,13 +1648,17 @@ export const Siddur = () => {
   ];
 
   return (
+    <SiddurThemeContext.Provider value={{
+      theme: activeTheme,
+      setTheme: t => { setActiveTheme(t); localStorage.setItem(ACTIVE_THEME_KEY, t.id); },
+      customTheme,
+      setCustomTheme,
+    }}>
     <SiddurDisplayStyleContext.Provider value={{ displayStyle, setDisplayStyle }}>
     <div
       className="min-h-screen flex flex-col"
       style={{
-        background: displayStyle === "ornate"
-          ? "linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, #1a2f63 60%, hsl(var(--sidebar-background)) 100%)"
-          : "hsl(var(--sidebar-background))",
+        background: activeTheme.bg,
         direction: "rtl",
       }}
     >
@@ -1383,9 +1669,7 @@ export const Siddur = () => {
       <header
         className="sticky top-0 z-40"
         style={{
-          background: displayStyle === "ornate"
-            ? "linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, #1a2f63 100%)"
-            : "hsl(var(--sidebar-background))",
+          background: activeTheme.headerBg,
           paddingTop: "max(var(--safe-area-inset-top, var(--sai-top, env(safe-area-inset-top, 0px))), 24px)",
           boxShadow: "0 2px 16px rgba(0,0,0,0.18), 0 1px 0 rgba(200,160,77,0.15)",
         }}
@@ -1400,9 +1684,9 @@ export const Siddur = () => {
               <h1
                 className="text-xl sm:text-2xl font-bold tracking-wide"
                 style={{
-                  color: "hsl(var(--sidebar-foreground))",
+                  color: activeTheme.textColor,
                   fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                  textShadow: `0 0 20px ${GOLD}33`,
+                  textShadow: `0 0 20px ${activeTheme.accentColor}33`,
                 }}
               >
                 סידור תפילה
@@ -1412,7 +1696,7 @@ export const Siddur = () => {
                 size="sm"
                 onClick={() => navigate(-1)}
                 className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0 whitespace-nowrap"
-                style={{ color: "hsl(var(--sidebar-foreground)/0.75)", background: "transparent" }}
+                style={{ color: `${activeTheme.textColor}bf`, background: "transparent" }}
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>חזרה</span>
@@ -1421,6 +1705,8 @@ export const Siddur = () => {
 
             {/* Left side: actions — ltr so order is predictable */}
             <div className="flex items-center gap-1.5 flex-shrink-0" dir="ltr">
+              {/* Theme picker */}
+              <ThemePicker />
               {/* T — text settings */}
               <TextDisplaySettings initialTab={settingsTab} />
 
@@ -1676,6 +1962,7 @@ export const Siddur = () => {
       </main>
     </div>
     </SiddurDisplayStyleContext.Provider>
+    </SiddurThemeContext.Provider>
   );
 };
 
