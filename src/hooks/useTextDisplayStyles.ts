@@ -72,6 +72,7 @@ export const useTextDisplayStyles = () => {
       gap,
       lineHeight,
       letterSpacing,
+      wordSpacing: `${settings.wordSpacing ?? 0}em`,
       maxWidth: getMaxWidth(),
       margin: settings.textAlignment === "center" ? "0 auto" : "0",
       padding,
@@ -80,5 +81,5 @@ export const useTextDisplayStyles = () => {
     };
   }, [settings.fontScale, settings.textAlignment, settings.contentSpacing, settings.contentSpacingCustom,
       settings.lineHeight, settings.lineHeightCustom, settings.letterSpacing, settings.letterSpacingCustom,
-      settings.contentWidth, isMobile]);
+      settings.wordSpacing, settings.contentWidth, isMobile]);
 };

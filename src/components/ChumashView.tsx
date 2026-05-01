@@ -70,6 +70,7 @@ const ChumashViewComponent = ({
                 style={{
                   lineHeight: displayStyles.lineHeight || '2.2',
                   letterSpacing: displayStyles.letterSpacing || '0.01em',
+                  wordSpacing: displayStyles.wordSpacing || '0em',
                   fontSize: settings?.pasukSize ? `${settings.pasukSize}px` : '1.25rem',
                   fontWeight: settings?.pasukBold ? 'bold' : 500,
                   color: settings?.pasukColor || 'hsl(var(--foreground))',

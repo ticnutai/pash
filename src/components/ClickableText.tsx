@@ -124,6 +124,7 @@ export const ClickableText = ({
           fontWeight,
           lineHeight: displayStyles.lineHeight,
           letterSpacing: displayStyles.letterSpacing,
+          wordSpacing: displayStyles.wordSpacing,
           wordWrap: "break-word",
           overflowWrap: "break-word",
           whiteSpace: "normal",

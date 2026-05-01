@@ -109,9 +109,20 @@ const SettingsControls = ({
   boldValue, onBoldChange,
   settings, updateSettings,
 }: SettingsControlsProps) => {
-  const currentSpacingIdx    = spacingValues.indexOf(settings.contentSpacing as typeof spacingValues[number]);
-  const currentLineHeightIdx = lineHeightValues.indexOf(settings.lineHeight as typeof lineHeightValues[number]);
   const currentWidthIdx      = widthValues.indexOf(settings.contentWidth);
+
+  // Convert presets to numeric for continuous sliders
+  const lhNum = settings.lineHeight === "custom"
+    ? (settings.lineHeightCustom ?? 1.5)
+    : settings.lineHeight === "tight" ? 1.3 : settings.lineHeight === "relaxed" ? 1.7 : settings.lineHeight === "loose" ? 2.0 : 1.5;
+
+  const spacingNum = settings.contentSpacing === "custom"
+    ? (settings.contentSpacingCustom ?? 1)
+    : settings.contentSpacing === "compact" ? 0.5 : settings.contentSpacing === "comfortable" ? 1.5 : settings.contentSpacing === "spacious" ? 2.0 : 1.0;
+
+  const lsNum = settings.letterSpacing === "custom"
+    ? (settings.letterSpacingCustom ?? 0)
+    : settings.letterSpacing === "tight" ? -0.02 : settings.letterSpacing === "wide" ? 0.05 : settings.letterSpacing === "wider" ? 0.1 : 0;
 
   return (
     <div className="space-y-4 py-1" dir="rtl">
@@ -165,26 +176,22 @@ const SettingsControls = ({
 
       <SliderSection
         label="גובה שורה"
-        valueBadge={settings.lineHeight === "custom"
-          ? String(settings.lineHeightCustom?.toFixed(1))
-          : lineHeightLabels[settings.lineHeight]}
-        value={currentLineHeightIdx >= 0 ? currentLineHeightIdx : 1}
-        onChange={(v) => updateSettings({ lineHeight: lineHeightValues[v] })}
-        min={0} max={3} step={1}
-        marks={["רפוי", "רגוע", "רגיל", "צמוד"]}
+        valueBadge={lhNum.toFixed(2)}
+        value={lhNum}
+        onChange={(v) => updateSettings({ lineHeight: "custom", lineHeightCustom: parseFloat(v.toFixed(2)) })}
+        min={1.0} max={2.5} step={0.05}
+        marks={["1.0", "1.5", "2.0", "2.5"]}
       />
 
       <Separator className="bg-accent/20" />
 
       <SliderSection
         label="מרווח תוכן"
-        valueBadge={settings.contentSpacing === "custom"
-          ? `${settings.contentSpacingCustom?.toFixed(1)}rem`
-          : spacingLabels[settings.contentSpacing]}
-        value={currentSpacingIdx >= 0 ? currentSpacingIdx : 1}
-        onChange={(v) => updateSettings({ contentSpacing: spacingValues[v] })}
-        min={0} max={3} step={1}
-        marks={["מרווח", "נוח", "רגיל", "צפוף"]}
+        valueBadge={`${spacingNum.toFixed(1)}rem`}
+        value={spacingNum}
+        onChange={(v) => updateSettings({ contentSpacing: "custom", contentSpacingCustom: parseFloat(v.toFixed(1)) })}
+        min={0} max={3} step={0.1}
+        marks={["0", "1", "2", "3"]}
       />
 
       <Separator className="bg-accent/20" />
@@ -196,6 +203,28 @@ const SettingsControls = ({
         onChange={(v) => updateSettings({ contentWidth: widthValues[v] })}
         min={0} max={3} step={1}
         marks={["מלא", "רחב", "רגיל", "צר"]}
+      />
+
+      <Separator className="bg-accent/20" />
+
+      <SliderSection
+        label="מרווח בין אותיות"
+        valueBadge={`${lsNum.toFixed(2)}em`}
+        value={lsNum}
+        onChange={(v) => updateSettings({ letterSpacing: "custom", letterSpacingCustom: parseFloat(v.toFixed(2)) })}
+        min={-0.05} max={0.2} step={0.01}
+        marks={["-0.05", "0", "0.1", "0.2"]}
+      />
+
+      <Separator className="bg-accent/20" />
+
+      <SliderSection
+        label="מרווח בין מילים"
+        valueBadge={`${(settings.wordSpacing ?? 0).toFixed(2)}em`}
+        value={settings.wordSpacing ?? 0}
+        onChange={(v) => updateSettings({ wordSpacing: parseFloat(v.toFixed(2)) })}
+        min={0} max={0.5} step={0.01}
+        marks={["0", "0.25", "0.5"]}
       />
     </div>
   );

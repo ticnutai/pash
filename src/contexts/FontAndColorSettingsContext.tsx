@@ -68,6 +68,7 @@ export interface FontAndColorSettings {
   contentWidth: "narrow" | "normal" | "wide" | "full";
   letterSpacing: "tight" | "normal" | "wide" | "wider" | "custom";
   letterSpacingCustom: number;
+  wordSpacing: number;
   
   // Dynamic Zoom
   fontScale: number;
@@ -126,6 +127,7 @@ const defaultSettings: FontAndColorSettings = {
   contentWidth: "normal",
   letterSpacing: "normal",
   letterSpacingCustom: 0,
+  wordSpacing: 0,
   fontScale: 1,
 };
 
@@ -143,6 +145,7 @@ const normalizeSettings = (settings: FontAndColorSettings): FontAndColorSettings
   siddurLineHeightCustom: clamp(Number(settings.siddurLineHeightCustom || defaultSettings.siddurLineHeightCustom), 1, 3),
   tehillimLineHeightCustom: clamp(Number(settings.tehillimLineHeightCustom || defaultSettings.tehillimLineHeightCustom), 1, 3),
   fontScale: clamp(Number(settings.fontScale || defaultSettings.fontScale), 0.6, 1.8),
+  wordSpacing: clamp(Number(settings.wordSpacing ?? 0), 0, 0.5),
 });
 
 const FontAndColorSettingsContext = createContext<FontAndColorSettingsContextType | undefined>(undefined);

@@ -61,6 +61,7 @@ export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
           fontWeight: settings.pasukBold ? "bold" : "normal",
           lineHeight: displayStyles.lineHeight,
           letterSpacing: displayStyles.letterSpacing,
+          wordSpacing: displayStyles.wordSpacing,
           textAlign: "justify",
         }}
       >
