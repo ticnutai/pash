@@ -40,8 +40,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "v1.6.0 - מערכת תזכורות משופרת: תזכורות מרובות עם תזמון, פופ-אפ באפליקציה, בחירת ימים, הפעלה אוטומטית בהתקנה. התראות נייטיב לאנדרואיד."},
-                {"language": "en-US", "text": "v1.6.0 - Enhanced reminder system: multiple reminders with scheduling, in-app popup, day picker, auto-enable on install. Native Android notifications."},
+                {"language": "he-IL", "text": "v1.8.0 - עיצוב"},
+                {"language": "en-US", "text": "v1.8.0 - sidur"},
             ]
         }]
     }
