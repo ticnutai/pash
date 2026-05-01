@@ -79,7 +79,7 @@ const FontSelector = ({ label, value, onChange }: { label: string; value: string
           </span>
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="max-h-[260px]">
+      <SelectContent className="max-h-[260px] z-[10001]">
         {hebrewFonts.map((font) => (
           <SelectItem key={font.value} value={font.value} className="py-2">
             <div className="flex items-center gap-3 w-full">
