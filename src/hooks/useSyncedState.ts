@@ -107,11 +107,10 @@ export function useSyncedState<T>({
     try {
       setSyncState(prev => ({ ...prev, status: 'syncing' }));
 
-      const updateData = { [column]: data, updated_at: new Date().toISOString() };
+      const upsertData = { user_id: userId, [column]: data, updated_at: new Date().toISOString() };
       const { error } = await supabase
         .from(tableName as never)
-        .update(updateData as never)
-        .eq('user_id', userId);
+        .upsert(upsertData as never, { onConflict: 'user_id' });
 
       if (error) throw error;
 
@@ -141,7 +140,7 @@ export function useSyncedState<T>({
 
         if (error) throw error;
 
-        if (cloudData && (cloudData as Record<string, unknown>)[column]) {
+        if (cloudData && (cloudData as Record<string, unknown>)[column] != null) {
           const cloudValue = (cloudData as Record<string, unknown>)[column] as T;
           const rawCloudTs = (cloudData as Record<string, unknown>)['updated_at'];
           const cloudUpdatedAt = rawCloudTs ? new Date(rawCloudTs as string).getTime() : 0;
