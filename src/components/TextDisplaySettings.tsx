@@ -238,8 +238,10 @@ interface PreviewStripProps {
   bold: boolean;
   alignment: string;
   lineHeight: string;
+  letterSpacing?: string;
+  wordSpacing?: string;
 }
-const PreviewStrip = ({ text, font, size, bold, alignment, lineHeight }: PreviewStripProps) => (
+const PreviewStrip = ({ text, font, size, bold, alignment, lineHeight, letterSpacing, wordSpacing }: PreviewStripProps) => (
   <div className="mx-3 mb-2 rounded-xl border-2 border-accent/30 bg-gradient-to-b from-muted/30 to-muted/10 flex-shrink-0 overflow-hidden">
     <div className="flex items-center justify-between px-3 pt-2 pb-1.5 border-b border-accent/15">
       <span className="text-[10px] text-muted-foreground font-medium">תצוגה מקדימה</span>
@@ -256,6 +258,8 @@ const PreviewStrip = ({ text, font, size, bold, alignment, lineHeight }: Preview
           fontWeight: bold ? "bold" : "normal",
           textAlign: alignment as React.CSSProperties["textAlign"],
           lineHeight: lhToNum(lineHeight),
+          letterSpacing: letterSpacing || "0em",
+          wordSpacing: wordSpacing || "0em",
           direction: "rtl",
           width: "100%",
           overflow: "hidden",
@@ -321,16 +325,26 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
     updateSettings(out);
   };
 
+  // Compute preview letter/word spacing
+  const previewLetterSpacing = settings.letterSpacing === "custom"
+    ? `${settings.letterSpacingCustom ?? 0}em`
+    : settings.letterSpacing === "tight" ? "-0.02em"
+    : settings.letterSpacing === "wide" ? "0.05em"
+    : settings.letterSpacing === "wider" ? "0.1em"
+    : "0em";
+  const previewWordSpacing = `${settings.wordSpacing ?? 0}em`;
+
   // Derive preview props for the current active tab
   const getPreviewProps = (): PreviewStripProps => {
     const text = TAB_PREVIEW_TEXT[activeTab];
+    const spacing = { letterSpacing: previewLetterSpacing, wordSpacing: previewWordSpacing };
     switch (activeTab) {
-      case "pasuk":      return { text, font: settings.pasukFont,       size: settings.pasukSize,       bold: settings.pasukBold,       alignment: settings.textAlignment,       lineHeight: settings.lineHeight };
-      case "titles":     return { text, font: settings.titleFont,       size: settings.titleSize,       bold: settings.titleBold,       alignment: settings.textAlignment,       lineHeight: settings.lineHeight };
-      case "questions":  return { text, font: settings.questionFont,    size: settings.questionSize,    bold: settings.questionBold,    alignment: settings.textAlignment,       lineHeight: settings.lineHeight };
-      case "commentary": return { text, font: settings.commentaryFont,  size: settings.commentarySize,  bold: settings.commentaryBold,  alignment: settings.textAlignment,       lineHeight: settings.lineHeight };
-      case "siddur":     return { text, font: settings.siddurFont,      size: settings.siddurSize,      bold: settings.siddurBold,      alignment: settings.siddurTextAlignment, lineHeight: settings.siddurLineHeight };
-      case "tehillim":   return { text, font: settings.tehillimFont,    size: settings.tehillimSize,    bold: settings.tehillimBold,    alignment: settings.tehillimTextAlignment, lineHeight: settings.tehillimLineHeight };
+      case "pasuk":      return { text, font: settings.pasukFont,       size: settings.pasukSize,       bold: settings.pasukBold,       alignment: settings.textAlignment,         lineHeight: settings.lineHeight,          ...spacing };
+      case "titles":     return { text, font: settings.titleFont,       size: settings.titleSize,       bold: settings.titleBold,       alignment: settings.textAlignment,         lineHeight: settings.lineHeight,          ...spacing };
+      case "questions":  return { text, font: settings.questionFont,    size: settings.questionSize,    bold: settings.questionBold,    alignment: settings.textAlignment,         lineHeight: settings.lineHeight,          ...spacing };
+      case "commentary": return { text, font: settings.commentaryFont,  size: settings.commentarySize,  bold: settings.commentaryBold,  alignment: settings.textAlignment,         lineHeight: settings.lineHeight,          ...spacing };
+      case "siddur":     return { text, font: settings.siddurFont,      size: settings.siddurSize,      bold: settings.siddurBold,      alignment: settings.siddurTextAlignment,   lineHeight: settings.siddurLineHeight,    ...spacing };
+      case "tehillim":   return { text, font: settings.tehillimFont,    size: settings.tehillimSize,    bold: settings.tehillimBold,    alignment: settings.tehillimTextAlignment, lineHeight: settings.tehillimLineHeight,  ...spacing };
     }
   };
 
