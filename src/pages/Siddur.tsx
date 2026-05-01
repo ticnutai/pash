@@ -1412,7 +1412,7 @@ export const Siddur = () => {
                 size="sm"
                 onClick={() => navigate(-1)}
                 className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0 whitespace-nowrap"
-                style={{ color: "hsl(var(--sidebar-foreground)/0.75)", background: "rgba(255,255,255,0.07)" }}
+                style={{ color: "hsl(var(--sidebar-foreground)/0.75)", background: "transparent" }}
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>חזרה</span>
@@ -1462,8 +1462,8 @@ export const Siddur = () => {
 
               {/* Mode switcher: חומש | סידור | עומר */}
               <div
-                className="flex items-center rounded-full overflow-hidden flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.10)", border: `1px solid rgba(200,160,77,0.25)` }}
+                className="flex items-center rounded-full flex-shrink-0"
+                style={{ }}
               >
                 <button
                   onClick={() => navigate("/")}
@@ -1509,7 +1509,7 @@ export const Siddur = () => {
                 style={
                   nusach === n.id
                     ? { background: GOLD, color: "hsl(var(--sidebar-background))", boxShadow: `0 2px 8px ${GOLD}55`, fontWeight: 700 }
-                    : { background: "rgba(255,255,255,0.09)", color: "hsl(var(--sidebar-foreground)/0.65)", border: "1px solid rgba(255,255,255,0.12)" }
+                    : { background: "transparent", color: "hsl(var(--sidebar-foreground)/0.65)" }
                 }
               >
                 {n.label}
