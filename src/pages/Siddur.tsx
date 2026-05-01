@@ -286,9 +286,9 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
 
   return (
     <div className="rounded-lg border overflow-hidden mb-2" style={{
-      background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : "rgba(255,255,255,0.07)",
-      borderColor: ornate ? `${GOLD}44` : "rgba(255,255,255,0.13)",
-      boxShadow: ornate ? `0 4px 16px ${GOLD}1f, inset 0 1px 0 #ffffff` : "0 1px 6px rgba(0,0,0,0.18)",
+      background: "transparent",
+      borderColor: `${GOLD}33`,
+      boxShadow: "none",
     }}>
       {/* Section header / toggle */}
       <button
@@ -317,8 +317,8 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
       {/* Prayer lines */}
       {open && (
         <div
-          className="pb-4 pt-2 space-y-1.5 animate-fade-in border-t border-border/40"
-          style={{ direction: "rtl", paddingInline: gutter }}
+        className="pb-4 pt-2 space-y-1.5 animate-fade-in border-t"
+          style={{ direction: "rtl", paddingInline: gutter, borderColor: `${GOLD}22` }}
         >
           {section.lines.map((line, i) => (
             <SiddurLine key={i} html={line} s={lineSettings} />
