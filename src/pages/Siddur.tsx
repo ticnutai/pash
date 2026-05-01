@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { OmerBoardDialog } from "@/components/OmerBoardDialog";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, type LucideProps } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Maximize2, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +23,7 @@ type SiddurData      = Record<string, SiddurCategory>;
 type TehillimChapter = { chapter: number; title: string; lines: string[] };
 type TehillimMap     = Record<string, TehillimChapter>;
 type DisplayStyle    = "classic" | "ornate";
+type ViewMode        = "accordion" | "continuous" | "scroll" | "split" | "book";
 
 const SiddurDisplayStyleContext = createContext<{
   displayStyle: DisplayStyle;
@@ -557,6 +558,180 @@ const FullContinuousPane = ({ nusach }: { nusach: string }) => {
   );
 };
 
+/* ─── SplitPane — master/detail: section list | prayer text ─ */
+const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
+  const { sections, catName, loading } = useSiddurSections(nusach, catId);
+  const [selIdx, setSelIdx] = useState(0);
+  const { settings: s } = useFontAndColorSettings();
+  const { displayStyle } = useSiddurDisplayStyle();
+  const ornate = displayStyle === "ornate";
+  const gutter = readingGutter(s.siddurContentWidth);
+  const lineSettings: SiddurLineSettings = {
+    ...s,
+    textAlignment: s.siddurTextAlignment,
+    lineHeight: s.siddurLineHeight,
+    lineHeightCustom: s.siddurLineHeightCustom,
+  };
+
+  useEffect(() => { setSelIdx(0); }, [catId, nusach]);
+
+  if (loading)
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+      </div>
+    );
+  if (!sections?.length) return null;
+
+  const sec = sections[Math.min(selIdx, sections.length - 1)];
+
+  return (
+    <div className="flex gap-0 min-h-[60vh] pb-8" dir="rtl">
+      {/* Section nav panel (right side in RTL) */}
+      <div
+        className="w-40 sm:w-52 flex-shrink-0 border-l border-border/50 overflow-y-auto"
+        style={{ paddingLeft: "0.5rem" }}
+      >
+        <div
+          className="text-xs font-bold mb-2 px-2 py-1.5 text-center sticky top-0 z-10"
+          style={{
+            color: GOLD,
+            fontFamily: "'Noto Serif Hebrew', serif",
+            background: ornate ? "#fffdf7" : "hsl(var(--background))",
+            borderBottom: `1px solid ${GOLD}22`,
+          }}
+        >
+          {catName}
+        </div>
+        <div className="space-y-0.5 pb-4">
+          {sections.map((item, i) => (
+            <button
+              key={i}
+              onClick={() => setSelIdx(i)}
+              className="w-full text-right text-sm px-2.5 py-2 rounded-lg transition-all leading-snug"
+              style={{
+                fontFamily: "'Noto Serif Hebrew', serif",
+                color: i === selIdx ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))",
+                background: i === selIdx ? `${GOLD}18` : "transparent",
+                borderRight: i === selIdx ? `3px solid ${GOLD}` : "3px solid transparent",
+                fontWeight: i === selIdx ? 600 : 400,
+              }}
+            >
+              {item.title}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Prayer text (left side in RTL) */}
+      <div className="flex-1 min-w-0 pr-4 sm:pr-6 overflow-y-auto">
+        <OrnamentTitle text={sec.title} fontSize={s.siddurSize} />
+        <Divider />
+        <div
+          className="space-y-1.5 mt-3 rounded-xl border border-border/40 py-4"
+          style={{
+            paddingInline: gutter,
+            background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : "hsl(var(--card)/0.6)",
+            borderColor: ornate ? `${GOLD}44` : undefined,
+            boxShadow: ornate ? `0 4px 16px ${GOLD}1f` : undefined,
+          }}
+        >
+          {sec.lines.map((line, i) => (
+            <SiddurLine key={i} html={line} s={lineSettings} />
+          ))}
+        </div>
+
+        {/* Prev / Next */}
+        <div className="flex justify-between items-center mt-4 gap-2">
+          <button
+            onClick={() => setSelIdx(v => Math.min(v + 1, sections.length - 1))}
+            disabled={selIdx >= sections.length - 1}
+            className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
+            style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+          >
+            « הבא
+          </button>
+          <span className="text-xs text-muted-foreground" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>
+            {selIdx + 1} / {sections.length}
+          </span>
+          <button
+            onClick={() => setSelIdx(v => Math.max(v - 1, 0))}
+            disabled={selIdx <= 0}
+            className="text-xs px-3 py-1.5 rounded-full disabled:opacity-30 transition-all"
+            style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+          >
+            קודם »
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── BookColumnPane — two CSS-columns book layout ────────── */
+const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
+  const { sections, catName, loading } = useSiddurSections(nusach, catId);
+  const { settings: s } = useFontAndColorSettings();
+  const lineSettings: SiddurLineSettings = {
+    ...s,
+    textAlignment: s.siddurTextAlignment,
+    lineHeight: s.siddurLineHeight,
+    lineHeightCustom: s.siddurLineHeightCustom,
+  };
+
+  if (loading)
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: GOLD }} />
+      </div>
+    );
+  if (!sections?.length) return null;
+
+  return (
+    <div className="pb-8" dir="rtl">
+      <OrnamentTitle text={catName} fontSize={s.siddurSize} />
+      <Divider />
+      <div
+        style={{
+          columnCount: 2,
+          columnGap: "2.5rem",
+          columnRule: `1px solid ${GOLD}44`,
+          direction: "rtl",
+        }}
+      >
+        {sections.map((sec, i) => (
+          <div
+            key={i}
+            style={{ breakInside: "avoid", pageBreakInside: "avoid", marginBottom: "1.5rem" }}
+          >
+            <div className="flex items-center gap-2 mb-1.5" style={{ direction: "rtl" }}>
+              <span
+                className="inline-block h-3 w-0.5 rounded-full flex-shrink-0"
+                style={{ background: GOLD, opacity: 0.7 }}
+              />
+              <span
+                style={{
+                  color: GOLD,
+                  fontFamily: "'Noto Serif Hebrew', serif",
+                  fontSize: `${Math.round(s.siddurSize * 0.85)}px`,
+                  fontWeight: 700,
+                }}
+              >
+                {sec.title}
+              </span>
+            </div>
+            <div className="space-y-1">
+              {sec.lines.map((line, j) => (
+                <SiddurLine key={j} html={line} s={lineSettings} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 /* ─── TextFiltersBar (nikud / taamim toggles) ───────────── */
 const TextFiltersBar = ({ scope }: { scope: "siddur" | "tehillim" }) => {
   const { settings, updateSettings } = useFontAndColorSettings();
@@ -1068,8 +1243,8 @@ export const Siddur = () => {
   const navigate                = useNavigate();
   const [nusach, setNusach]    = useState("sefard");
   const [catId, setCatId]      = useState("shacharit");
-  const [viewMode, setViewMode] = useState<"accordion" | "continuous" | "scroll">(() =>
-    (localStorage.getItem("siddur-view-mode") as "accordion" | "continuous" | "scroll") ?? "accordion"
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    (localStorage.getItem("siddur-view-mode") as ViewMode) ?? "accordion"
   );
   const [displayStyle, setDisplayStyleState] = useState<DisplayStyle>(() =>
     (localStorage.getItem("siddur-display-style") as DisplayStyle) ?? "classic"
@@ -1087,7 +1262,7 @@ export const Siddur = () => {
     }
   }, [categories, catId, isSpecial]);
 
-  const setMode = (mode: "accordion" | "continuous" | "scroll") => {
+  const setMode = (mode: ViewMode) => {
     localStorage.setItem("siddur-view-mode", mode);
     setViewMode(mode);
   };
@@ -1097,10 +1272,12 @@ export const Siddur = () => {
     setDisplayStyleState(style);
   };
 
-  const VIEW_MODES: { id: "accordion" | "continuous" | "scroll"; icon: React.ReactNode; title: string }[] = [
-    { id: "accordion",  icon: <LayoutList  className="h-4 w-4" />, title: "תצוגת מקטעים" },
-    { id: "continuous", icon: <AlignJustify className="h-4 w-4" />, title: "תצוגה רציפה" },
-    { id: "scroll",     icon: <ScrollText  className="h-4 w-4" />, title: "גלילה כוללת" },
+  const VIEW_MODES: { id: ViewMode; icon: React.ReactNode; title: string; desc?: string }[] = [
+    { id: "accordion",  icon: <LayoutList     className="h-4 w-4" />, title: "מקטעים",       desc: "קפסאות מתקפלות" },
+    { id: "continuous", icon: <AlignJustify   className="h-4 w-4" />, title: "רציף",          desc: "גלילה סעיף-אחר-סעיף" },
+    { id: "scroll",     icon: <ScrollText     className="h-4 w-4" />, title: "גלילה כוללת",  desc: "כל הקטגוריות ברצף" },
+    { id: "split",      icon: <PanelRightOpen className="h-4 w-4" />, title: "פצול",          desc: "רשימת סעיפים + טקסט" },
+    { id: "book",       icon: <Columns2       className="h-4 w-4" />, title: "שתי עמודות",   desc: "פריסת ספר" },
   ];
 
   return (
@@ -1181,7 +1358,7 @@ export const Siddur = () => {
                       <ChevronDown className="h-3 w-3 opacity-60 flex-shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48" style={{ direction: "rtl" }}>
+                  <DropdownMenuContent align="start" className="w-56" style={{ direction: "rtl" }}>
                     <DropdownMenuLabel className="text-right text-xs text-muted-foreground">מצב תצוגה</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {VIEW_MODES.map(m => (
@@ -1191,8 +1368,11 @@ export const Siddur = () => {
                         className="flex items-center gap-2 cursor-pointer"
                       >
                         <span style={{ color: viewMode === m.id ? GOLD : "hsl(var(--muted-foreground))" }}>{m.icon}</span>
-                        <span className={cn("flex-1 text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
-                        {viewMode === m.id && <span className="text-xs" style={{ color: GOLD }}>✓</span>}
+                        <div className="flex-1 min-w-0">
+                          <span className={cn("block text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
+                          {m.desc && <span className="block text-[10px] text-muted-foreground">{m.desc}</span>}
+                        </div>
+                        {viewMode === m.id && <span className="text-xs flex-shrink-0" style={{ color: GOLD }}>✓</span>}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -1336,7 +1516,7 @@ export const Siddur = () => {
                   {VIEW_MODES.find(m => m.id === viewMode)?.icon}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="bottom" className="w-44 z-[9999]" style={{ direction: "rtl" }}>
+              <DropdownMenuContent align="end" side="bottom" className="w-56 z-[9999]" style={{ direction: "rtl" }}>
                 <DropdownMenuLabel className="text-right text-xs text-muted-foreground">מצב תצוגה</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {VIEW_MODES.map(m => (
@@ -1346,8 +1526,11 @@ export const Siddur = () => {
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <span style={{ color: viewMode === m.id ? GOLD : "hsl(var(--muted-foreground))" }}>{m.icon}</span>
-                    <span className={cn("flex-1 text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
-                    {viewMode === m.id && <span className="text-xs" style={{ color: GOLD }}>✓</span>}
+                    <div className="flex-1 min-w-0">
+                      <span className={cn("block text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
+                      {m.desc && <span className="block text-[10px] text-muted-foreground">{m.desc}</span>}
+                    </div>
+                    {viewMode === m.id && <span className="text-xs flex-shrink-0" style={{ color: GOLD }}>✓</span>}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -1357,7 +1540,16 @@ export const Siddur = () => {
       </div>
 
       {/* ── Content area ── */}
-      <main className="flex-1 flex flex-col px-5 sm:px-7 pt-4 sm:pt-6 max-w-2xl mx-auto w-full">
+      <main
+        className={cn(
+          "flex-1 flex flex-col pt-4 sm:pt-6 mx-auto w-full",
+          viewMode === "split" || viewMode === "book"
+            ? "px-3 sm:px-5 max-w-5xl"
+            : viewMode === "scroll"
+            ? "px-4 sm:px-6 max-w-3xl"
+            : "px-5 sm:px-7 max-w-2xl"
+        )}
+      >
         {/* ── Text filter toggles (nikud / taamim) ── */}
         <TextFiltersBar scope={catId === "tehillim" ? "tehillim" : "siddur"} />
 
@@ -1366,11 +1558,17 @@ export const Siddur = () => {
         {catId === "kria"     && <KriaPane onNavigate={() => navigate("/")} />}
 
         {/* Regular siddur prayer content */}
-        {!isSpecial && viewMode !== "scroll" && (
+        {!isSpecial && (viewMode === "accordion" || viewMode === "continuous") && (
           <CategoryPane nusach={nusach} catId={catId} viewMode={viewMode} />
         )}
         {!isSpecial && viewMode === "scroll" && (
           <FullContinuousPane nusach={nusach} />
+        )}
+        {!isSpecial && viewMode === "split" && (
+          <SplitPane nusach={nusach} catId={catId} />
+        )}
+        {!isSpecial && viewMode === "book" && (
+          <BookColumnPane nusach={nusach} catId={catId} />
         )}
       </main>
     </div>
