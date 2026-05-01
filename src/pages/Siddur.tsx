@@ -457,14 +457,14 @@ const ThemePicker = () => {
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={(draft as Record<string,string>)[key]?.startsWith("#") ? (draft as Record<string,string>)[key] : "#1a2f63"}
+                        value={(draft as unknown as Record<string,string>)[key]?.startsWith("#") ? (draft as unknown as Record<string,string>)[key] : "#1a2f63"}
                         onChange={e => setDraft(prev => ({ ...prev, [key]: e.target.value }))}
                         className="h-7 w-10 rounded cursor-pointer border-0 p-0.5"
                         style={{ background: "transparent" }}
                       />
                       <input
                         type="text"
-                        value={(draft as Record<string,string>)[key] ?? ""}
+                        value={(draft as unknown as Record<string,string>)[key] ?? ""}
                         onChange={e => setDraft(prev => ({ ...prev, [key]: e.target.value }))}
                         className="w-28 rounded px-2 py-1 text-xs font-mono"
                         style={{ background: "rgba(255,255,255,0.08)", border: `1px solid ${theme.accentColor}33`, color: theme.textColor }}

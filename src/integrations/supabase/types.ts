@@ -423,6 +423,24 @@ export type Database = {
           },
         ]
       }
+      user_reading_position: {
+        Row: {
+          state: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          state?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          state?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -516,24 +534,6 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      user_reading_position: {
-        Row: {
-          user_id: string
-          state: Json
-          updated_at: string
-        }
-        Insert: {
-          user_id: string
-          state?: Json
-          updated_at?: string
-        }
-        Update: {
-          user_id?: string
-          state?: Json
-          updated_at?: string
         }
         Relationships: []
       }
