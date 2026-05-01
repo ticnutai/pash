@@ -1130,77 +1130,58 @@ export const Siddur = () => {
       >
         <div className="w-full px-3 sm:px-5 max-w-4xl mx-auto">
 
-          {/* ── Row 1: back | mode switcher | actions ── */}
-          <div className="flex items-center justify-between gap-2 pt-2 pb-1.5">
+          {/* ── Row 1: 3-column grid — [back | title-center | actions] ── */}
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-2.5 pb-2">
 
-            {/* Back */}
+            {/* Col 1 (visual right in RTL): Back */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0"
+              className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0 whitespace-nowrap"
               style={{ color: "hsl(var(--sidebar-foreground)/0.75)", background: "rgba(255,255,255,0.07)" }}
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">חזרה</span>
+              <span>חזרה</span>
             </Button>
 
-            {/* ── Mode switcher ── */}
-            <div
-              className="flex items-center rounded-full overflow-hidden"
-              style={{ background: "rgba(255,255,255,0.10)", border: `1px solid rgba(200,160,77,0.25)` }}
-            >
-              {/* חומש */}
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
-                style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
-                title="חומש"
+            {/* Col 2 (center): Title */}
+            <div className="flex items-center justify-center gap-2 min-w-0">
+              <div className="w-4 h-px opacity-35 flex-shrink-0" style={{ background: `linear-gradient(to left, ${GOLD}, transparent)` }} />
+              <h1
+                className="text-base sm:text-lg font-bold tracking-wide truncate"
+                style={{
+                  color: "hsl(var(--sidebar-foreground))",
+                  fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
+                  textShadow: `0 0 20px ${GOLD}33`,
+                }}
               >
-                <Book className="h-3.5 w-3.5" />
-                <span className="hidden xs:inline">חומש</span>
-              </button>
-              {/* divider */}
-              <span className="w-px h-4 opacity-30" style={{ background: GOLD }} />
-              {/* סידור — active */}
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
-                style={{ color: GOLD }}
-              >
-                <BookMarked className="h-3.5 w-3.5" />
-                <span>סידור</span>
-              </div>
-              {/* divider */}
-              <span className="w-px h-4 opacity-30" style={{ background: GOLD }} />
-              {/* ספירת העומר */}
-              <button
-                onClick={() => setOmerOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
-                style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
-                title="ספירת העומר"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span className="hidden xs:inline">עומר</span>
-              </button>
+                סידור תפילה
+              </h1>
+              <div className="w-4 h-px opacity-35 flex-shrink-0" style={{ background: `linear-gradient(to right, ${GOLD}, transparent)` }} />
             </div>
 
-            {/* Right actions: view mode + T */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Col 3 (visual left in RTL): actions — ltr so order is predictable */}
+            <div className="flex items-center gap-1.5 flex-shrink-0" dir="ltr">
+              {/* T — text settings */}
+              <TextDisplaySettings initialTab={settingsTab} />
+
+              {/* View mode dropdown (siddur only) */}
               {!isSpecial && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 gap-1.5 px-2.5 text-xs font-medium rounded-lg"
+                      className="h-8 gap-1 px-2 text-xs font-medium rounded-lg"
                       style={{ color: GOLD, background: `${GOLD}18`, border: `1px solid ${GOLD}44` }}
                     >
-                      <Layers className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">{VIEW_MODES.find(m => m.id === viewMode)?.title ?? "תצוגה"}</span>
-                      <ChevronDown className="h-3 w-3 opacity-60" />
+                      <Layers className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="hidden md:inline max-w-[80px] truncate">{VIEW_MODES.find(m => m.id === viewMode)?.title ?? "תצוגה"}</span>
+                      <ChevronDown className="h-3 w-3 opacity-60 flex-shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48" style={{ direction: "rtl" }}>
+                  <DropdownMenuContent align="start" className="w-48" style={{ direction: "rtl" }}>
                     <DropdownMenuLabel className="text-right text-xs text-muted-foreground">מצב תצוגה</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {VIEW_MODES.map(m => (
@@ -1217,35 +1198,46 @@ export const Siddur = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <TextDisplaySettings initialTab={settingsTab} />
+
+              {/* Mode switcher: חומש | סידור | עומר */}
+              <div
+                className="flex items-center rounded-full overflow-hidden flex-shrink-0"
+                style={{ background: "rgba(255,255,255,0.10)", border: `1px solid rgba(200,160,77,0.25)` }}
+              >
+                <button
+                  onClick={() => navigate("/")}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-80"
+                  style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
+                  title="חומש"
+                >
+                  <Book className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">חומש</span>
+                </button>
+                <span className="w-px h-3.5 opacity-25" style={{ background: GOLD }} />
+                <div
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold"
+                  style={{ color: GOLD }}
+                >
+                  <BookMarked className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">סידור</span>
+                </div>
+                <span className="w-px h-3.5 opacity-25" style={{ background: GOLD }} />
+                <button
+                  onClick={() => setOmerOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-80"
+                  style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
+                  title="ספירת העומר"
+                >
+                  <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">עומר</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* ── Row 2: Title ── */}
-          <div className="flex items-center justify-center gap-2.5 py-1">
-            <div
-              className="w-5 h-px opacity-40"
-              style={{ background: `linear-gradient(to left, ${GOLD}, transparent)` }}
-            />
-            <h1
-              className="text-lg sm:text-xl font-bold tracking-wide"
-              style={{
-                color: "hsl(var(--sidebar-foreground))",
-                fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                textShadow: `0 0 20px ${GOLD}33`,
-              }}
-            >
-              סידור תפילה
-            </h1>
-            <div
-              className="w-5 h-px opacity-40"
-              style={{ background: `linear-gradient(to right, ${GOLD}, transparent)` }}
-            />
-          </div>
-
-          {/* ── Row 3: Nusach pills ── */}
+          {/* ── Row 2: Nusach pills ── */}
           <div
-            className="flex gap-1.5 pb-2.5 pt-0.5 justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden"
+            className="flex gap-1.5 pb-2.5 justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden"
             style={{ scrollbarWidth: "none", opacity: isSpecial ? 0.45 : 1, transition: "opacity 0.2s" }}
           >
             {NUSACHOT.map(n => (
