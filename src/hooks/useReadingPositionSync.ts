@@ -45,8 +45,8 @@ export function useReadingPositionSync() {
     (async () => {
       try {
         const { data } = await supabase
-          .from('user_reading_position' as never)
-          .select('state,updated_at' as never)
+          .from('user_reading_position')
+          .select('state,updated_at')
           .eq('user_id', user.id)
           .maybeSingle() as { data: { state: ReadingState; updated_at: string } | null };
 
@@ -64,8 +64,8 @@ export function useReadingPositionSync() {
           // Local is newer (e.g. user read while offline) → push local to cloud
           if (localState) {
             await supabase
-              .from('user_reading_position' as never)
-              .upsert({ user_id: user.id, state: localState, updated_at: new Date().toISOString() } as never);
+              .from('user_reading_position')
+              .upsert({ user_id: user.id, state: localState, updated_at: new Date().toISOString() });
           }
           setResolvedState(localState);
         } else if (cloudTs > localTs && cloudState) {
@@ -101,8 +101,8 @@ export function useReadingPositionSync() {
       if (!uid) return;
       try {
         await supabase
-          .from('user_reading_position' as never)
-          .upsert({ user_id: uid, state: withTs, updated_at: new Date().toISOString() } as never);
+          .from('user_reading_position')
+          .upsert({ user_id: uid, state: withTs, updated_at: new Date().toISOString() });
       } catch { /* silent */ }
     }, 2000);
   }, []);

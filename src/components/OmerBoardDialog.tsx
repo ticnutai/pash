@@ -145,6 +145,7 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
   const [prayerDialogOpen, setPrayerDialogOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [blessingAnimated, setBlessingAnimated] = useState(false);
+  const isNusachMountRef = useRef(true);
 
   useEffect(() => {
     try {
@@ -174,6 +175,12 @@ export function OmerBoardDialog({ buttonClassName, iconClassName, defaultOpen, s
   }, [user]);
 
   useEffect(() => {
+    // Skip the very first mount — don't overwrite cloud on initial load.
+    // Cloud → local is handled by the [user] effect above.
+    if (isNusachMountRef.current) {
+      isNusachMountRef.current = false;
+      return;
+    }
     const syncNusachToCloud = async () => {
       if (!user) return;
       const cloudNusach = parseNusach(user.user_metadata?.omer_nusach);

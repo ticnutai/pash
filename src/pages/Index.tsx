@@ -271,8 +271,9 @@ const Index = () => {
     setInitialLoadDone(true);
   }, [searchParams, initialLoadDone, autoWeeklyParsha, corpusMode, readingPosSyncDone, resolvedReadingState]);
 
-  // Save reading state to localStorage and cloud whenever it changes
+  // Save reading state to localStorage and cloud whenever it changes (only after initial load)
   useEffect(() => {
+    if (!initialLoadDone) return;
     const stateToSave = {
       corpusMode,
       selectedSefer,
@@ -282,7 +283,7 @@ const Index = () => {
       singlePasukMode,
     };
     savePosition(stateToSave);
-  }, [corpusMode, selectedSefer, selectedParsha, selectedPerek, selectedPasuk, singlePasukMode, savePosition]);
+  }, [initialLoadDone, corpusMode, selectedSefer, selectedParsha, selectedPerek, selectedPasuk, singlePasukMode, savePosition]);
   
   // Handle URL parameters for direct navigation
   useEffect(() => {
