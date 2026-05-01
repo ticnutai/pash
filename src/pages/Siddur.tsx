@@ -1323,15 +1323,35 @@ export const Siddur = () => {
         </div>
         </div>
 
-        {/* View mode indicator — subtle current-mode badge in tab bar */}
+        {/* View mode picker — clickable dropdown in tab bar */}
         {!isSpecial && (
           <div className="flex-shrink-0 flex items-center px-2 border-l border-border/40" dir="ltr">
-            <div
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium"
-              style={{ background: `${GOLD}18`, color: GOLD }}
-            >
-              {VIEW_MODES.find(m => m.id === viewMode)?.icon}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
+                  style={{ background: `${GOLD}18`, color: GOLD }}
+                  title={VIEW_MODES.find(m => m.id === viewMode)?.title}
+                >
+                  {VIEW_MODES.find(m => m.id === viewMode)?.icon}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="bottom" className="w-44 z-[9999]" style={{ direction: "rtl" }}>
+                <DropdownMenuLabel className="text-right text-xs text-muted-foreground">מצב תצוגה</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {VIEW_MODES.map(m => (
+                  <DropdownMenuItem
+                    key={m.id}
+                    onClick={() => setMode(m.id)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <span style={{ color: viewMode === m.id ? GOLD : "hsl(var(--muted-foreground))" }}>{m.icon}</span>
+                    <span className={cn("flex-1 text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
+                    {viewMode === m.id && <span className="text-xs" style={{ color: GOLD }}>✓</span>}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>
