@@ -855,6 +855,19 @@ const AnswerSection = memo(({
   
   const isUserAnswer = userAnswers?.some(a => a.id === perush.id);
 
+  const LH_MAP_A: Record<string, string> = { tight: "1.3", normal: "1.5", relaxed: "1.7", loose: "2.0" };
+  const LS_MAP_A: Record<string, string> = { tight: "-0.02em", normal: "0em", wide: "0.05em", wider: "0.1em" };
+  const commentaryStyles: React.CSSProperties = {
+    lineHeight: settings.commentaryLineHeight === "custom"
+      ? String(settings.commentaryLineHeightCustom ?? 1.9)
+      : (LH_MAP_A[settings.commentaryLineHeight as string] ?? "1.6"),
+    letterSpacing: settings.commentaryLetterSpacing === "custom"
+      ? `${settings.commentaryLetterSpacingCustom ?? 0}em`
+      : (LS_MAP_A[settings.commentaryLetterSpacing] ?? "0em"),
+    wordSpacing: `${settings.commentaryWordSpacing ?? 0}em`,
+    textAlign: settings.commentaryTextAlignment as React.CSSProperties["textAlign"],
+  };
+
   return (
     <div className="space-y-2 w-full overflow-hidden group/answer relative hover:bg-muted/20 rounded-md transition-colors p-2" style={{ maxWidth: "100%" }}>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-2">

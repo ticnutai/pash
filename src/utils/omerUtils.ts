@@ -71,13 +71,13 @@ export function getOmerBoardData(): OmerBoardData {
     );
   });
 
-  const currentDay = todayEvent ? (todayEvent.omer as number) : null;
+  const currentDay = todayEvent ? ((todayEvent as any).omer as number) : null;
   const isInSeason = currentDay !== null;
 
   const hebrewYear = (events[0].getDate() as HDate).getFullYear();
 
   const days: OmerDayEntry[] = events.map((ev) => {
-    const day = ev.omer as number;
+    const day = (ev as any).omer as number;
     const g = ev.getDate().greg();
     const gMidnight = new Date(g.getFullYear(), g.getMonth(), g.getDate());
 
@@ -86,8 +86,8 @@ export function getOmerBoardData(): OmerBoardData {
       hebrewDate: ev.getDate().toString(),
       gregorianDate: g,
       hebrewText: ev.render("he") as string,
-      countText: ev.getTodayIs("he") as string,
-      sefira: ev.sefira("he") as string,
+      countText: (ev as any).getTodayIs("he") as string,
+      sefira: (ev as any).sefira("he") as string,
       isToday: day === currentDay,
       isPast: gMidnight < todayMidnight,
       isFuture: gMidnight > todayMidnight,
