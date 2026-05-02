@@ -22,11 +22,13 @@ import { useNavigate } from "react-router-dom";
 interface CompactPasukViewProps {
   pesukim: FlatPasuk[];
   seferId: number;
-  forceMinimized?: boolean;
+  expandAll?: boolean;
 }
 
-export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
+export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: CompactPasukViewProps) => {
   const [expandedPasukId, setExpandedPasukId] = useState<number | null>(null);
+  // Tracks cards the user manually closed while in expand-all mode
+  const [closedIds, setClosedIds] = useState<Set<number>>(new Set());
   const [editorPasukId, setEditorPasukId] = useState<string | null>(null);
   const [displayedCount, setDisplayedCount] = useState(10);
   const displayStyles = useTextDisplayStyles();
@@ -61,9 +63,29 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
     prevDisplayedCountRef.current = displayedCount;
   }, [displayedCount]);
 
+  // When expandAll changes, reset tracking state
+  useEffect(() => {
+    if (expandAll) {
+      setClosedIds(new Set()); // fresh expand-all
+    } else {
+      setExpandedPasukId(null); // collapse all individual opens
+      setClosedIds(new Set());
+    }
+  }, [expandAll]);
+
   const togglePasuk = useCallback((pasukId: number) => {
-    setExpandedPasukId(prev => prev === pasukId ? null : pasukId);
-  }, []);
+    if (expandAll) {
+      // In expand-all mode: toggle a specific card closed/open
+      setClosedIds(prev => {
+        const next = new Set(prev);
+        next.has(pasukId) ? next.delete(pasukId) : next.add(pasukId);
+        return next;
+      });
+    } else {
+      // Normal mode: one card open at a time
+      setExpandedPasukId(prev => prev === pasukId ? null : pasukId);
+    }
+  }, [expandAll]);
 
   const handleBookmark = useCallback((e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
@@ -88,7 +110,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
       style={{ gap: displayStyles.gap }}
     >
       {displayedPesukim.map((pasuk, index) => {
-        const isExpanded = expandedPasukId === pasuk.id;
+        const isExpanded = expandAll ? !closedIds.has(pasuk.id) : expandedPasukId === pasuk.id;
         const isFirstNew = index === prevDisplayedCountRef.current;
         const selected = isSelected(pasuk.id);
 
@@ -220,7 +242,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, forceMinimized = false
             </div>
 
             {/* Expanded Content */}
-            {isExpanded && !forceMinimized && (
+            {isExpanded && (
               <div
                 className="border-t border-border animate-accordion-down"
                 onClick={(e) => {

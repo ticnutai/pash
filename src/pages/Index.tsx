@@ -111,7 +111,7 @@ const Index = () => {
   const [selectedPasuk, setSelectedPasuk] = useState<number | null>(null);
   const [currentPasukIndex, setCurrentPasukIndex] = useState(0);
   const [singlePasukMode, setSinglePasukMode] = useState(false);
-  const [globalMinimize, setGlobalMinimize] = useState(false);
+  const [globalExpandAll, setGlobalExpandAll] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const { syncDone: readingPosSyncDone, resolvedState: resolvedReadingState, savePosition } = useReadingPositionSync();
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
@@ -1047,8 +1047,8 @@ const Index = () => {
               <span data-layout="btn-minimize" data-layout-label="➖ מזער הכל">
               <MinimizeButton
                 variant="global"
-                isMinimized={globalMinimize}
-                onClick={() => setGlobalMinimize(!globalMinimize)}
+                isMinimized={!globalExpandAll}
+                onClick={() => setGlobalExpandAll(v => !v)}
               />
               </span>
             )}
@@ -1130,8 +1130,8 @@ const Index = () => {
                 {filteredPesukim.length > 0 && (
                   <MinimizeButton
                     variant="global"
-                    isMinimized={globalMinimize}
-                    onClick={() => setGlobalMinimize(!globalMinimize)}
+                    isMinimized={!globalExpandAll}
+                    onClick={() => setGlobalExpandAll(v => !v)}
                   />
                 )}
               </div>
@@ -1236,9 +1236,9 @@ const Index = () => {
                           onPasukSelect={handleChumashPasukSelect}
                         />
                       ) : displayMode === "compact" ? (
-                        <CompactPasukView pesukim={localizedDisplayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
+                        <CompactPasukView pesukim={localizedDisplayedPesukim} seferId={selectedSefer} expandAll={globalExpandAll} />
                       ) : (
-                        <PaginatedPasukList pesukim={localizedDisplayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
+                        <PaginatedPasukList pesukim={localizedDisplayedPesukim} seferId={selectedSefer} expandAll={globalExpandAll} />
                       )}
                     </div>
                   </Suspense>

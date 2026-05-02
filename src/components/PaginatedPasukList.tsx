@@ -17,10 +17,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 interface PaginatedPasukListProps {
   pesukim: FlatPasuk[];
   seferId: number;
-  forceMinimized?: boolean;
+  expandAll?: boolean;
 }
 
-export const PaginatedPasukList = ({ pesukim, seferId, forceMinimized = false }: PaginatedPasukListProps) => {
+export const PaginatedPasukList = ({ pesukim, seferId, expandAll = false }: PaginatedPasukListProps) => {
   const { displaySettings } = useDisplayMode();
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -116,7 +116,7 @@ export const PaginatedPasukList = ({ pesukim, seferId, forceMinimized = false }:
       {/* Pesukim Display */}
       <div className="space-y-4">
         {displayedPesukim.map((pasuk) => (
-          <PasukDisplay key={pasuk.id} pasuk={pasuk} seferId={seferId} forceMinimized={forceMinimized} />
+          <PasukDisplay key={pasuk.id} pasuk={pasuk} seferId={seferId} forceMinimized={!expandAll} />
         ))}
       </div>
 
