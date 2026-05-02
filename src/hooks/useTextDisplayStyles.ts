@@ -2,13 +2,42 @@ import { useMemo } from "react";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useDevice } from "@/contexts/DeviceContext";
 
-export const useTextDisplayStyles = () => {
+export type TextStyleTarget = "pasuk" | "title" | "question" | "commentary" | "siddur" | "tehillim";
+
+export const useTextDisplayStyles = (target: TextStyleTarget = "pasuk") => {
   const { settings } = useFontAndColorSettings();
   const { isMobile } = useDevice();
 
   return useMemo(() => {
     // Get font scale (default 1)
     const fontScale = settings.fontScale || 1;
+
+    // Per-tab values for alignment / letter spacing / word spacing
+    const ta = (target === "title" ? settings.titleTextAlignment
+              : target === "question" ? settings.questionTextAlignment
+              : target === "commentary" ? settings.commentaryTextAlignment
+              : target === "siddur" ? settings.siddurTextAlignment
+              : target === "tehillim" ? settings.tehillimTextAlignment
+              : settings.pasukTextAlignment) || settings.textAlignment;
+
+    const lsKey = (target === "title" ? settings.titleLetterSpacing
+                : target === "question" ? settings.questionLetterSpacing
+                : target === "commentary" ? settings.commentaryLetterSpacing
+                : target === "siddur" ? settings.siddurLetterSpacing
+                : target === "tehillim" ? settings.tehillimLetterSpacing
+                : settings.pasukLetterSpacing) || settings.letterSpacing;
+    const lsCustom = (target === "title" ? settings.titleLetterSpacingCustom
+                : target === "question" ? settings.questionLetterSpacingCustom
+                : target === "commentary" ? settings.commentaryLetterSpacingCustom
+                : target === "siddur" ? settings.siddurLetterSpacingCustom
+                : target === "tehillim" ? settings.tehillimLetterSpacingCustom
+                : settings.pasukLetterSpacingCustom) ?? settings.letterSpacingCustom ?? 0;
+    const ws = (target === "title" ? settings.titleWordSpacing
+              : target === "question" ? settings.questionWordSpacing
+              : target === "commentary" ? settings.commentaryWordSpacing
+              : target === "siddur" ? settings.siddurWordSpacing
+              : target === "tehillim" ? settings.tehillimWordSpacing
+              : settings.pasukWordSpacing) ?? settings.wordSpacing ?? 0;
 
     // Spacing values - responsive (supports custom)
     const spacingMap: Record<string, string> = {
@@ -39,9 +68,9 @@ export const useTextDisplayStyles = () => {
       wide: "0.05em",
       wider: "0.1em",
     };
-    const letterSpacing = settings.letterSpacing === "custom"
-      ? `${settings.letterSpacingCustom ?? 0}em`
-      : letterSpacingMap[settings.letterSpacing] || letterSpacingMap.normal;
+    const letterSpacing = lsKey === "custom"
+      ? `${lsCustom}em`
+      : letterSpacingMap[lsKey] || letterSpacingMap.normal;
 
     // Content width values - responsive with max constraints
     const getMaxWidth = () => {
@@ -68,18 +97,16 @@ export const useTextDisplayStyles = () => {
     const padding = isMobile ? "0.5rem" : "1rem";
 
     return {
-      textAlign: alignmentMap[settings.textAlignment] as "right" | "center" | "left" | "justify",
+      textAlign: alignmentMap[ta] as "right" | "center" | "left" | "justify",
       gap,
       lineHeight,
       letterSpacing,
-      wordSpacing: `${settings.wordSpacing ?? 0}em`,
+      wordSpacing: `${ws}em`,
       maxWidth: getMaxWidth(),
-      margin: settings.textAlignment === "center" ? "0 auto" : "0",
+      margin: ta === "center" ? "0 auto" : "0",
       padding,
       fontScale,
       isMobile,
     };
-  }, [settings.fontScale, settings.textAlignment, settings.contentSpacing, settings.contentSpacingCustom,
-      settings.lineHeight, settings.lineHeightCustom, settings.letterSpacing, settings.letterSpacingCustom,
-      settings.wordSpacing, settings.contentWidth, isMobile]);
+  }, [settings, target, isMobile]);
 };
