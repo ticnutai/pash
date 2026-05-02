@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export const UserMenu = () => {
+export const UserMenu = ({ iconOnly = false }: { iconOnly?: boolean }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAnonymous = Boolean(user?.is_anonymous);
@@ -34,11 +34,11 @@ export const UserMenu = () => {
     return (
       <Button
         variant="ghost"
+        size={iconOnly ? "icon" : undefined}
         onClick={() => navigate("/auth")}
-        className="gap-2 text-white hover:text-white hover:bg-white/10 flex-row-reverse"
+        className={iconOnly ? "h-8 w-8 text-white hover:text-white hover:bg-white/10" : "gap-2 text-white hover:text-white hover:bg-white/10 flex-row-reverse"}
       >
-        <span>התחבר</span>
-        <LogIn className="h-4 w-4" />
+        {iconOnly ? <LogIn className="h-4 w-4" /> : <><span>התחבר</span><LogIn className="h-4 w-4" /></>}
       </Button>
     );
   }
@@ -46,9 +46,16 @@ export const UserMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="gap-2 text-white hover:text-white hover:bg-white/10 flex-row-reverse max-w-[140px]">
-          <span className="truncate">{isAnonymous ? "אורח" : user.email?.split("@")[0]}</span>
-          <CircleUser className="h-4 w-4 flex-shrink-0" />
+        <Button
+          variant="ghost"
+          size={iconOnly ? "icon" : undefined}
+          className={iconOnly ? "h-8 w-8 text-white hover:text-white hover:bg-white/10" : "gap-2 text-white hover:text-white hover:bg-white/10 flex-row-reverse max-w-[140px]"}
+        >
+          {iconOnly ? (
+            <CircleUser className="h-4 w-4" />
+          ) : (
+            <><span className="truncate">{isAnonymous ? "אורח" : user.email?.split("@")[0]}</span><CircleUser className="h-4 w-4 flex-shrink-0" /></>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

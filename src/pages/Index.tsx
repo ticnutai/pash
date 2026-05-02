@@ -846,7 +846,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleTextLanguage}
-                  className="h-10 w-10 text-accent hover:text-accent hover:bg-accent/10"
+                  className="h-8 w-8 text-accent hover:text-accent hover:bg-accent/10"
                   title={textLanguage === "he" ? "Switch to English" : "החלף לעברית"}
                 >
                   <Languages className="h-4 w-4" />
@@ -857,7 +857,7 @@ const Index = () => {
                   variant="ghost"
                   size="icon"
                   onClick={toggleAutoWeeklyParsha}
-                  className={cn("h-10 w-10 hover:bg-accent/10", autoWeeklyParsha ? "text-accent" : "text-accent/40")}
+                  className={cn("h-8 w-8 hover:bg-accent/10", autoWeeklyParsha ? "text-accent" : "text-accent/40")}
                   title={autoWeeklyParsha ? "פרשת השבוע אוטומטית: פעיל" : "פרשת השבוע אוטומטית: כבוי"}
                 >
                   {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
@@ -871,27 +871,27 @@ const Index = () => {
                 <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
                   <button
                     onClick={() => {}}
-                    className="flex items-center justify-center h-10 w-10 rounded-md text-xs font-semibold transition-all text-accent"
+                    className="flex items-center justify-center h-8 w-8 rounded-md text-xs font-semibold transition-all text-accent"
                     title="חומש"
                   >
                     <Book className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => navigate('/siddur')}
-                    className="flex items-center justify-center h-10 w-10 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
+                    className="flex items-center justify-center h-8 w-8 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
                     title="סידור תפילה"
                   >
                     <BookMarked className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => navigate('/omer')}
-                    className="flex items-center justify-center h-10 w-10 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
+                    className="flex items-center justify-center h-8 w-8 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
                     title="ספירת העומר"
                   >
                     <Sparkles className="h-4 w-4" />
                   </button>
                 </span>
-                <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu /></span>
+                <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu iconOnly /></span>
               </div>
             </div>
           </div>

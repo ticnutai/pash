@@ -28,7 +28,7 @@ export function GlobalSearchTrigger({ onNavigateToPasuk }: GlobalSearchTriggerPr
         variant="ghost"
         size="icon"
         onClick={() => setOpen(true)}
-        className="text-accent hover:text-accent hover:bg-accent/10 border border-accent/30 rounded-md"
+        className="h-8 w-8 text-accent hover:text-accent hover:bg-accent/10 border border-accent/30 rounded-md"
         aria-label="חיפוש בתורה (Ctrl+K)"
         title="חיפוש (Ctrl+K)"
       >

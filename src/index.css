@@ -398,22 +398,24 @@ All colors MUST be HSL.
     letter-spacing: 0.02em;
   }
 
-  /* Scrollbar styling */
+  /* Scrollbar: functional but invisible */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 0px;
+    height: 0px;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-muted;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-primary/30 rounded-md;
+    background: transparent;
   }
 
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-primary/50;
+  * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
   }
 
 
