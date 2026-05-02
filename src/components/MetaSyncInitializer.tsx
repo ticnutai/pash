@@ -67,6 +67,29 @@ export function MetaSyncInitializer() {
         localStorage.setItem("dev-chat-open", String(meta["dev_chat_open"]));
         localStorage.setItem("dev-chat-open-ts", String(chatOpenCloudTs));
       }
+
+      // Sync Siddur custom theme (JSON object, latest-wins)
+      const customThemeCloudTs = Number(meta["siddur_custom_theme_ts"]) || 0;
+      const customThemeLocalTs = Number(localStorage.getItem("siddur-custom-theme__ts")) || 0;
+      if (customThemeCloudTs > customThemeLocalTs && meta["siddur_custom_theme"]) {
+        try {
+          const ct = typeof meta["siddur_custom_theme"] === "string"
+            ? JSON.parse(meta["siddur_custom_theme"])
+            : meta["siddur_custom_theme"];
+          if (ct && ct.id === "custom") {
+            localStorage.setItem("siddur-custom-theme", JSON.stringify(ct));
+            localStorage.setItem("siddur-custom-theme__ts", String(customThemeCloudTs));
+          }
+        } catch { /* ignore */ }
+      }
+
+      // Sync Siddur active theme id (latest-wins)
+      const activeThemeCloudTs = Number(meta["siddur_active_theme_ts"]) || 0;
+      const activeThemeLocalTs = Number(localStorage.getItem("siddur-active-theme__ts")) || 0;
+      if (activeThemeCloudTs > activeThemeLocalTs && meta["siddur_active_theme_id"]) {
+        localStorage.setItem("siddur-active-theme", String(meta["siddur_active_theme_id"]));
+        localStorage.setItem("siddur-active-theme__ts", String(activeThemeCloudTs));
+      }
     }).catch(() => {});
   }, [user?.id]);
 

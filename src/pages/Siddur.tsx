@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef, createContext, useContext } from "react";
+import { useState, useEffect, useRef, createContext, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, type LucideProps } from "lucide-react";
@@ -415,9 +417,9 @@ const ThemePicker = () => {
         onClick={() => setOpen(v => !v)}
         title="ערכת נושא"
         className="flex items-center justify-center h-8 w-8 rounded-lg transition-all hover:opacity-80"
-        style={{ background: open ? `${theme.accentColor}22` : "transparent", border: `1px solid ${theme.accentColor}44`, color: theme.accentColor }}
+        style={{ background: open ? "#c8a04d22" : "transparent", border: "1px solid #c8a04d66" }}
       >
-        <span style={{ fontSize: "1rem" }}>🎨</span>
+        <span style={{ fontSize: "1rem", filter: "sepia(1) saturate(3) hue-rotate(5deg)" }}>🎨</span>
       </button>
 
       {open && (
@@ -1728,12 +1730,94 @@ export const Siddur = () => {
     (localStorage.getItem("siddur-display-style") as DisplayStyle) ?? "classic"
   );
 
+  const { user } = useAuth();
+
   const [activeTheme, setActiveTheme] = useState<SiddurTheme>(() => {
     const saved = localStorage.getItem(ACTIVE_THEME_KEY);
-    if (saved) { const found = SIDDUR_PRESET_THEMES.find(t => t.id === saved); if (found) return found; }
+    if (saved) {
+      const found = SIDDUR_PRESET_THEMES.find(t => t.id === saved);
+      if (found) return found;
+      // Active theme was custom — restore from CUSTOM_THEME_KEY
+      if (saved === "custom") return loadCustomTheme();
+    }
     return SIDDUR_PRESET_THEMES[0];
   });
   const [customTheme, setCustomTheme] = useState<SiddurTheme>(loadCustomTheme);
+
+  // Cloud sync helpers
+  const cloudSaveActiveTheme = useCallback(async (t: SiddurTheme) => {
+    if (!user) return;
+    const ts = Date.now();
+    localStorage.setItem(`${ACTIVE_THEME_KEY}__ts`, String(ts));
+    try {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (!u) return;
+      await supabase.auth.updateUser({ data: {
+        ...u.user_metadata,
+        siddur_active_theme_id: t.id,
+        siddur_active_theme_ts: ts,
+      }});
+    } catch { /* ignore */ }
+  }, [user]);
+
+  const cloudSaveCustomTheme = useCallback(async (t: SiddurTheme) => {
+    const ts = Date.now();
+    localStorage.setItem(`${CUSTOM_THEME_KEY}__ts`, String(ts));
+    if (!user) return;
+    try {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (!u) return;
+      await supabase.auth.updateUser({ data: {
+        ...u.user_metadata,
+        siddur_custom_theme: JSON.stringify(t),
+        siddur_custom_theme_ts: ts,
+      }});
+    } catch { /* ignore */ }
+  }, [user]);
+
+  // On login: pull cloud theme state and apply if newer
+  useEffect(() => {
+    if (!user) return;
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      if (!u) return;
+      const meta = u.user_metadata ?? {};
+
+      // Restore custom theme
+      const cloudCustomTs = Number(meta["siddur_custom_theme_ts"]) || 0;
+      const localCustomTs = Number(localStorage.getItem(`${CUSTOM_THEME_KEY}__ts`)) || 0;
+      if (cloudCustomTs > localCustomTs && meta["siddur_custom_theme"]) {
+        try {
+          const ct: SiddurTheme = typeof meta["siddur_custom_theme"] === "string"
+            ? JSON.parse(meta["siddur_custom_theme"])
+            : meta["siddur_custom_theme"];
+          if (ct && ct.id === "custom") {
+            saveCustomTheme(ct);
+            localStorage.setItem(`${CUSTOM_THEME_KEY}__ts`, String(cloudCustomTs));
+            setCustomTheme(ct);
+            // If active theme was custom, update it too
+            if (localStorage.getItem(ACTIVE_THEME_KEY) === "custom") {
+              setActiveTheme(ct);
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
+      // Restore active theme id
+      const cloudActiveTs = Number(meta["siddur_active_theme_ts"]) || 0;
+      const localActiveTs = Number(localStorage.getItem(`${ACTIVE_THEME_KEY}__ts`)) || 0;
+      if (cloudActiveTs > localActiveTs && meta["siddur_active_theme_id"]) {
+        const id = meta["siddur_active_theme_id"] as string;
+        localStorage.setItem(ACTIVE_THEME_KEY, id);
+        localStorage.setItem(`${ACTIVE_THEME_KEY}__ts`, String(cloudActiveTs));
+        const found = SIDDUR_PRESET_THEMES.find(t => t.id === id);
+        if (found) setActiveTheme(found);
+        else if (id === "custom") {
+          const ct = loadCustomTheme();
+          setActiveTheme(ct);
+        }
+      }
+    }).catch(() => {});
+  }, [user?.id]);
 
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
   const { settings: fontSettings } = useFontAndColorSettings();
@@ -1775,9 +1859,16 @@ export const Siddur = () => {
   return (
     <SiddurThemeContext.Provider value={{
       theme: activeTheme,
-      setTheme: t => { setActiveTheme(t); localStorage.setItem(ACTIVE_THEME_KEY, t.id); },
+      setTheme: t => {
+        setActiveTheme(t);
+        localStorage.setItem(ACTIVE_THEME_KEY, t.id);
+        cloudSaveActiveTheme(t);
+      },
       customTheme,
-      setCustomTheme,
+      setCustomTheme: (t) => {
+        setCustomTheme(t);
+        cloudSaveCustomTheme(t);
+      },
     }}>
     <SiddurDisplayStyleContext.Provider value={{ displayStyle, setDisplayStyle }}>
     <div
