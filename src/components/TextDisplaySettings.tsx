@@ -295,6 +295,94 @@ const PreviewStrip = ({ text, font, size, bold, alignment, lineHeight, letterSpa
   </div>
 );
 
+/* ─── Siddur themed preview ──────────────────────────────── */
+interface SiddurThemedPreviewProps {
+  font: string;
+  size: number;
+  bold: boolean;
+  lineHeight: string;
+  letterSpacing?: string;
+  wordSpacing?: string;
+}
+
+function loadActiveSiddurColors() {
+  try {
+    const activeId = localStorage.getItem("siddur-active-theme");
+    if (activeId === "custom") {
+      const raw = localStorage.getItem("siddur-custom-theme");
+      if (raw) {
+        const t = JSON.parse(raw);
+        return { bg: t.bg, headerBg: t.headerBg, cardBg: t.cardBg, cardBorder: t.cardBorder, textColor: t.textColor, headingColor: t.headingColor ?? t.accentColor, instructionColor: t.instructionColor ?? t.textColor, accentColor: t.accentColor };
+      }
+    }
+    // Try to find preset by id
+    const presets: Record<string, { bg: string; headerBg: string; cardBg: string; cardBorder: string; textColor: string; accentColor: string; headingColor?: string; instructionColor?: string }> = {
+      dark_navy:  { bg: "#15254a", headerBg: "#0f1b38", textColor: "#e8dfc8", accentColor: "#c8a04d", cardBg: "rgba(255,255,255,0.04)", cardBorder: "#c8a04d33" },
+      midnight:   { bg: "#0a0a0f", headerBg: "#111118", textColor: "#e8e6e0", accentColor: "#c8a04d", cardBg: "rgba(255,255,255,0.04)", cardBorder: "rgba(200,160,77,0.22)" },
+      deep_blue:  { bg: "#0d1b2e", headerBg: "#0a1520", textColor: "#cfe2f5", accentColor: "#7ab8e8", cardBg: "rgba(100,160,220,0.07)", cardBorder: "rgba(122,184,232,0.22)" },
+      forest:     { bg: "#0d1f0f", headerBg: "#091508", textColor: "#d4edda", accentColor: "#66bb6a", cardBg: "rgba(102,187,106,0.07)", cardBorder: "rgba(102,187,106,0.22)" },
+      burgundy:   { bg: "#1a0a0e", headerBg: "#120609", textColor: "#f5d5db", accentColor: "#d4728a", cardBg: "rgba(212,114,138,0.07)", cardBorder: "rgba(212,114,138,0.22)" },
+      sepia:      { bg: "#1c130b", headerBg: "#130d06", textColor: "#e8d5b0", accentColor: "#c49a47", cardBg: "rgba(196,154,71,0.07)", cardBorder: "rgba(196,154,71,0.22)" },
+      parchment:  { bg: "#fffef8", headerBg: "#1a2f63", textColor: "#2d1e0e", accentColor: "#9a6b1a", cardBg: "#fffdfa", cardBorder: "#c8a04d44" },
+    };
+    if (activeId && presets[activeId]) return { ...presets[activeId], headingColor: presets[activeId].headingColor ?? presets[activeId].accentColor, instructionColor: presets[activeId].instructionColor ?? presets[activeId].textColor };
+  } catch { /* ignore */ }
+  return { bg: "#15254a", headerBg: "#0f1b38", textColor: "#e8dfc8", headingColor: "#c8a04d", instructionColor: "#b8cce8", accentColor: "#c8a04d", cardBg: "rgba(255,255,255,0.04)", cardBorder: "#c8a04d33" };
+}
+
+const SiddurThemedPreview = ({ font, size, bold, lineHeight, letterSpacing, wordSpacing }: SiddurThemedPreviewProps) => {
+  const colors = loadActiveSiddurColors();
+  const solidBg = colors.bg.includes("gradient") || colors.bg.includes("linear") ? "#1a1a2e" : colors.bg;
+  const solidHdr = colors.headerBg.includes("gradient") || colors.headerBg.includes("linear") ? colors.accentColor + "cc" : colors.headerBg;
+  const displaySize = Math.min(size, 22);
+
+  return (
+    <div className="mx-3 mb-2 rounded-xl overflow-hidden flex-shrink-0" style={{ border: `1.5px solid ${colors.accentColor}50` }}>
+      {/* Header bar */}
+      <div className="flex items-center justify-between px-3 py-1.5" style={{ background: solidHdr }}>
+        <span style={{ color: colors.accentColor, fontSize: "9px", fontFamily: "'Noto Serif Hebrew', serif", fontWeight: 700 }}>❧ שחרית ❧</span>
+        <div className="flex items-center gap-1">
+          <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: colors.accentColor }} />
+          <span style={{ color: colors.accentColor, fontSize: "9px" }}>חיה</span>
+        </div>
+      </div>
+      {/* Page body */}
+      <div className="p-2.5 space-y-1.5" style={{ background: solidBg }}>
+        {/* Section card */}
+        <div style={{
+          background: colors.cardBg.includes("rgba") || colors.cardBg.startsWith("#") ? colors.cardBg : `${colors.accentColor}08`,
+          border: `1px solid ${colors.cardBorder}`,
+          borderRadius: "6px",
+          padding: "6px 8px",
+          direction: "rtl",
+        }}>
+          {/* Heading */}
+          <p style={{ color: colors.headingColor, fontSize: `${Math.max(displaySize * 0.78, 9)}px`, fontFamily: font, fontWeight: 700, marginBottom: "3px" }}>ברכות השחר</p>
+          <div style={{ height: "1px", background: `${colors.accentColor}22`, marginBottom: "4px" }} />
+          {/* Prayer lines */}
+          {["בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ", "מֶלֶךְ הָעוֹלָם אֲשֶׁר יָצַר"].map((line, i) => (
+            <p key={i} style={{
+              color: colors.textColor,
+              fontSize: `${displaySize}px`,
+              fontFamily: font,
+              fontWeight: bold ? 700 : 400,
+              lineHeight: lineHeight,
+              letterSpacing: letterSpacing || "0em",
+              wordSpacing: wordSpacing || "0em",
+              direction: "rtl",
+              margin: 0,
+            }}>{line}</p>
+          ))}
+          {/* Instruction */}
+          <p style={{ color: colors.instructionColor, fontSize: `${Math.max(displaySize * 0.75, 9)}px`, fontFamily: font, fontStyle: "italic", opacity: 0.85, direction: "rtl", margin: "3px 0 0 0" }}>
+            הוראה: כוון לבך
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Per-tab preview text ──────────────────────────────── */
 const TAB_PREVIEW_TEXT: Record<TextSettingsTab, string> = {
   pasuk:       "בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ",
@@ -500,7 +588,18 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
             {/* ── Live preview — always visible, updates instantly ── */}
             <div className="pt-2 flex-shrink-0">
-              <PreviewStrip {...preview} />
+              {activeTab === "siddur" ? (
+                <SiddurThemedPreview
+                  font={settings.siddurFont}
+                  size={settings.siddurSize}
+                  bold={settings.siddurBold}
+                  lineHeight={settings.siddurLineHeight}
+                  letterSpacing={previewLetterSpacing}
+                  wordSpacing={previewWordSpacing}
+                />
+              ) : (
+                <PreviewStrip {...preview} />
+              )}
             </div>
 
             {/* ── Scrollable settings area ── */}
