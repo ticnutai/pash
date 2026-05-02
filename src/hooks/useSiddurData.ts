@@ -104,6 +104,7 @@ export function useSiddurSections(nusach: string, catId: string) {
     // ── Supabase ──────────────────────────────────────────────
     const supabaseLoad = async () => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: rows, error: sbErr } = await (supabase as any)
           .from("siddur")
           .select("title, lines, cat_name, section_idx")
@@ -191,6 +192,7 @@ export function useSiddurCategories(nusach: string) {
     // ── Supabase ──────────────────────────────────────────────
     const supabaseLoad = async () => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: rows } = await (supabase as any)
           .from("siddur")
           .select("category, cat_name, section_idx")
@@ -269,6 +271,7 @@ export function useTehillimData() {
     // ── Supabase ──────────────────────────────────────────────
     const supabaseLoad = async () => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: rows, error: sbErr } = await (supabase as any)
           .from("tehillim")
           .select("chapter, title, lines")

@@ -72,7 +72,7 @@ export const ContentEditor = ({
       // Always save all filled fields sequentially
       let titleIdToUse = initialContext?.titleId;
       let questionIdToUse = initialContext?.questionId;
-      let savedItems: string[] = [];
+      const savedItems: string[] = [];
 
       // Save title if provided
       if (title.trim()) {

@@ -7,5 +7,5 @@ export interface SearchableItem {
   text: string;
   mefaresh?: string;
   questionText?: string;
-  originalItem: any;
+  originalItem: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }

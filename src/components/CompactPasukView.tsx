@@ -78,7 +78,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
       // In expand-all mode: toggle a specific card closed/open
       setClosedIds(prev => {
         const next = new Set(prev);
-        next.has(pasukId) ? next.delete(pasukId) : next.add(pasukId);
+        if (next.has(pasukId)) { next.delete(pasukId); } else { next.add(pasukId); }
         return next;
       });
     } else {

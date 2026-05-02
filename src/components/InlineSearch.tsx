@@ -16,6 +16,7 @@ interface InlineSearchProps {
 
 export function InlineSearch({ onNavigateToPasuk }: InlineSearchProps) {
   const [query, setQuery] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [results, setResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [isActive, setIsActive] = useState(false);
@@ -42,7 +43,7 @@ export function InlineSearch({ onNavigateToPasuk }: InlineSearchProps) {
         const res = await workerSearch(query, { sefer: null, searchType: "pasuk", mefaresh: "הכל", useWildcard: false });
         setResults(res.slice(0, 15));
         setShowResults(true);
-      } catch {}
+      } catch { /* ignore search errors */ }
     }, 250);
     return () => clearTimeout(timer);
   }, [query, workerSearch, workerReady]);

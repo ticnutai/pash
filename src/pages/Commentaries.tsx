@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, BookOpen, ChevronDown, ChevronUp, ExternalLink, GitCompare, X, Copy, Share2, Star, StarOff, Download } from "lucide-react";

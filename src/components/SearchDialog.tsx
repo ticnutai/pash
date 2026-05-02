@@ -57,6 +57,7 @@ export function SearchDialog({ open, onOpenChange, onNavigateToPasuk }: SearchDi
   const [mefaresh, setMefaresh] = useState("הכל");
   const [useWildcard, setUseWildcard] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [activeResults, setActiveResults] = useState<any[]>([]);
   const [aiSuggestion, setAiSuggestion] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -124,6 +125,7 @@ export function SearchDialog({ open, onOpenChange, onNavigateToPasuk }: SearchDi
         setAiSuggestion(data.suggestion);
         handleExactSearch();
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Smart search error:", error);
       if (error.message?.includes('429')) toast.error("מגבלת בקשות הושגה, אנא נסה שוב מאוחר יותר");

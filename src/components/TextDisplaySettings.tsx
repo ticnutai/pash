@@ -437,7 +437,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
       if (tab === "pasuk")      out.pasukLineHeight      = patch.lineHeight as LH;
       else if (tab === "titles")     out.titleLineHeight      = patch.lineHeight as LH;
       else if (tab === "questions")  out.questionLineHeight   = patch.lineHeight as LH;
-      else if (tab === "commentary") out.commentaryLineHeight = patch.lineHeight as any;
+      else if (tab === "commentary") out.commentaryLineHeight = patch.lineHeight as FontAndColorSettings["commentaryLineHeight"];
       else if (tab === "siddur")     out.siddurLineHeight     = patch.lineHeight as LH;
       else                           out.tehillimLineHeight   = patch.lineHeight as LH;
     }

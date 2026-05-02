@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";

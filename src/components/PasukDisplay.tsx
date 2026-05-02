@@ -13,7 +13,7 @@ import {
   Mail,
   Link2
 } from "lucide-react";
-import { FlatPasuk } from "@/types/torah";
+import { FlatPasuk, Question, Perush } from "@/types/torah";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
@@ -703,7 +703,7 @@ const QuestionSection = memo(({
   userQuestions,
   userAnswers,
 }: { 
-  question: any; 
+  question: Question; 
   showAnswers?: boolean;
   seferId: number;
   perek: number;
@@ -714,8 +714,8 @@ const QuestionSection = memo(({
   onEditAnswer?: (id: number, text: string, mefaresh: string) => void;
   onDeleteAnswer?: (id: number) => void;
   displayMode?: string;
-  userQuestions?: any[];
-  userAnswers?: any[];
+  userQuestions?: Question[];
+  userAnswers?: Perush[];
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { settings } = useFontAndColorSettings();
@@ -807,7 +807,7 @@ const QuestionSection = memo(({
 
       {showAnswers && (
         <CollapsibleContent className="space-y-3 pr-2 md:pr-4 w-full overflow-hidden" style={{ maxWidth: "100%" }}>
-          {question.perushim.map((perush: any) => (
+          {question.perushim.map((perush) => (
             <AnswerSection 
               key={perush.id} 
               perush={perush} 
@@ -838,7 +838,7 @@ const AnswerSection = memo(({
   onDeleteAnswer,
   userAnswers,
 }: { 
-  perush: any; 
+  perush: Perush; 
   parentOpen?: boolean;
   seferId: number;
   perek: number;
@@ -846,7 +846,7 @@ const AnswerSection = memo(({
   onAddAnswer?: () => void;
   onEditAnswer?: (id: number, text: string, mefaresh: string) => void;
   onDeleteAnswer?: (id: number) => void;
-  userAnswers?: any[];
+  userAnswers?: Perush[];
 }) => {
   const { settings } = useFontAndColorSettings();
   const displayStyles = useTextDisplayStyles();

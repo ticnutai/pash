@@ -5,7 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+import { useFontAndColorSettings, type FontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 
 const fonts = [
   { value: "David Libre", label: "דוד" },
@@ -147,7 +147,7 @@ export const MobileTypographySheet = () => {
             <Label className="text-sm font-semibold">גובה שורה</Label>
             <Select
               value={settings.pasukLineHeight}
-              onValueChange={(value) => updateSettings({ pasukLineHeight: value as any })}
+              onValueChange={(value) => updateSettings({ pasukLineHeight: value as FontAndColorSettings["pasukLineHeight"] })}
             >
               <SelectTrigger className="text-right">
                 <SelectValue />
@@ -169,7 +169,7 @@ export const MobileTypographySheet = () => {
             <Label className="text-sm font-semibold">מרווח תוכן</Label>
             <Select
               value={settings.contentSpacing}
-              onValueChange={(value) => updateSettings({ contentSpacing: value as any })}
+              onValueChange={(value) => updateSettings({ contentSpacing: value as FontAndColorSettings["contentSpacing"] })}
             >
               <SelectTrigger className="text-right">
                 <SelectValue />

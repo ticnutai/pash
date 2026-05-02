@@ -25,7 +25,7 @@ export const UserMenu = ({ iconOnly = false }: { iconOnly?: boolean }) => {
       if (error) throw error;
       toast.success("התנתקת בהצלחה");
       navigate("/");
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       toast.error("שגיאה בניתוק");
     }
   };

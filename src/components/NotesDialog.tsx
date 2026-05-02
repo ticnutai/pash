@@ -79,7 +79,7 @@ export const NotesDialog = ({ pasukId, pasukText, open: externalOpen, onOpenChan
   const handleExportShare = async () => {
     const text = buildExportText();
     if (navigator.share) {
-      try { await navigator.share({ title: "הערות תורה", text }); } catch {}
+      try { await navigator.share({ title: "הערות תורה", text }); } catch { /* user cancelled share */ }
     } else {
       await navigator.clipboard.writeText(text);
       toast.success("ההערות הועתקו ללוח");

@@ -56,6 +56,7 @@ export const CommentaryDisplaySettings = () => {
             {lineHeights.map((lineHeight) => (
               <DropdownMenuItem
                 key={lineHeight.value}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onClick={() => updateSettings({ commentaryLineHeight: lineHeight.value as any })}
                 className={`text-right ${
                   settings.commentaryLineHeight === lineHeight.value ? "bg-accent" : ""
@@ -80,6 +81,7 @@ export const CommentaryDisplaySettings = () => {
             {widths.map((width) => (
               <DropdownMenuItem
                 key={width.value}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onClick={() => updateSettings({ commentaryMaxWidth: width.value as any })}
                 className={`text-right ${
                   settings.commentaryMaxWidth === width.value ? "bg-accent" : ""

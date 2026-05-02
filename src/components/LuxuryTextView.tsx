@@ -202,7 +202,7 @@ const PasukRow = ({
   const toggleCommentary = (id: string) => {
     setOpenCommentaries((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   };
@@ -515,7 +515,7 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
           .map((c, i) => ({ ...c, mode: "off" as CommentaryMode, order: parsed.length + i }));
         return [...parsed, ...extras].sort((a, b) => a.order - b.order);
       }
-    } catch {}
+    } catch { /* ignore invalid localStorage data */ }
     return ALL_COMMENTATORS.map((c, i) => ({
       ...c,
       mode: c.id === "Rashi" ? ("inline" as CommentaryMode) : ("off" as CommentaryMode),
@@ -525,7 +525,7 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
 
   const saveCommentaryConfigs = useCallback((configs: CommentatorConfig[]) => {
     setCommentaryConfigs(configs);
-    try { localStorage.setItem("commentaryConfigs", JSON.stringify(configs)); } catch {}
+    try { localStorage.setItem("commentaryConfigs", JSON.stringify(configs)); } catch { /* ignore quota exceeded */ }
   }, []);
 
   const activeConfigs = useMemo(

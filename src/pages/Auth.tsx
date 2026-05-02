@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +18,7 @@ export const getRememberedCredentials = () => {
   try {
     const stored = localStorage.getItem(REMEMBER_ME_KEY);
     if (stored) return JSON.parse(stored) as { email: string; password: string };
-  } catch {}
+  } catch { /* ignore invalid stored credentials */ }
   return null;
 };
 

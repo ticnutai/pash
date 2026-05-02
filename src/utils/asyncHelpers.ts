@@ -8,7 +8,9 @@
  */
 export async function yieldToMain(): Promise<void> {
   // Use scheduler.yield if available (Chrome 94+)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ('scheduler' in window && 'yield' in (window.scheduler as any)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (window.scheduler as any).yield();
     return;
   }

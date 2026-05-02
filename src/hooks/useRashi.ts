@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useRef } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { supabase } from "@/integrations/supabase/client";

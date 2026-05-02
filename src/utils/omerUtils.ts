@@ -1,5 +1,12 @@
 import { HebrewCalendar, HDate, flags } from "@hebcal/core";
 
+// @hebcal/core doesn't export TypeScript types for OmerEvent runtime properties
+interface OmerEventLike {
+  omer: number;
+  getTodayIs: (lang: string) => string;
+  sefira: (lang: string) => string;
+}
+
 export interface OmerDayEntry {
   day: number;              // 1-49
   hebrewDate: string;       // e.g. "16 Nisan 5786"
@@ -71,13 +78,14 @@ export function getOmerBoardData(): OmerBoardData {
     );
   });
 
-  const currentDay = todayEvent ? ((todayEvent as any).omer as number) : null;
+  const currentDay = todayEvent ? (todayEvent as unknown as OmerEventLike).omer : null;
   const isInSeason = currentDay !== null;
 
   const hebrewYear = (events[0].getDate() as HDate).getFullYear();
 
   const days: OmerDayEntry[] = events.map((ev) => {
-    const day = (ev as any).omer as number;
+    const omerEv = ev as unknown as OmerEventLike;
+    const day = omerEv.omer;
     const g = ev.getDate().greg();
     const gMidnight = new Date(g.getFullYear(), g.getMonth(), g.getDate());
 
@@ -86,8 +94,8 @@ export function getOmerBoardData(): OmerBoardData {
       hebrewDate: ev.getDate().toString(),
       gregorianDate: g,
       hebrewText: ev.render("he") as string,
-      countText: (ev as any).getTodayIs("he") as string,
-      sefira: (ev as any).sefira("he") as string,
+      countText: omerEv.getTodayIs("he"),
+      sefira: omerEv.sefira("he"),
       isToday: day === currentDay,
       isPast: gMidnight < todayMidnight,
       isFuture: gMidnight > todayMidnight,

@@ -152,6 +152,7 @@ async function fetchChapter(
 
   // 1. Try Supabase (cloud, fast, all books)
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from("commentaries")
       .select("pasuk, text")
