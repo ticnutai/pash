@@ -6,6 +6,8 @@ import { SearchDialog } from "@/components/SearchDialog";
 import { sharePasukLink } from "@/utils/shareUtils";
 import { Input } from "@/components/ui/input";
 import { logInteraction } from "@/utils/interactionDebug";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FloatingActionButtonProps {
   onNavigateToPasuk?: (sefer: number, perek: number, pasuk: number) => void;
@@ -46,6 +48,7 @@ export const FloatingActionButton = ({
   currentPasuk,
 }: FloatingActionButtonProps) => {
   const { isMobile } = useDevice();
+  const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [showExtraActions, setShowExtraActions] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -140,6 +143,15 @@ export const FloatingActionButton = ({
     if (isDragging) {
       setIsDragging(false);
       localStorage.setItem('fab_position', JSON.stringify(position));
+      localStorage.setItem('fab_position_ts', String(Date.now()));
+      if (hasMoved.current && user) {
+        const ts = Date.now();
+        supabase.auth.updateUser({ data: {
+          ...user.user_metadata,
+          fab_position: position,
+          fab_position_ts: ts,
+        } }).catch(() => {});
+      }
       if (!hasMoved.current) {
         logInteraction("FloatingActionButton", "toggle-expanded", { nextExpanded: !expanded });
         setExpanded(prev => !prev);

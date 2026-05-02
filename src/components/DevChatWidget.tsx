@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import html2canvas from 'html2canvas';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -26,7 +27,29 @@ interface AnnotationShape {
  * - Full conversation history
  */
 export function DevChatWidget() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpenRaw] = useState(() => {
+    try { return localStorage.getItem('dev-chat-open') === 'true'; } catch { return false; }
+  });
+  // Persist open state to localStorage + cloud on every change
+  const setIsOpen = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
+    setIsOpenRaw(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      try {
+        localStorage.setItem('dev-chat-open', String(next));
+        localStorage.setItem('dev-chat-open-ts', String(Date.now()));
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (!user) return;
+          const ts = Date.now();
+          supabase.auth.updateUser({ data: {
+            ...user.user_metadata,
+            dev_chat_open: next,
+            dev_chat_open_ts: ts,
+          } }).catch(() => {});
+        }).catch(() => {});
+      } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);

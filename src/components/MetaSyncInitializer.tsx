@@ -44,6 +44,29 @@ export function MetaSyncInitializer() {
       if (devChanged) {
         window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
       }
+
+      // Sync FAB position (JSON object, latest-wins)
+      const fabCloudTs = Number(meta["fab_position_ts"]) || 0;
+      const fabLocalTs = Number(localStorage.getItem("fab_position_ts")) || 0;
+      if (fabCloudTs > fabLocalTs && meta["fab_position"]) {
+        try {
+          const pos = typeof meta["fab_position"] === "string"
+            ? JSON.parse(meta["fab_position"])
+            : meta["fab_position"];
+          if (pos && typeof pos.x === "number" && typeof pos.y === "number") {
+            localStorage.setItem("fab_position", JSON.stringify(pos));
+            localStorage.setItem("fab_position_ts", String(fabCloudTs));
+          }
+        } catch { /* ignore */ }
+      }
+
+      // Sync DevChatWidget open state (boolean, latest-wins)
+      const chatOpenCloudTs = Number(meta["dev_chat_open_ts"]) || 0;
+      const chatOpenLocalTs = Number(localStorage.getItem("dev-chat-open-ts")) || 0;
+      if (chatOpenCloudTs > chatOpenLocalTs && (meta["dev_chat_open"] === true || meta["dev_chat_open"] === false)) {
+        localStorage.setItem("dev-chat-open", String(meta["dev_chat_open"]));
+        localStorage.setItem("dev-chat-open-ts", String(chatOpenCloudTs));
+      }
     }).catch(() => {});
   }, [user?.id]);
 
