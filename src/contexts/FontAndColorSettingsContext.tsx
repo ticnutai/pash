@@ -34,8 +34,49 @@ export interface FontAndColorSettings {
   commentarySize: number;
   commentaryColor: string;
   commentaryBold: boolean;
-  commentaryLineHeight: "normal" | "relaxed" | "loose";
-  commentaryMaxWidth: "narrow" | "medium" | "wide" | "full";
+  commentaryLineHeight: "normal" | "relaxed" | "loose" | "custom";
+  commentaryLineHeightCustom: number;
+  commentaryMaxWidth: "narrow" | "medium" | "wide" | "full"; // kept for compat
+  commentaryTextAlignment: "right" | "center" | "left" | "justify";
+  commentaryContentWidth: "narrow" | "normal" | "wide" | "full";
+  commentaryContentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
+  commentaryContentSpacingCustom: number;
+  commentaryLetterSpacing: "tight" | "normal" | "wide" | "wider" | "custom";
+  commentaryLetterSpacingCustom: number;
+  commentaryWordSpacing: number;
+
+  // Pasuk layout (per-tab, independent from global and other tabs)
+  pasukTextAlignment: "right" | "center" | "left" | "justify";
+  pasukLineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
+  pasukLineHeightCustom: number;
+  pasukContentWidth: "narrow" | "normal" | "wide" | "full";
+  pasukContentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
+  pasukContentSpacingCustom: number;
+  pasukLetterSpacing: "tight" | "normal" | "wide" | "wider" | "custom";
+  pasukLetterSpacingCustom: number;
+  pasukWordSpacing: number;
+
+  // Title layout (per-tab)
+  titleTextAlignment: "right" | "center" | "left" | "justify";
+  titleLineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
+  titleLineHeightCustom: number;
+  titleContentWidth: "narrow" | "normal" | "wide" | "full";
+  titleContentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
+  titleContentSpacingCustom: number;
+  titleLetterSpacing: "tight" | "normal" | "wide" | "wider" | "custom";
+  titleLetterSpacingCustom: number;
+  titleWordSpacing: number;
+
+  // Question layout (per-tab)
+  questionTextAlignment: "right" | "center" | "left" | "justify";
+  questionLineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
+  questionLineHeightCustom: number;
+  questionContentWidth: "narrow" | "normal" | "wide" | "full";
+  questionContentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
+  questionContentSpacingCustom: number;
+  questionLetterSpacing: "tight" | "normal" | "wide" | "wider" | "custom";
+  questionLetterSpacingCustom: number;
+  questionWordSpacing: number;
 
   // Siddur / Prayers
   siddurFont: string;
@@ -45,6 +86,11 @@ export interface FontAndColorSettings {
   siddurLineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
   siddurLineHeightCustom: number;
   siddurContentWidth: "narrow" | "normal" | "wide" | "full";
+  siddurContentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
+  siddurContentSpacingCustom: number;
+  siddurLetterSpacing: "tight" | "normal" | "wide" | "wider" | "custom";
+  siddurLetterSpacingCustom: number;
+  siddurWordSpacing: number;
 
   // Tehillim
   tehillimFont: string;
@@ -54,6 +100,11 @@ export interface FontAndColorSettings {
   tehillimLineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
   tehillimLineHeightCustom: number;
   tehillimContentWidth: "narrow" | "normal" | "wide" | "full";
+  tehillimContentSpacing: "compact" | "normal" | "comfortable" | "spacious" | "custom";
+  tehillimContentSpacingCustom: number;
+  tehillimLetterSpacing: "tight" | "normal" | "wide" | "wider" | "custom";
+  tehillimLetterSpacingCustom: number;
+  tehillimWordSpacing: number;
 
   // Text filters
   showNikud: boolean;
@@ -102,7 +153,45 @@ const defaultSettings: FontAndColorSettings = {
   commentaryColor: "#2d2d2d",
   commentaryBold: false,
   commentaryLineHeight: "relaxed",
+  commentaryLineHeightCustom: 1.9,
   commentaryMaxWidth: "medium",
+  commentaryTextAlignment: "justify",
+  commentaryContentWidth: "normal",
+  commentaryContentSpacing: "normal",
+  commentaryContentSpacingCustom: 1,
+  commentaryLetterSpacing: "normal",
+  commentaryLetterSpacingCustom: 0,
+  commentaryWordSpacing: 0,
+  // Per-tab pasuk layout
+  pasukTextAlignment: "right",
+  pasukLineHeight: "normal",
+  pasukLineHeightCustom: 1.5,
+  pasukContentWidth: "normal",
+  pasukContentSpacing: "normal",
+  pasukContentSpacingCustom: 1,
+  pasukLetterSpacing: "normal",
+  pasukLetterSpacingCustom: 0,
+  pasukWordSpacing: 0,
+  // Per-tab title layout
+  titleTextAlignment: "right",
+  titleLineHeight: "normal",
+  titleLineHeightCustom: 1.5,
+  titleContentWidth: "normal",
+  titleContentSpacing: "normal",
+  titleContentSpacingCustom: 1,
+  titleLetterSpacing: "normal",
+  titleLetterSpacingCustom: 0,
+  titleWordSpacing: 0,
+  // Per-tab question layout
+  questionTextAlignment: "right",
+  questionLineHeight: "normal",
+  questionLineHeightCustom: 1.5,
+  questionContentWidth: "normal",
+  questionContentSpacing: "normal",
+  questionContentSpacingCustom: 1,
+  questionLetterSpacing: "normal",
+  questionLetterSpacingCustom: 0,
+  questionWordSpacing: 0,
   siddurFont: "Noto Serif Hebrew",
   siddurSize: 18,
   siddurBold: false,
@@ -110,6 +199,11 @@ const defaultSettings: FontAndColorSettings = {
   siddurLineHeight: "normal",
   siddurLineHeightCustom: 1.5,
   siddurContentWidth: "normal",
+  siddurContentSpacing: "normal",
+  siddurContentSpacingCustom: 1,
+  siddurLetterSpacing: "normal",
+  siddurLetterSpacingCustom: 0,
+  siddurWordSpacing: 0,
   tehillimFont: "Noto Serif Hebrew",
   tehillimSize: 18,
   tehillimBold: false,
@@ -117,6 +211,11 @@ const defaultSettings: FontAndColorSettings = {
   tehillimLineHeight: "normal",
   tehillimLineHeightCustom: 1.5,
   tehillimContentWidth: "normal",
+  tehillimContentSpacing: "normal",
+  tehillimContentSpacingCustom: 1,
+  tehillimLetterSpacing: "normal",
+  tehillimLetterSpacingCustom: 0,
+  tehillimWordSpacing: 0,
   showNikud: true,
   showTaamim: true,
   textAlignment: "right",
@@ -144,6 +243,16 @@ const normalizeSettings = (settings: FontAndColorSettings): FontAndColorSettings
   tehillimSize: clamp(Number(settings.tehillimSize || defaultSettings.tehillimSize), 8, 36),
   siddurLineHeightCustom: clamp(Number(settings.siddurLineHeightCustom || defaultSettings.siddurLineHeightCustom), 1, 3),
   tehillimLineHeightCustom: clamp(Number(settings.tehillimLineHeightCustom || defaultSettings.tehillimLineHeightCustom), 1, 3),
+  pasukLineHeightCustom: clamp(Number(settings.pasukLineHeightCustom ?? 1.5), 1, 3),
+  titleLineHeightCustom: clamp(Number(settings.titleLineHeightCustom ?? 1.5), 1, 3),
+  questionLineHeightCustom: clamp(Number(settings.questionLineHeightCustom ?? 1.5), 1, 3),
+  commentaryLineHeightCustom: clamp(Number(settings.commentaryLineHeightCustom ?? 1.9), 1, 3),
+  pasukWordSpacing: clamp(Number(settings.pasukWordSpacing ?? 0), 0, 0.5),
+  titleWordSpacing: clamp(Number(settings.titleWordSpacing ?? 0), 0, 0.5),
+  questionWordSpacing: clamp(Number(settings.questionWordSpacing ?? 0), 0, 0.5),
+  commentaryWordSpacing: clamp(Number(settings.commentaryWordSpacing ?? 0), 0, 0.5),
+  siddurWordSpacing: clamp(Number(settings.siddurWordSpacing ?? 0), 0, 0.5),
+  tehillimWordSpacing: clamp(Number(settings.tehillimWordSpacing ?? 0), 0, 0.5),
   fontScale: clamp(Number(settings.fontScale || defaultSettings.fontScale), 0.6, 1.8),
   wordSpacing: clamp(Number(settings.wordSpacing ?? 0), 0, 0.5),
 });

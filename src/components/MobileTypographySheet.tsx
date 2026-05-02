@@ -146,8 +146,8 @@ export const MobileTypographySheet = () => {
           <div className="space-y-2 text-right">
             <Label className="text-sm font-semibold">גובה שורה</Label>
             <Select
-              value={settings.lineHeight}
-              onValueChange={(value) => updateSettings({ lineHeight: value as any })}
+              value={settings.pasukLineHeight}
+              onValueChange={(value) => updateSettings({ pasukLineHeight: value as any })}
             >
               <SelectTrigger className="text-right">
                 <SelectValue />
@@ -195,7 +195,7 @@ export const MobileTypographySheet = () => {
                 fontSize: `${Math.min(settings.pasukSize, 24)}px`,
                 color: settings.pasukColor,
                 fontWeight: settings.pasukBold ? "bold" : "normal",
-                lineHeight: settings.lineHeight === "tight" ? "1.3" : settings.lineHeight === "normal" ? "1.5" : settings.lineHeight === "relaxed" ? "1.7" : "2.0",
+                lineHeight: settings.pasukLineHeight === "tight" ? "1.3" : settings.pasukLineHeight === "normal" ? "1.5" : settings.pasukLineHeight === "relaxed" ? "1.7" : "2.0",
               }}
               className="text-right"
             >

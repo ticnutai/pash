@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Loader2, Copy, Check, Share2 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
+import React from "react";
 import { loadSefariaCommentary, getSefariaSeferName, getMefareshSefariaUrl, getAvailableCommentaries } from "@/utils/sefariaCommentaries";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { torahDB } from "@/utils/torahDB";
@@ -120,11 +121,12 @@ export const CommentaryExpandDialog = ({
                 fontSize: `${settings.commentarySize}px`,
                 color: settings.commentaryColor,
                 fontWeight: settings.commentaryBold ? 'bold' : 'normal',
-                lineHeight: settings.commentaryLineHeight === 'normal' ? '1.6' : settings.commentaryLineHeight === 'relaxed' ? '1.9' : '2.2',
+                lineHeight: settings.commentaryLineHeight === 'custom' ? String(settings.commentaryLineHeightCustom ?? 1.9) : settings.commentaryLineHeight === 'relaxed' ? '1.9' : settings.commentaryLineHeight === 'loose' ? '2.2' : '1.6',
                 maxWidth: settings.commentaryMaxWidth === 'narrow' ? '600px' : settings.commentaryMaxWidth === 'medium' ? '800px' : settings.commentaryMaxWidth === 'wide' ? '1000px' : '100%',
                 margin: '0 auto',
-                textAlign: 'justify',
-                textAlignLast: 'right',
+                textAlign: settings.commentaryTextAlignment as React.CSSProperties['textAlign'],
+                letterSpacing: settings.commentaryLetterSpacing === 'custom' ? `${settings.commentaryLetterSpacingCustom ?? 0}em` : settings.commentaryLetterSpacing === 'tight' ? '-0.02em' : settings.commentaryLetterSpacing === 'wide' ? '0.05em' : settings.commentaryLetterSpacing === 'wider' ? '0.1em' : '0em',
+                wordSpacing: `${settings.commentaryWordSpacing ?? 0}em`,
                 direction: 'rtl',
                 whiteSpace: 'normal'
               }}

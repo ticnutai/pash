@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+import { useFontAndColorSettings, type FontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useDevice } from "@/contexts/DeviceContext";
 
 export type TextSettingsTab = "pasuk" | "titles" | "questions" | "commentary" | "siddur" | "tehillim";
@@ -401,62 +401,132 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
   const [activeTab, setActiveTab] = useState<TextSettingsTab>(initialTab);
   const [pos, setPos]             = useState<{ x: number; y: number } | null>(null);
 
-  // Scoped settings helpers for siddur / tehillim
-  const scopedSettings = (scope: "siddur" | "tehillim") => ({
-    ...settings,
-    textAlignment: scope === "siddur" ? settings.siddurTextAlignment  : settings.tehillimTextAlignment,
-    lineHeight:    scope === "siddur" ? settings.siddurLineHeight      : settings.tehillimLineHeight,
-    lineHeightCustom: scope === "siddur" ? settings.siddurLineHeightCustom : settings.tehillimLineHeightCustom,
-    contentWidth:  scope === "siddur" ? settings.siddurContentWidth    : settings.tehillimContentWidth,
-  });
+  // Scoped settings helpers — map per-tab fields onto the generic keys that SettingsControls reads
+  const scopedForTab = (tab: TextSettingsTab): ReturnType<typeof useFontAndColorSettings>["settings"] => {
+    const s = settings;
+    const overrides = (() => {
+      switch (tab) {
+        case "pasuk":      return { textAlignment: s.pasukTextAlignment, lineHeight: s.pasukLineHeight, lineHeightCustom: s.pasukLineHeightCustom, contentWidth: s.pasukContentWidth, contentSpacing: s.pasukContentSpacing, contentSpacingCustom: s.pasukContentSpacingCustom, letterSpacing: s.pasukLetterSpacing, letterSpacingCustom: s.pasukLetterSpacingCustom, wordSpacing: s.pasukWordSpacing };
+        case "titles":     return { textAlignment: s.titleTextAlignment, lineHeight: s.titleLineHeight, lineHeightCustom: s.titleLineHeightCustom, contentWidth: s.titleContentWidth, contentSpacing: s.titleContentSpacing, contentSpacingCustom: s.titleContentSpacingCustom, letterSpacing: s.titleLetterSpacing, letterSpacingCustom: s.titleLetterSpacingCustom, wordSpacing: s.titleWordSpacing };
+        case "questions":  return { textAlignment: s.questionTextAlignment, lineHeight: s.questionLineHeight, lineHeightCustom: s.questionLineHeightCustom, contentWidth: s.questionContentWidth, contentSpacing: s.questionContentSpacing, contentSpacingCustom: s.questionContentSpacingCustom, letterSpacing: s.questionLetterSpacing, letterSpacingCustom: s.questionLetterSpacingCustom, wordSpacing: s.questionWordSpacing };
+        case "commentary": return { textAlignment: s.commentaryTextAlignment, lineHeight: s.commentaryLineHeight as FontAndColorSettings["lineHeight"], lineHeightCustom: s.commentaryLineHeightCustom, contentWidth: s.commentaryContentWidth, contentSpacing: s.commentaryContentSpacing, contentSpacingCustom: s.commentaryContentSpacingCustom, letterSpacing: s.commentaryLetterSpacing, letterSpacingCustom: s.commentaryLetterSpacingCustom, wordSpacing: s.commentaryWordSpacing };
+        case "siddur":     return { textAlignment: s.siddurTextAlignment, lineHeight: s.siddurLineHeight, lineHeightCustom: s.siddurLineHeightCustom, contentWidth: s.siddurContentWidth, contentSpacing: s.siddurContentSpacing, contentSpacingCustom: s.siddurContentSpacingCustom, letterSpacing: s.siddurLetterSpacing, letterSpacingCustom: s.siddurLetterSpacingCustom, wordSpacing: s.siddurWordSpacing };
+        case "tehillim":   return { textAlignment: s.tehillimTextAlignment, lineHeight: s.tehillimLineHeight, lineHeightCustom: s.tehillimLineHeightCustom, contentWidth: s.tehillimContentWidth, contentSpacing: s.tehillimContentSpacing, contentSpacingCustom: s.tehillimContentSpacingCustom, letterSpacing: s.tehillimLetterSpacing, letterSpacingCustom: s.tehillimLetterSpacingCustom, wordSpacing: s.tehillimWordSpacing };
+      }
+    })();
+    return { ...s, ...overrides };
+  };
 
-  const scopedUpdater = (scope: "siddur" | "tehillim") => (patch: Partial<typeof settings>) => {
+  const updaterForTab = (tab: TextSettingsTab) => (patch: Partial<typeof settings>) => {
     const out: Partial<typeof settings> = {};
-    if (patch.textAlignment) {
-      if (scope === "siddur") out.siddurTextAlignment = patch.textAlignment;
-      else out.tehillimTextAlignment = patch.textAlignment;
+    type A = "right" | "center" | "left" | "justify";
+    type LH = "tight" | "normal" | "relaxed" | "loose" | "custom";
+    type CW = "narrow" | "normal" | "wide" | "full";
+    type CS = "compact" | "normal" | "comfortable" | "spacious" | "custom";
+    type LS = "tight" | "normal" | "wide" | "wider" | "custom";
+
+    if (patch.textAlignment !== undefined) {
+      if (tab === "pasuk")      out.pasukTextAlignment      = patch.textAlignment as A;
+      else if (tab === "titles")     out.titleTextAlignment      = patch.textAlignment as A;
+      else if (tab === "questions")  out.questionTextAlignment   = patch.textAlignment as A;
+      else if (tab === "commentary") out.commentaryTextAlignment = patch.textAlignment as A;
+      else if (tab === "siddur")     out.siddurTextAlignment     = patch.textAlignment as A;
+      else                           out.tehillimTextAlignment   = patch.textAlignment as A;
     }
-    if (patch.lineHeight) {
-      if (scope === "siddur") out.siddurLineHeight = patch.lineHeight;
-      else out.tehillimLineHeight = patch.lineHeight;
+    if (patch.lineHeight !== undefined) {
+      if (tab === "pasuk")      out.pasukLineHeight      = patch.lineHeight as LH;
+      else if (tab === "titles")     out.titleLineHeight      = patch.lineHeight as LH;
+      else if (tab === "questions")  out.questionLineHeight   = patch.lineHeight as LH;
+      else if (tab === "commentary") out.commentaryLineHeight = patch.lineHeight as any;
+      else if (tab === "siddur")     out.siddurLineHeight     = patch.lineHeight as LH;
+      else                           out.tehillimLineHeight   = patch.lineHeight as LH;
     }
-    if (typeof patch.lineHeightCustom === "number") {
-      if (scope === "siddur") out.siddurLineHeightCustom = patch.lineHeightCustom;
-      else out.tehillimLineHeightCustom = patch.lineHeightCustom;
+    if (patch.lineHeightCustom !== undefined) {
+      if (tab === "pasuk")      out.pasukLineHeightCustom      = patch.lineHeightCustom;
+      else if (tab === "titles")     out.titleLineHeightCustom      = patch.lineHeightCustom;
+      else if (tab === "questions")  out.questionLineHeightCustom   = patch.lineHeightCustom;
+      else if (tab === "commentary") out.commentaryLineHeightCustom = patch.lineHeightCustom;
+      else if (tab === "siddur")     out.siddurLineHeightCustom     = patch.lineHeightCustom;
+      else                           out.tehillimLineHeightCustom   = patch.lineHeightCustom;
     }
-    if (patch.contentWidth) {
-      if (scope === "siddur") out.siddurContentWidth = patch.contentWidth;
-      else out.tehillimContentWidth = patch.contentWidth;
+    if (patch.contentWidth !== undefined) {
+      if (tab === "pasuk")      out.pasukContentWidth      = patch.contentWidth as CW;
+      else if (tab === "titles")     out.titleContentWidth      = patch.contentWidth as CW;
+      else if (tab === "questions")  out.questionContentWidth   = patch.contentWidth as CW;
+      else if (tab === "commentary") out.commentaryContentWidth = patch.contentWidth as CW;
+      else if (tab === "siddur")     out.siddurContentWidth     = patch.contentWidth as CW;
+      else                           out.tehillimContentWidth   = patch.contentWidth as CW;
     }
-    if (patch.contentSpacing) out.contentSpacing = patch.contentSpacing;
-    if (typeof patch.contentSpacingCustom === "number") out.contentSpacingCustom = patch.contentSpacingCustom;
-    // Pass-through global settings that siddur/tehillim share
-    if (patch.letterSpacing) out.letterSpacing = patch.letterSpacing;
-    if (typeof patch.letterSpacingCustom === "number") out.letterSpacingCustom = patch.letterSpacingCustom;
-    if (typeof patch.wordSpacing === "number") out.wordSpacing = patch.wordSpacing;
+    if (patch.contentSpacing !== undefined) {
+      if (tab === "pasuk")      out.pasukContentSpacing      = patch.contentSpacing as CS;
+      else if (tab === "titles")     out.titleContentSpacing      = patch.contentSpacing as CS;
+      else if (tab === "questions")  out.questionContentSpacing   = patch.contentSpacing as CS;
+      else if (tab === "commentary") out.commentaryContentSpacing = patch.contentSpacing as CS;
+      else if (tab === "siddur")     out.siddurContentSpacing     = patch.contentSpacing as CS;
+      else                           out.tehillimContentSpacing   = patch.contentSpacing as CS;
+    }
+    if (patch.contentSpacingCustom !== undefined) {
+      if (tab === "pasuk")      out.pasukContentSpacingCustom      = patch.contentSpacingCustom;
+      else if (tab === "titles")     out.titleContentSpacingCustom      = patch.contentSpacingCustom;
+      else if (tab === "questions")  out.questionContentSpacingCustom   = patch.contentSpacingCustom;
+      else if (tab === "commentary") out.commentaryContentSpacingCustom = patch.contentSpacingCustom;
+      else if (tab === "siddur")     out.siddurContentSpacingCustom     = patch.contentSpacingCustom;
+      else                           out.tehillimContentSpacingCustom   = patch.contentSpacingCustom;
+    }
+    if (patch.letterSpacing !== undefined) {
+      if (tab === "pasuk")      out.pasukLetterSpacing      = patch.letterSpacing as LS;
+      else if (tab === "titles")     out.titleLetterSpacing      = patch.letterSpacing as LS;
+      else if (tab === "questions")  out.questionLetterSpacing   = patch.letterSpacing as LS;
+      else if (tab === "commentary") out.commentaryLetterSpacing = patch.letterSpacing as LS;
+      else if (tab === "siddur")     out.siddurLetterSpacing     = patch.letterSpacing as LS;
+      else                           out.tehillimLetterSpacing   = patch.letterSpacing as LS;
+    }
+    if (patch.letterSpacingCustom !== undefined) {
+      if (tab === "pasuk")      out.pasukLetterSpacingCustom      = patch.letterSpacingCustom;
+      else if (tab === "titles")     out.titleLetterSpacingCustom      = patch.letterSpacingCustom;
+      else if (tab === "questions")  out.questionLetterSpacingCustom   = patch.letterSpacingCustom;
+      else if (tab === "commentary") out.commentaryLetterSpacingCustom = patch.letterSpacingCustom;
+      else if (tab === "siddur")     out.siddurLetterSpacingCustom     = patch.letterSpacingCustom;
+      else                           out.tehillimLetterSpacingCustom   = patch.letterSpacingCustom;
+    }
+    if (patch.wordSpacing !== undefined) {
+      if (tab === "pasuk")      out.pasukWordSpacing      = patch.wordSpacing;
+      else if (tab === "titles")     out.titleWordSpacing      = patch.wordSpacing;
+      else if (tab === "questions")  out.questionWordSpacing   = patch.wordSpacing;
+      else if (tab === "commentary") out.commentaryWordSpacing = patch.wordSpacing;
+      else if (tab === "siddur")     out.siddurWordSpacing     = patch.wordSpacing;
+      else                           out.tehillimWordSpacing   = patch.wordSpacing;
+    }
     updateSettings(out);
   };
 
-  // Compute preview letter/word spacing
-  const previewLetterSpacing = settings.letterSpacing === "custom"
-    ? `${settings.letterSpacingCustom ?? 0}em`
-    : settings.letterSpacing === "tight" ? "-0.02em"
-    : settings.letterSpacing === "wide" ? "0.05em"
-    : settings.letterSpacing === "wider" ? "0.1em"
-    : "0em";
-  const previewWordSpacing = `${settings.wordSpacing ?? 0}em`;
+  // Compute per-tab preview spacing from scoped settings
+  const lsFromScoped = (tab: TextSettingsTab): string => {
+    const s = scopedForTab(tab);
+    return s.letterSpacing === "custom" ? `${s.letterSpacingCustom ?? 0}em`
+      : s.letterSpacing === "tight" ? "-0.02em"
+      : s.letterSpacing === "wide"  ? "0.05em"
+      : s.letterSpacing === "wider" ? "0.1em"
+      : "0em";
+  };
+  const wsFromScoped = (tab: TextSettingsTab): string => `${scopedForTab(tab).wordSpacing ?? 0}em`;
+
+  // Keep these for backward compat with siddur preview strip
+  const previewLetterSpacing = lsFromScoped(activeTab);
+  const previewWordSpacing   = wsFromScoped(activeTab);
 
   // Derive preview props for the current active tab
   const getPreviewProps = (): PreviewStripProps => {
     const text = TAB_PREVIEW_TEXT[activeTab];
-    const spacing = { letterSpacing: previewLetterSpacing, wordSpacing: previewWordSpacing };
+    const s = scopedForTab(activeTab);
+    const spacing = { letterSpacing: lsFromScoped(activeTab), wordSpacing: wsFromScoped(activeTab) };
     switch (activeTab) {
-      case "pasuk":      return { text, font: settings.pasukFont,       size: settings.pasukSize,       bold: settings.pasukBold,       alignment: settings.textAlignment,         lineHeight: settings.lineHeight,          ...spacing };
-      case "titles":     return { text, font: settings.titleFont,       size: settings.titleSize,       bold: settings.titleBold,       alignment: settings.textAlignment,         lineHeight: settings.lineHeight,          ...spacing };
-      case "questions":  return { text, font: settings.questionFont,    size: settings.questionSize,    bold: settings.questionBold,    alignment: settings.textAlignment,         lineHeight: settings.lineHeight,          ...spacing };
-      case "commentary": return { text, font: settings.commentaryFont,  size: settings.commentarySize,  bold: settings.commentaryBold,  alignment: settings.textAlignment,         lineHeight: settings.lineHeight,          ...spacing };
-      case "siddur":     return { text, font: settings.siddurFont,      size: settings.siddurSize,      bold: settings.siddurBold,      alignment: settings.siddurTextAlignment,   lineHeight: settings.siddurLineHeight,    ...spacing };
-      case "tehillim":   return { text, font: settings.tehillimFont,    size: settings.tehillimSize,    bold: settings.tehillimBold,    alignment: settings.tehillimTextAlignment, lineHeight: settings.tehillimLineHeight,  ...spacing };
+      case "pasuk":      return { text, font: settings.pasukFont,      size: settings.pasukSize,      bold: settings.pasukBold,      alignment: s.textAlignment, lineHeight: s.lineHeight, ...spacing };
+      case "titles":     return { text, font: settings.titleFont,      size: settings.titleSize,      bold: settings.titleBold,      alignment: s.textAlignment, lineHeight: s.lineHeight, ...spacing };
+      case "questions":  return { text, font: settings.questionFont,   size: settings.questionSize,   bold: settings.questionBold,   alignment: s.textAlignment, lineHeight: s.lineHeight, ...spacing };
+      case "commentary": return { text, font: settings.commentaryFont, size: settings.commentarySize, bold: settings.commentaryBold, alignment: s.textAlignment, lineHeight: s.lineHeight, ...spacing };
+      case "siddur":     return { text, font: settings.siddurFont,     size: settings.siddurSize,     bold: settings.siddurBold,     alignment: s.textAlignment, lineHeight: s.lineHeight, ...spacing };
+      case "tehillim":   return { text, font: settings.tehillimFont,   size: settings.tehillimSize,   bold: settings.tehillimBold,   alignment: s.textAlignment, lineHeight: s.lineHeight, ...spacing };
     }
   };
 
@@ -609,7 +679,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
                   sizeValue={settings.pasukSize}     onSizeChange={(v) => updateSettings({ pasukSize: v })}     sizeLabel="גודל פסוקים"
                   fontValue={settings.pasukFont}     onFontChange={(f) => updateSettings({ pasukFont: f })}     fontLabel="גופן פסוקים"
                   boldValue={settings.pasukBold}     onBoldChange={(b) => updateSettings({ pasukBold: b })}
-                  settings={settings} updateSettings={updateSettings}
+                  settings={scopedForTab("pasuk")} updateSettings={updaterForTab("pasuk")}
                 />
               </TabsContent>
 
@@ -618,7 +688,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
                   sizeValue={settings.titleSize}     onSizeChange={(v) => updateSettings({ titleSize: v })}     sizeLabel="גודל כותרות"
                   fontValue={settings.titleFont}     onFontChange={(f) => updateSettings({ titleFont: f })}     fontLabel="גופן כותרות"
                   boldValue={settings.titleBold}     onBoldChange={(b) => updateSettings({ titleBold: b })}
-                  settings={settings} updateSettings={updateSettings}
+                  settings={scopedForTab("titles")} updateSettings={updaterForTab("titles")}
                 />
               </TabsContent>
 
@@ -627,7 +697,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
                   sizeValue={settings.questionSize}  onSizeChange={(v) => updateSettings({ questionSize: v })}  sizeLabel="גודל שאלות"
                   fontValue={settings.questionFont}  onFontChange={(f) => updateSettings({ questionFont: f })}  fontLabel="גופן שאלות"
                   boldValue={settings.questionBold}  onBoldChange={(b) => updateSettings({ questionBold: b })}
-                  settings={settings} updateSettings={updateSettings}
+                  settings={scopedForTab("questions")} updateSettings={updaterForTab("questions")}
                 />
               </TabsContent>
 
@@ -636,7 +706,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
                   sizeValue={settings.commentarySize} onSizeChange={(v) => updateSettings({ commentarySize: v })} sizeLabel="גודל מפרשים"
                   fontValue={settings.commentaryFont} onFontChange={(f) => updateSettings({ commentaryFont: f })} fontLabel="גופן מפרשים"
                   boldValue={settings.commentaryBold} onBoldChange={(b) => updateSettings({ commentaryBold: b })}
-                  settings={settings} updateSettings={updateSettings}
+                  settings={scopedForTab("commentary")} updateSettings={updaterForTab("commentary")}
                 />
               </TabsContent>
 
@@ -645,7 +715,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
                   sizeValue={settings.siddurSize}    onSizeChange={(v) => updateSettings({ siddurSize: v })}    sizeLabel="גודל תפילות"
                   fontValue={settings.siddurFont}    onFontChange={(f) => updateSettings({ siddurFont: f })}    fontLabel="גופן תפילות"
                   boldValue={settings.siddurBold}    onBoldChange={(b) => updateSettings({ siddurBold: b })}
-                  settings={scopedSettings("siddur")} updateSettings={scopedUpdater("siddur")}
+                  settings={scopedForTab("siddur")} updateSettings={updaterForTab("siddur")}
                 />
               </TabsContent>
 
@@ -654,7 +724,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
                   sizeValue={settings.tehillimSize}  onSizeChange={(v) => updateSettings({ tehillimSize: v })}  sizeLabel="גודל תהילים"
                   fontValue={settings.tehillimFont}  onFontChange={(f) => updateSettings({ tehillimFont: f })}  fontLabel="גופן תהילים"
                   boldValue={settings.tehillimBold}  onBoldChange={(b) => updateSettings({ tehillimBold: b })}
-                  settings={scopedSettings("tehillim")} updateSettings={scopedUpdater("tehillim")}
+                  settings={scopedForTab("tehillim")} updateSettings={updaterForTab("tehillim")}
                 />
               </TabsContent>
             </div>

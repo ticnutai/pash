@@ -71,6 +71,20 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
   const { displaySettings } = useDisplayMode();
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
   const displayStyles = useTextDisplayStyles();
+
+  // ── Per-tab style helpers ──────────────────────────────────
+  const LH_MAP: Record<string, string> = { tight: "1.3", normal: "1.5", relaxed: "1.7", loose: "2.0" };
+  const LS_MAP: Record<string, string> = { tight: "-0.02em", normal: "0em", wide: "0.05em", wider: "0.1em" };
+  const tabLH  = (lh: string, custom: number) => lh === "custom" ? String(custom ?? 1.5) : (LH_MAP[lh] ?? "1.5");
+  const tabLS  = (ls: string, custom: number) => ls === "custom" ? `${custom ?? 0}em` : (LS_MAP[ls] ?? "0em");
+  const tabWS  = (ws: number) => `${ws ?? 0}em`;
+
+  const pasukStyles = { lineHeight: tabLH(settings.pasukLineHeight, settings.pasukLineHeightCustom), letterSpacing: tabLS(settings.pasukLetterSpacing, settings.pasukLetterSpacingCustom), wordSpacing: tabWS(settings.pasukWordSpacing), textAlign: settings.pasukTextAlignment as React.CSSProperties["textAlign"] };
+  const titleStyles = { lineHeight: tabLH(settings.titleLineHeight, settings.titleLineHeightCustom), letterSpacing: tabLS(settings.titleLetterSpacing, settings.titleLetterSpacingCustom), wordSpacing: tabWS(settings.titleWordSpacing), textAlign: settings.titleTextAlignment as React.CSSProperties["textAlign"] };
+  const questionStyles = { lineHeight: tabLH(settings.questionLineHeight, settings.questionLineHeightCustom), letterSpacing: tabLS(settings.questionLetterSpacing, settings.questionLetterSpacingCustom), wordSpacing: tabWS(settings.questionWordSpacing), textAlign: settings.questionTextAlignment as React.CSSProperties["textAlign"] };
+  const commentaryLH = settings.commentaryLineHeight === "custom" ? String(settings.commentaryLineHeightCustom ?? 1.9) : settings.commentaryLineHeight === "relaxed" ? "1.9" : settings.commentaryLineHeight === "loose" ? "2.2" : "1.6";
+  const commentaryStyles = { lineHeight: commentaryLH, letterSpacing: tabLS(settings.commentaryLetterSpacing, settings.commentaryLetterSpacingCustom), wordSpacing: tabWS(settings.commentaryWordSpacing), textAlign: settings.commentaryTextAlignment as React.CSSProperties["textAlign"] };
+  // ───────────────────────────────────────────────────────────
   const { 
     titles: userTitles, 
     questions: userQuestions, 
@@ -368,7 +382,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                   overflowWrap: "break-word",
                   whiteSpace: "normal",
                   maxWidth: "100%",
-                  lineHeight: displayStyles.lineHeight,
+                  ...pasukStyles,
                 }}
               />
             </PasukLineActions>
@@ -474,6 +488,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                         overflowWrap: "break-word",
                         whiteSpace: "normal",
                         maxWidth: "100%",
+                        ...titleStyles,
                       }}
                     />
                   </div>
@@ -705,7 +720,9 @@ const QuestionSection = memo(({
   const [isOpen, setIsOpen] = useState(false);
   const { settings } = useFontAndColorSettings();
   const displayStyles = useTextDisplayStyles();
-  
+  const LH_MAP: Record<string, string> = { tight: "1.3", normal: "1.5", relaxed: "1.7", loose: "2.0" };
+  const LS_MAP: Record<string, string> = { tight: "-0.02em", normal: "0em", wide: "0.05em", wider: "0.1em" };
+  const questionStyles = { lineHeight: settings.questionLineHeight === "custom" ? String(settings.questionLineHeightCustom ?? 1.5) : (LH_MAP[settings.questionLineHeight] ?? "1.5"), letterSpacing: settings.questionLetterSpacing === "custom" ? `${settings.questionLetterSpacingCustom ?? 0}em` : (LS_MAP[settings.questionLetterSpacing] ?? "0em"), wordSpacing: `${settings.questionWordSpacing ?? 0}em`, textAlign: settings.questionTextAlignment as React.CSSProperties["textAlign"] };
   const isUserQuestion = userQuestions?.some(q => q.id === question.id);
 
   return (
@@ -754,6 +771,7 @@ const QuestionSection = memo(({
                   whiteSpace: "normal",
                   maxWidth: "100%",
                   display: "block",
+                  ...questionStyles,
                 }}
               />
             </div>
@@ -908,9 +926,9 @@ const AnswerSection = memo(({
               wordWrap: "break-word",
               overflowWrap: "break-word",
               whiteSpace: "normal",
-              lineHeight: settings.commentaryLineHeight === 'normal' ? '1.6' : settings.commentaryLineHeight === 'relaxed' ? '1.9' : '2.2',
               maxWidth: settings.commentaryMaxWidth === 'narrow' ? '600px' : settings.commentaryMaxWidth === 'medium' ? '800px' : settings.commentaryMaxWidth === 'wide' ? '1000px' : '100%',
               margin: '0 auto',
+              ...commentaryStyles,
             }}
           />
         </div>
