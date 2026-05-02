@@ -1,8 +1,9 @@
 /**
  * useSiddurData
  * Loads siddur sections for a given nusach + category.
- * Strategy: Supabase first (fast, CDN-cached) → local JSON fallback.
- * Results are cached in memory so switching categories is instant on repeat visits.
+ * Strategy: race Supabase + local JSON simultaneously → first valid result wins.
+ * Once the local JSON for a nusach is loaded it's cached in memory, so every
+ * subsequent category switch is instant (zero network required).
  */
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,11 +16,48 @@ const SIDDUR_FILES = import.meta.glob<{ default: SiddurData }>(
   "../data/siddur/siddur_*.json"
 );
 
-// Global cache shared across hook instances
-const sectionsCache: Record<string, SiddurSection[]> = {};
-const catNameCache:  Record<string, string>          = {};
-// Track which nusach files have been locally loaded (for category tab discovery)
-const nusachCache:   Record<string, SiddurData>      = {};
+// Global caches shared across all hook instances
+const sectionsCache: Record<string, SiddurSection[]>            = {};
+const catNameCache:  Record<string, string>                     = {};
+const nusachCache:   Record<string, SiddurData>                 = {};
+// In-flight local-JSON promises so concurrent callers share one fetch
+const nusachPending: Record<string, Promise<SiddurData | null>> = {};
+
+/**
+ * Load (or return cached) the full local JSON for a nusach.
+ * Concurrent callers get the same promise so we never double-fetch.
+ */
+async function loadLocalNusach(nusach: string): Promise<SiddurData | null> {
+  if (nusachCache[nusach]) return nusachCache[nusach];
+  if (!nusachPending[nusach]) {
+    nusachPending[nusach] = (async () => {
+      try {
+        const fileKey = `../data/siddur/siddur_${nusach}.json`;
+        const importer = SIDDUR_FILES[fileKey];
+        if (!importer) return null;
+        const mod = await importer();
+        nusachCache[nusach] = mod.default;
+        return mod.default;
+      } catch {
+        return null;
+      } finally {
+        delete nusachPending[nusach];
+      }
+    })();
+  }
+  return nusachPending[nusach];
+}
+
+/**
+ * Call this when the Siddur page mounts to kick off background loading of the
+ * local JSON while the page is rendering, so it's ready before the user taps
+ * a category.
+ */
+export function preloadSiddurNusach(nusach: string) {
+  if (!nusachCache[nusach] && !nusachPending[nusach]) {
+    loadLocalNusach(nusach); // fire-and-forget
+  }
+}
 
 export function useSiddurSections(nusach: string, catId: string) {
   const [sections, setSections] = useState<SiddurSection[] | null>(
@@ -45,8 +83,26 @@ export function useSiddurSections(nusach: string, catId: string) {
     setError(null);
     setSections(null);
 
-    async function load() {
-      // ── Try Supabase ──────────────────────────────────────────
+    // "done" flag ensures only the first valid result updates state
+    let done = false;
+
+    const commit = (
+      secs: SiddurSection[],
+      name: string,
+      src: "supabase" | "local",
+    ) => {
+      if (done || abortRef.current) return;
+      done = true;
+      sectionsCache[key] = secs;
+      catNameCache[key]  = name;
+      setSections(secs);
+      setCatName(name);
+      setSource(src);
+      setLoading(false);
+    };
+
+    // ── Supabase ──────────────────────────────────────────────
+    const supabaseLoad = async () => {
       try {
         const { data: rows, error: sbErr } = await (supabase as any)
           .from("siddur")
@@ -54,61 +110,41 @@ export function useSiddurSections(nusach: string, catId: string) {
           .eq("nusach", nusach)
           .eq("category", catId)
           .order("section_idx");
-
-        if (!sbErr && rows && rows.length > 0 && !abortRef.current) {
-          const secs: SiddurSection[] = rows.map(r => ({
-            title: r.title,
-            lines: r.lines as string[],
-          }));
-          const name = rows[0].cat_name;
-          sectionsCache[key] = secs;
-          catNameCache[key]  = name;
-          setSections(secs);
-          setCatName(name);
-          setSource("supabase");
-          setLoading(false);
-          return;
+        if (!sbErr && rows && rows.length > 0) {
+          commit(
+            rows.map((r: { title: string; lines: string[] }) => ({ title: r.title, lines: r.lines })),
+            rows[0].cat_name,
+            "supabase",
+          );
         }
-      } catch {
-        // fall through
-      }
+      } catch { /* fall through */ }
+    };
 
-      if (abortRef.current) return;
-
-      // ── Fallback: local JSON ──────────────────────────────────
-      try {
-        let nusachData = nusachCache[nusach];
-        if (!nusachData) {
-          const fileKey = `../data/siddur/siddur_${nusach}.json`;
-          const importer = SIDDUR_FILES[fileKey];
-          if (!importer) throw new Error("file not found");
-          const mod = await importer();
-          nusachData = mod.default;
-          nusachCache[nusach] = nusachData;
-        }
-
-        if (abortRef.current) return;
-
-        const cat = nusachData[catId];
-        if (cat) {
-          sectionsCache[key] = cat.sections;
-          catNameCache[key]  = cat.name;
-          setSections(cat.sections);
-          setCatName(cat.name);
-          setSource("local");
-        } else {
+    // ── Local JSON ────────────────────────────────────────────
+    const localLoad = async () => {
+      const nusachData = await loadLocalNusach(nusach);
+      if (!nusachData) return;
+      const cat = nusachData[catId];
+      if (cat) {
+        commit(cat.sections, cat.name, "local");
+      } else {
+        // Category doesn't exist in this nusach
+        if (!done && !abortRef.current) {
+          done = true;
           setSections([]);
-        }
-        setLoading(false);
-      } catch {
-        if (!abortRef.current) {
-          setError("לא ניתן לטעון — בדוק חיבור אינטרנט");
           setLoading(false);
         }
       }
-    }
+    };
 
-    load();
+    // Race: both run simultaneously, first valid result wins
+    Promise.all([supabaseLoad(), localLoad()]).then(() => {
+      if (!done && !abortRef.current) {
+        setError("לא ניתן לטעון — בדוק חיבור אינטרנט");
+        setLoading(false);
+      }
+    });
+
     return () => { abortRef.current = true; };
   }, [nusach, catId]);
 
@@ -118,7 +154,7 @@ export function useSiddurSections(nusach: string, catId: string) {
 /**
  * useSiddurCategories
  * Returns the available categories for a nusach.
- * Tries to load list from Supabase (DISTINCT query), falls back to local JSON.
+ * Races Supabase vs local JSON — whichever has valid data first wins.
  */
 const CATEGORIES_ORDER = [
   "shacharit", "mincha", "arvit",
@@ -141,58 +177,53 @@ export function useSiddurCategories(nusach: string) {
     }
 
     let cancelled = false;
+    let done      = false;
     setLoading(true);
 
-    async function load() {
-      // ── Try Supabase ──────────────────────────────────────────
+    const commit = (cats: { id: string; name: string }[]) => {
+      if (done || cancelled) return;
+      done = true;
+      catListCache[nusach] = cats;
+      setCategories(cats);
+      setLoading(false);
+    };
+
+    // ── Supabase ──────────────────────────────────────────────
+    const supabaseLoad = async () => {
       try {
         const { data: rows } = await (supabase as any)
           .from("siddur")
           .select("category, cat_name, section_idx")
           .eq("nusach", nusach)
           .eq("section_idx", 0);
-
-        if (rows && rows.length > 0 && !cancelled) {
-          const cats = rows
-            .map(r => ({ id: r.category, name: r.cat_name }))
-            .sort((a, b) => CATEGORIES_ORDER.indexOf(a.id) - CATEGORIES_ORDER.indexOf(b.id));
-          catListCache[nusach] = cats;
-          setCategories(cats);
-          setLoading(false);
-          return;
+        if (rows && rows.length > 0) {
+          commit(
+            rows
+              .map((r: { category: string; cat_name: string }) => ({ id: r.category, name: r.cat_name }))
+              .sort((a: { id: string }, b: { id: string }) =>
+                CATEGORIES_ORDER.indexOf(a.id) - CATEGORIES_ORDER.indexOf(b.id),
+              ),
+          );
         }
-      } catch {
-        // fall through
-      }
+      } catch { /* fall through */ }
+    };
 
-      if (cancelled) return;
-
-      // ── Fallback: local JSON ──────────────────────────────────
-      try {
-        let nusachData = nusachCache[nusach];
-        if (!nusachData) {
-          const fileKey = `../data/siddur/siddur_${nusach}.json`;
-          const importer = SIDDUR_FILES[fileKey];
-          if (!importer) throw new Error("not found");
-          const mod = await importer();
-          nusachData = mod.default;
-          nusachCache[nusach] = nusachData;
-        }
-
-        if (cancelled) return;
-
-        const cats = CATEGORIES_ORDER
+    // ── Local JSON ────────────────────────────────────────────
+    const localLoad = async () => {
+      const nusachData = await loadLocalNusach(nusach);
+      if (!nusachData) return;
+      commit(
+        CATEGORIES_ORDER
           .filter(k => nusachData[k] && nusachData[k].sections.length > 0)
-          .map(k => ({ id: k, name: nusachData[k].name }));
-        catListCache[nusach] = cats;
-        setCategories(cats);
-        setLoading(false);
-      } catch {
-        if (!cancelled) setLoading(false);
-      }
-    }
+          .map(k => ({ id: k, name: nusachData[k].name })),
+      );
+    };
 
-    load();
+    // Race: both run simultaneously
+    Promise.all([supabaseLoad(), localLoad()]).then(() => {
+      if (!done && !cancelled) setLoading(false);
+    });
+
     return () => { cancelled = true; };
   }, [nusach]);
 
@@ -202,7 +233,7 @@ export function useSiddurCategories(nusach: string) {
 /**
  * useTehillimData
  * Loads all 150 chapters.
- * Tries Supabase first, falls back to local JSON.
+ * Races Supabase + local JSON — first valid result wins.
  */
 export type TehillimChapter = { chapter: number; title: string; lines: string[] };
 export type TehillimMap     = Record<string, TehillimChapter>;
@@ -224,49 +255,49 @@ export function useTehillimData() {
     loaded.current = true;
     setLoading(true);
 
-    async function load() {
-      // ── Try Supabase ──────────────────────────────────────────
+    let done = false;
+
+    const commit = (map: TehillimMap, src: "supabase" | "local") => {
+      if (done) return;
+      done = true;
+      tehillimCache = map;
+      setTehillim(map);
+      setSource(src);
+      setLoading(false);
+    };
+
+    // ── Supabase ──────────────────────────────────────────────
+    const supabaseLoad = async () => {
       try {
         const { data: rows, error: sbErr } = await (supabase as any)
           .from("tehillim")
           .select("chapter, title, lines")
           .order("chapter");
-
         if (!sbErr && rows && rows.length > 0) {
           const map: TehillimMap = {};
           for (const r of rows) {
-            map[String(r.chapter)] = {
-              chapter: r.chapter,
-              title:   r.title,
-              lines:   r.lines as string[],
-            };
+            map[String(r.chapter)] = { chapter: r.chapter, title: r.title, lines: r.lines as string[] };
           }
-          tehillimCache = map;
-          setTehillim(map);
-          setSource("supabase");
-          setLoading(false);
-          return;
+          commit(map, "supabase");
         }
-      } catch {
-        // fall through
-      }
+      } catch { /* fall through */ }
+    };
 
-      // ── Fallback: local JSON ──────────────────────────────────
+    // ── Local JSON ────────────────────────────────────────────
+    const localLoad = async () => {
       try {
         const key = "../data/tehillim.json";
         const importer = TEHILLIM_FILE[key];
-        if (!importer) throw new Error("not found");
+        if (!importer) return;
         const mod = await importer();
-        tehillimCache = mod.default;
-        setTehillim(mod.default);
-        setSource("local");
-        setLoading(false);
-      } catch {
-        setLoading(false);
-      }
-    }
+        commit(mod.default, "local");
+      } catch { /* ignore */ }
+    };
 
-    load();
+    // Race: both run simultaneously
+    Promise.all([supabaseLoad(), localLoad()]).then(() => {
+      if (!done) setLoading(false);
+    });
   }, []);
 
   return { tehillim, loading, source };

@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useSiddurCategories, useSiddurSections, useTehillimData } from "@/hooks/useSiddurData";
+import { useSiddurCategories, useSiddurSections, useTehillimData, preloadSiddurNusach } from "@/hooks/useSiddurData";
 import { getWeekdayLeyning, getCalendarPreference, type WeekdayLeyning } from "@/utils/parshaUtils";
 
 /* ─── Types ─────────────────────────────────────────────── */
@@ -2023,6 +2023,9 @@ export const Siddur = () => {
 
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
   const { settings: fontSettings } = useFontAndColorSettings();
+
+  // Kick off local JSON download as early as possible so it's ready when sections load
+  useEffect(() => { preloadSiddurNusach(nusach); }, [nusach]);
   const isSpecial = NUSACH_INDEP.has(catId);
   const settingsTab = catId === "tehillim" ? "tehillim" : catId === "kria" ? "pasuk" : "siddur";
 
