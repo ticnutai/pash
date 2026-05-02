@@ -34,15 +34,23 @@ function buildEvents(gregYear: number) {
 }
 
 export function getOmerBoardData(): OmerBoardData {
-  const today = new Date();
-  const gregYear = today.getFullYear();
+  const now = new Date();
+
+  // After nightfall (≥18:00 local time) the Jewish day has already advanced —
+  // show the next Omer count so users know what to say tonight.
+  const effective = new Date(now);
+  if (now.getHours() >= 18) {
+    effective.setDate(effective.getDate() + 1);
+  }
+
+  const gregYear = effective.getFullYear();
 
   let events = buildEvents(gregYear);
 
   // If the Omer season for this Gregorian year has fully passed, show next year's
   const lastEvent = events[events.length - 1];
   const lastDate = lastEvent?.getDate().greg();
-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayMidnight = new Date(effective.getFullYear(), effective.getMonth(), effective.getDate());
   if (lastDate) {
     const lastMidnight = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
     if (lastMidnight < todayMidnight) {
@@ -57,9 +65,9 @@ export function getOmerBoardData(): OmerBoardData {
   const todayEvent = events.find((ev) => {
     const g = ev.getDate().greg();
     return (
-      g.getFullYear() === today.getFullYear() &&
-      g.getMonth() === today.getMonth() &&
-      g.getDate() === today.getDate()
+      g.getFullYear() === effective.getFullYear() &&
+      g.getMonth() === effective.getMonth() &&
+      g.getDate() === effective.getDate()
     );
   });
 
