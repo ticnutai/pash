@@ -127,7 +127,6 @@ const App = () => {
                       <PWAReloadPrompt />
                       <OfflineBanner />
                       <ReminderPopup reminder={popupReminder} onDismiss={dismissPopup} />
-                      <OmerEntryPopup />
                       {DevChatWidget && showDevFloating && showDevChat && <Suspense fallback={null}><DevChatWidget /></Suspense>}
                       {ScreenshotTool && showDevFloating && showScreenshotTool && <Suspense fallback={null}><ScreenshotTool /></Suspense>}
                       <Router
@@ -136,6 +135,7 @@ const App = () => {
                           v7_relativeSplatPath: true,
                         }}
                       >
+                        <OmerEntryPopup />
                         <ErrorBoundary fallbackTitle="שגיאה בטעינת הדף">
                           <Suspense fallback={<LoadingFallback />}>
                             <Routes>
