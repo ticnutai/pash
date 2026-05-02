@@ -132,8 +132,8 @@ export const ClickableText = ({
           width: "100%",
           display: "block",
           direction: "rtl",
-          textAlign: 'justify',
-          textAlignLast: 'right',
+          textAlign: displayStyles.textAlign,
+          textAlignLast: displayStyles.textAlign === 'justify' ? 'right' : displayStyles.textAlign,
           ...style,
         }}
       >

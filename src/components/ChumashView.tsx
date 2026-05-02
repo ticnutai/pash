@@ -74,8 +74,8 @@ const ChumashViewComponent = ({
                   fontSize: settings?.pasukSize ? `${settings.pasukSize}px` : '1.25rem',
                   fontWeight: settings?.pasukBold ? 'bold' : 500,
                   color: settings?.pasukColor || 'hsl(var(--foreground))',
-                  textAlign: 'justify',
-                  textAlignLast: 'right',
+                  textAlign: displayStyles.textAlign,
+                  textAlignLast: displayStyles.textAlign === 'justify' ? 'right' : displayStyles.textAlign,
                   wordBreak: 'break-word',
                   overflowWrap: 'break-word',
                 }}

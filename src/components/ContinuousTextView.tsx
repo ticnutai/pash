@@ -62,7 +62,7 @@ export const ContinuousTextView = ({ pesukim }: ContinuousTextViewProps) => {
           lineHeight: displayStyles.lineHeight,
           letterSpacing: displayStyles.letterSpacing,
           wordSpacing: displayStyles.wordSpacing,
-          textAlign: "justify",
+          textAlign: displayStyles.textAlign,
         }}
       >
         {perekGroups.map((group) => (
