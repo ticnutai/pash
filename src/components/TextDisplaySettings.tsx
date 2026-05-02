@@ -342,6 +342,10 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
     }
     if (patch.contentSpacing) out.contentSpacing = patch.contentSpacing;
     if (typeof patch.contentSpacingCustom === "number") out.contentSpacingCustom = patch.contentSpacingCustom;
+    // Pass-through global settings that siddur/tehillim share
+    if (patch.letterSpacing) out.letterSpacing = patch.letterSpacing;
+    if (typeof patch.letterSpacingCustom === "number") out.letterSpacingCustom = patch.letterSpacingCustom;
+    if (typeof patch.wordSpacing === "number") out.wordSpacing = patch.wordSpacing;
     updateSettings(out);
   };
 

@@ -314,12 +314,15 @@ function lineHeightCSS(lh: string, custom?: number): string {
 }
 
 function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: boolean): React.CSSProperties {
-  if (!showNikud) return { fontFamily, lineHeight };
   const parsed = Number(lineHeight);
-  const stableLineHeight = Number.isFinite(parsed) ? String(Math.max(parsed, 2.2)) : lineHeight;
+  const stableLineHeight = showNikud && Number.isFinite(parsed)
+    ? String(Math.max(parsed, 1.8))
+    : lineHeight;
+  // User-selected font is always first; Hebrew nikud-optimised fonts serve as fallbacks.
+  const fullFamily = `${fontFamily}, 'Noto Serif Hebrew', 'Noto Sans Hebrew', 'David Libre', serif`;
+  if (!showNikud) return { fontFamily: fullFamily, lineHeight: stableLineHeight };
   return {
-    // Prefer Hebrew fonts with strong niqqud/mark anchoring when nikud is visible.
-    fontFamily: `'Noto Serif Hebrew', 'Noto Sans Hebrew', 'David Libre', ${fontFamily}, serif`,
+    fontFamily: fullFamily,
     lineHeight: stableLineHeight,
     fontFeatureSettings: '"mark" 1, "mkmk" 1',
     textRendering: 'optimizeLegibility',
