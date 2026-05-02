@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">ספירת העומר</string>
-    <string name="title_activity_main">ספירת העומר</string>
-    <string name="package_name">com.torahapp.omer</string>
-    <string name="custom_url_scheme">com.torahapp.omer</string>
-    <string name="omer_widget_label">ספירת העומר</string>
-    <string name="omer_widget_description">וידג׳ט ספירת העומר עם מספר יום ושם הספירה</string>
-</resources>

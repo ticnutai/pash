@@ -172,9 +172,6 @@ export const Settings = () => {
   const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
   const [devScreenshotEnabled, setDevScreenshotEnabled] = useState(() => getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true));
   const [apiKeys, setApiKeys] = useState<ApiKeys>(loadLocalApiKeys);
-  const [omerAutoOpen, setOmerAutoOpen] = useState(() => {
-    try { const v = localStorage.getItem('omer-auto-open'); return v === null ? true : v === 'true'; } catch { return true; }
-  });
 
   // Load API keys from cloud on mount
   useEffect(() => {
@@ -276,26 +273,6 @@ export const Settings = () => {
 
     if (Object.keys(pushUpdates).length > 0) {
       supabase.auth.updateUser({ data: { ...meta, ...pushUpdates } }).catch(() => {});
-    }
-
-    // Sync omer auto-open — last write wins using timestamps
-    const cloudOmerVal = user.user_metadata?.omer_auto_open;
-    const cloudOmerTs = user.user_metadata?.omer_auto_open_ts ?? 0;
-    const localOmerTs = (() => { try { return Number(localStorage.getItem('omer-auto-open-ts')) || 0; } catch { return 0; } })();
-
-    if (cloudOmerVal === true || cloudOmerVal === false) {
-      if (cloudOmerTs >= localOmerTs) {
-        // Cloud is newer (or equal) → apply to local
-        setOmerAutoOpen(cloudOmerVal);
-        localStorage.setItem('omer-auto-open', String(cloudOmerVal));
-        localStorage.setItem('omer-auto-open-ts', String(cloudOmerTs));
-      } else {
-        // Local is newer → push local value to cloud
-        const localVal = (() => { try { const v = localStorage.getItem('omer-auto-open'); return v === null ? true : v === 'true'; } catch { return true; } })();
-        supabase.auth.updateUser({
-          data: { ...user.user_metadata, omer_auto_open: localVal, omer_auto_open_ts: localOmerTs }
-        }).catch(() => {});
-      }
     }
   }, [user]);
 
@@ -494,44 +471,6 @@ export const Settings = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">לוח ספירת העומר</h3>
-                  <p className="text-sm text-muted-foreground">
-                    הגדרות פתיחה אוטומטית של לוח ספירת העומר
-                  </p>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
-                  <div className="flex-1 text-right">
-                    <Label htmlFor="omer-auto-open" className="text-base font-semibold cursor-pointer">
-                      פתח לוח עומר בעליית האתר
-                    </Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      כאשר מופעל, לוח ספירת העומר ייפתח אוטומטית בכל כניסה לאתר (בתקופת הספירה)
-                    </p>
-                  </div>
-                  <Switch
-                    id="omer-auto-open"
-                    checked={omerAutoOpen}
-                    onCheckedChange={(checked) => {
-                      const now = Date.now();
-                      setOmerAutoOpen(checked);
-                      localStorage.setItem('omer-auto-open', String(checked));
-                      localStorage.setItem('omer-auto-open-ts', String(now));
-                      toast.success(checked ? "לוח העומר ייפתח אוטומטית" : "פתיחה אוטומטית כובתה");
-                      // Sync to cloud with timestamp
-                      if (user) {
-                        supabase.auth.updateUser({
-                          data: { ...user.user_metadata, omer_auto_open: checked, omer_auto_open_ts: now }
-                        }).catch(() => {});
-                      }
-                    }}
-                  />
                 </div>
               </div>
             </Card>

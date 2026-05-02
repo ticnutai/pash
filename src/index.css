@@ -416,40 +416,7 @@ All colors MUST be HSL.
     @apply bg-primary/50;
   }
 
-  /* Omer dialog thin gold scrollbar */
-  .omer-scrollbar::-webkit-scrollbar {
-    width: 3px;
-  }
-  .omer-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .omer-scrollbar::-webkit-scrollbar-thumb {
-    background: #C8A44D80;
-    border-radius: 8px;
-  }
-  .omer-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #C8A44DA0;
-  }
-  .omer-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #C8A44D80 transparent;
-  }
 
-  /* Omer blessing entrance animation */
-  @keyframes omer-blessing-in {
-    0% {
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-    }
-    60% {
-      opacity: 1;
-      transform: translateY(-4px) scale(1.02);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
 
   /* Prevent text overflow and ensure proper word breaking */
   * {

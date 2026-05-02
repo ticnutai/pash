@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
-import { OmerBoardDialog } from "@/components/OmerBoardDialog";
+
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -1634,7 +1634,7 @@ export const Siddur = () => {
   const [displayStyle, setDisplayStyleState] = useState<DisplayStyle>(() =>
     (localStorage.getItem("siddur-display-style") as DisplayStyle) ?? "classic"
   );
-  const [omerOpen, setOmerOpen] = useState(false);
+
   const [activeTheme, setActiveTheme] = useState<SiddurTheme>(() => {
     const saved = localStorage.getItem(ACTIVE_THEME_KEY);
     if (saved) { const found = SIDDUR_PRESET_THEMES.find(t => t.id === saved); if (found) return found; }
@@ -1694,9 +1694,6 @@ export const Siddur = () => {
         direction: "rtl",
       }}
     >
-      {/* ── Omer dialog (accessible from header) ── */}
-      <OmerBoardDialog open={omerOpen} onOpenChange={setOmerOpen} />
-
       {/* ── Header ── */}
       <header
         className="sticky top-0 z-40"
@@ -1802,7 +1799,7 @@ export const Siddur = () => {
                 </div>
                 <span className="w-px h-3.5 opacity-25" style={{ background: activeTheme.accentColor }} />
                 <button
-                  onClick={() => setOmerOpen(true)}
+                  onClick={() => navigate('/omer')}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-80"
                   style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
                   title="ספירת העומר"

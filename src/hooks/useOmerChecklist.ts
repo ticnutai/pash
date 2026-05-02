@@ -1,180 +1,138 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-/* ─── Types ──────────────────────────────────────────────── */
+const STORAGE_KEY = "omer_checklist_v2";
+const SEEDED_KEY = "omer_checklist_seeded_v2";
 
-const STORAGE_KEY = "omer_checklist_v1";
-/** Key that records whether we already seeded the checklist on first launch */
-const FIRST_LAUNCH_KEY = "omer_checklist_seeded";
+function loadLocal(hebrewYear: number): Set<number> {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      const p = JSON.parse(s);
+      if (p.year === hebrewYear) return new Set<number>(p.counted);
+    }
+  } catch { /* ignore */ }
+  return new Set<number>();
+}
 
-export interface OmerChecklistData {
-  /** Hebrew year the checklist belongs to */
-  year: number;
-  /** Set of Omer day numbers (1-49) that were marked as counted */
-  counted: number[];
+function saveLocal(hebrewYear: number, counted: Set<number>) {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ year: hebrewYear, counted: [...counted].sort((a, b) => a - b) }),
+    );
+  } catch { /* ignore */ }
+}
+
+async function saveRemote(hebrewYear: number, counted: Set<number>) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.auth.updateUser({
+      data: {
+        ...user.user_metadata,
+        omer_checklist: { year: hebrewYear, counted: [...counted].sort((a, b) => a - b) },
+      },
+    });
+  } catch { /* ignore */ }
+}
+
+async function loadRemote(hebrewYear: number): Promise<Set<number> | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const cl = user?.user_metadata?.omer_checklist;
+    if (!cl || cl.year !== hebrewYear) return null;
+    return new Set<number>(cl.counted);
+  } catch { return null; }
 }
 
 export interface OmerStats {
   totalCounted: number;
-  totalDays: number;
-  /** Current consecutive streak ending at today */
   streak: number;
-  /** Percentage 0-100 */
   percentage: number;
-  /** True if user missed at least one day */
   missedAny: boolean;
-  /** First day the user missed (1-49), or null */
   firstMissed: number | null;
 }
 
-/* ─── Persistence ────────────────────────────────────────── */
+function computeStats(counted: Set<number>, currentDay: number | null): OmerStats {
+  const totalCounted = counted.size;
+  const percentage = Math.round((totalCounted / 49) * 100);
+  const maxDay = currentDay ?? 49;
 
-function loadLocal(year: number): Set<number> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const data: OmerChecklistData = JSON.parse(raw);
-      if (data.year === year) return new Set(data.counted);
-    }
-  } catch { /* ignore */ }
-  return new Set();
-}
-
-function saveLocal(year: number, counted: Set<number>) {
-  const data: OmerChecklistData = { year, counted: [...counted].sort((a, b) => a - b) };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-async function syncToCloud(year: number, counted: Set<number>) {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const payload: OmerChecklistData = { year, counted: [...counted].sort((a, b) => a - b) };
-    await supabase.auth.updateUser({
-      data: { ...user.user_metadata, omer_checklist: payload },
-    });
-  } catch { /* silent */ }
-}
-
-async function loadFromCloud(year: number): Promise<Set<number> | null> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.user_metadata?.omer_checklist) return null;
-    const data = user.user_metadata.omer_checklist as OmerChecklistData;
-    if (data.year !== year) return null;
-    return new Set(data.counted);
-  } catch {
-    return null;
+  let streak = 0;
+  for (let d = maxDay; d >= 1; d--) {
+    if (counted.has(d)) streak++;
+    else break;
   }
-}
 
-/* ─── Hook ───────────────────────────────────────────────── */
+  let firstMissed: number | null = null;
+  for (let d = 1; d <= maxDay; d++) {
+    if (!counted.has(d)) { firstMissed = d; break; }
+  }
+
+  return { totalCounted, streak, percentage, missedAny: firstMissed !== null, firstMissed };
+}
 
 export function useOmerChecklist(hebrewYear: number, currentDay: number | null) {
-  const [counted, setCounted] = useState<Set<number>>(() => {
-    const existing = loadLocal(hebrewYear);
-    // First launch: if no data saved yet and we're in season, mark days 1..today as counted
-    const seedKey = `${FIRST_LAUNCH_KEY}_${hebrewYear}`;
-    if (existing.size === 0 && currentDay && currentDay >= 1) {
-      try {
-        if (!localStorage.getItem(seedKey)) {
-          const seeded = new Set<number>();
-          for (let d = 1; d <= currentDay; d++) seeded.add(d);
-          saveLocal(hebrewYear, seeded);
-          localStorage.setItem(seedKey, String(currentDay));
-          return seeded;
-        }
-      } catch { /* ignore */ }
-    }
-    return existing;
-  });
+  const [counted, setCounted] = useState<Set<number>>(() => loadLocal(hebrewYear));
 
-  // Cloud sync on load & auth change
+  // Seed past days on first launch during a season
   useEffect(() => {
-    const applyCloud = (cloud: Set<number> | null) => {
-      if (!cloud) return;
-      setCounted((prev) => {
-        // Merge: cloud ∪ local
-        const merged = new Set([...prev, ...cloud]);
-        saveLocal(hebrewYear, merged);
-        return merged;
-      });
-    };
+    if (currentDay === null || currentDay < 1) return;
+    const seedKey = `${SEEDED_KEY}_${hebrewYear}`;
+    if (localStorage.getItem(seedKey)) return;
+    if (counted.size > 0) { localStorage.setItem(seedKey, "1"); return; }
+    const initial = new Set<number>();
+    for (let d = 1; d <= currentDay; d++) initial.add(d);
+    setCounted(initial);
+    saveLocal(hebrewYear, initial);
+    localStorage.setItem(seedKey, "1");
+  }, [currentDay, hebrewYear, counted.size]);
 
+  // Merge remote data on auth state change
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session?.user) return;
-      loadFromCloud(hebrewYear).then(applyCloud);
+      loadRemote(hebrewYear).then((remote) => {
+        if (!remote) return;
+        setCounted((prev) => {
+          const merged = new Set([...prev, ...remote]);
+          saveLocal(hebrewYear, merged);
+          return merged;
+        });
+      });
     });
-    loadFromCloud(hebrewYear).then(applyCloud);
     return () => subscription.unsubscribe();
   }, [hebrewYear]);
 
-  const toggleDay = useCallback((day: number) => {
-    setCounted((prev) => {
-      const next = new Set(prev);
-      if (next.has(day)) {
-        next.delete(day);
-      } else {
-        next.add(day);
-      }
-      saveLocal(hebrewYear, next);
-      syncToCloud(hebrewYear, next);
-      return next;
-    });
-  }, [hebrewYear]);
+  const toggleDay = useCallback(
+    (day: number) => {
+      setCounted((prev) => {
+        const next = new Set(prev);
+        if (next.has(day)) next.delete(day);
+        else next.add(day);
+        saveLocal(hebrewYear, next);
+        saveRemote(hebrewYear, next);
+        return next;
+      });
+    },
+    [hebrewYear],
+  );
 
-  const markDay = useCallback((day: number) => {
+  const markToday = useCallback(() => {
+    if (currentDay === null) return;
     setCounted((prev) => {
-      if (prev.has(day)) return prev;
+      if (prev.has(currentDay)) return prev;
       const next = new Set(prev);
-      next.add(day);
+      next.add(currentDay);
       saveLocal(hebrewYear, next);
-      syncToCloud(hebrewYear, next);
+      saveRemote(hebrewYear, next);
       return next;
     });
-  }, [hebrewYear]);
+  }, [currentDay, hebrewYear]);
 
   const isCounted = useCallback((day: number) => counted.has(day), [counted]);
+  const stats = computeStats(counted, currentDay);
 
-  const stats: OmerStats = useMemo(() => {
-    // Only count days BEFORE today as expected (today hasn't passed yet)
-    const maxDay = currentDay ? currentDay - 1 : 0;
-    const totalDays = maxDay;
-    const totalCounted = [...counted].filter((d) => d <= maxDay).length;
-
-    // Find first missed day (only past days, not today)
-    let firstMissed: number | null = null;
-    for (let d = 1; d <= maxDay; d++) {
-      if (!counted.has(d)) {
-        firstMissed = d;
-        break;
-      }
-    }
-
-    // Streak: consecutive counted days ending at currentDay going backwards
-    let streak = 0;
-    if (currentDay) {
-      for (let d = currentDay; d >= 1; d--) {
-        if (counted.has(d)) streak++;
-        else break;
-      }
-    }
-
-    return {
-      totalCounted,
-      totalDays,
-      streak,
-      percentage: totalDays > 0 ? Math.round((totalCounted / totalDays) * 100) : 0,
-      missedAny: firstMissed !== null,
-      firstMissed,
-    };
-  }, [counted, currentDay]);
-
-  return {
-    counted,
-    toggleDay,
-    markDay,
-    isCounted,
-    stats,
-  };
+  return { counted, toggleDay, markToday, isCounted, stats };
 }

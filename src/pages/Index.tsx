@@ -32,7 +32,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { SidePanelTrigger } from "@/components/SidePanelTrigger";
 import { LayoutOverlay } from "@/components/LayoutOverlay";
 import { logInteraction } from "@/utils/interactionDebug";
-import { OmerBoardDialog } from "@/components/OmerBoardDialog";
+
 import { useReadingPositionSync } from "@/hooks/useReadingPositionSync";
 
 // Lazy load heavy components - split by usage priority
@@ -130,9 +130,7 @@ const Index = () => {
   const [sidePanelMode, setSidePanelMode] = useState<"user" | "pasuk">("pasuk");
   const [sidePanelPasuk, setSidePanelPasuk] = useState<FlatPasuk | null>(null);
   const [chumashSelectedPasukId, setChumashSelectedPasukId] = useState<number | null>(null);
-  const [omerDialogOpen, setOmerDialogOpen] = useState(() => {
-    try { const v = localStorage.getItem('omer-auto-open'); return v === null ? true : v === 'true'; } catch { return true; }
-  });
+
   const currentSeferOptions = corpusMode === "torah" ? TORAH_SEFARIM : NEVIIM_SEFARIM;
   // appTitle removed – no longer shown in mobile header
   const appSubtitle = corpusMode === "torah" ? "חמישה חומשי תורה עם פירושים" : "נביאים ומגילות";
@@ -156,17 +154,7 @@ const Index = () => {
     }
   }, [currentSeferOptions, selectedSefer]);
 
-  // Re-sync omer dialog state after MetaSyncInitializer fetches cloud settings
-  useEffect(() => {
-    const handleOmerSync = () => {
-      try {
-        const v = localStorage.getItem('omer-auto-open');
-        setOmerDialogOpen(v === null ? true : v === 'true');
-      } catch { /* ignore */ }
-    };
-    window.addEventListener('omer-settings:synced', handleOmerSync);
-    return () => window.removeEventListener('omer-settings:synced', handleOmerSync);
-  }, []);
+
 
   // Enable pinch-to-zoom for dynamic font scaling
   usePinchZoom({ minScale: 0.6, maxScale: 1.8, step: 0.1 });
@@ -875,12 +863,7 @@ const Index = () => {
                   {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
                 </Button>
                 </span>
-                <span data-layout="btn-omer" data-layout-label="✨ ספירת העומר" className="sr-only">
-                  <OmerBoardDialog
-                    open={omerDialogOpen}
-                    onOpenChange={setOmerDialogOpen}
-                  />
-                </span>
+
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
@@ -901,7 +884,7 @@ const Index = () => {
                     <BookMarked className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setOmerDialogOpen(true)}
+                    onClick={() => navigate('/omer')}
                     className="flex items-center justify-center h-10 w-10 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
                     title="ספירת העומר"
                   >
@@ -963,7 +946,7 @@ const Index = () => {
                   <span>סידור</span>
                 </button>
                 <button
-                  onClick={() => setOmerDialogOpen(true)}
+                  onClick={() => navigate('/omer')}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
                   title="ספירת העומר"
                 >

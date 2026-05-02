@@ -1,116 +1,95 @@
-import { Event, HebrewCalendar, HDate, OmerEvent, ParshaEvent } from "@hebcal/core";
-import { toHebrewNumber } from "@/utils/hebrewNumbers";
+import { HebrewCalendar, HDate, flags } from "@hebcal/core";
 
 export interface OmerDayEntry {
-  day: number;
-  hebrewDay: string;
-  weekdayHebrew: string;
-  shabbatReading: string | null;
-  hebrewDate: string;
-  gregorianDate: string;
-  sefira: string;
-  countText: string;
+  day: number;              // 1-49
+  hebrewDate: string;       // e.g. "16 Nisan 5786"
+  gregorianDate: Date;      // JS Date
+  hebrewText: string;       // e.g. "א׳ בָּעוֹמֶר"
+  countText: string;        // e.g. "הַיּוֹם יוֹם אֶחָד לָעֹמֶר"
+  sefira: string;           // e.g. "חֶֽסֶד שֶׁבְּחֶֽסֶד"
   isToday: boolean;
+  isPast: boolean;
+  isFuture: boolean;
 }
 
 export interface OmerBoardData {
   hebrewYear: number;
-  currentDay: number | null;
+  currentDay: number | null;   // null if not in counting season
   isInSeason: boolean;
-  startGregorian: string;
-  endGregorian: string;
+  startDate: Date;
+  endDate: Date;
   days: OmerDayEntry[];
 }
 
-const GREGORIAN_FORMATTER = new Intl.DateTimeFormat("he-IL", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
+export const OMER_BLESSING =
+  "בָּרוּךְ אַתָּה יְהֹוָה אֱלֹהֵֽינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו, וְצִוָּנוּ עַל סְפִירַת הָעֹֽמֶר";
 
-const toIsoDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+export const OMER_AFTER_BLESSING =
+  "הָרַחֲמָן הוּא יַחֲזִיר לָנוּ עֲבוֹדַת בֵּית הַמִּקְדָּשׁ לִמְקוֹמָהּ, בִּמְהֵרָה בְיָמֵינוּ אָמֵן סֶלָה";
 
-const subtractOneDay = (date: Date): Date => {
-  const d = new Date(date);
-  d.setDate(d.getDate() - 1);
-  return d;
-};
+function buildEvents(gregYear: number) {
+  return HebrewCalendar.calendar({ year: gregYear, isHebrewYear: false, omer: true }).filter(
+    (e) => e.getFlags() & flags.OMER_COUNT,
+  );
+}
 
-const WEEKDAY_HEBREW = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "שבת"];
+export function getOmerBoardData(): OmerBoardData {
+  const today = new Date();
+  const gregYear = today.getFullYear();
 
-const getShabbatReading = (date: Date, isIsrael: boolean): string | null => {
-  const events = HebrewCalendar.calendar({
-    start: date,
-    end: date,
-    il: isIsrael,
-    sedrot: true,
-  });
+  let events = buildEvents(gregYear);
 
-  const parshaEvent = events.find((event): event is ParshaEvent => event instanceof ParshaEvent);
-  if (parshaEvent) {
-    return parshaEvent.render("he");
+  // If the Omer season for this Gregorian year has fully passed, show next year's
+  const lastEvent = events[events.length - 1];
+  const lastDate = lastEvent?.getDate().greg();
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (lastDate) {
+    const lastMidnight = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+    if (lastMidnight < todayMidnight) {
+      const nextEvents = buildEvents(gregYear + 1);
+      if (nextEvents.length > 0) events = nextEvents;
+    }
   }
 
-  // Fallback for Shabbatot without a regular parsha (e.g., festival readings).
-  const holidayEvent = events.find((event: Event) => {
-    const title = event.render("he");
-    return Boolean(title && title.includes("שבת"));
+  const startDate = events[0].getDate().greg();
+  const endDate = events[48].getDate().greg();
+
+  const todayEvent = events.find((ev) => {
+    const g = ev.getDate().greg();
+    return (
+      g.getFullYear() === today.getFullYear() &&
+      g.getMonth() === today.getMonth() &&
+      g.getDate() === today.getDate()
+    );
   });
 
-  return holidayEvent ? holidayEvent.render("he") : "שבת חול המועד פסח";
-};
+  const currentDay = todayEvent ? (todayEvent.omer as number) : null;
+  const isInSeason = currentDay !== null;
 
-export const getOmerBoardData = (isIsrael: boolean = true): OmerBoardData => {
-  const today = new Date();
-  const todayIso = toIsoDate(today);
-  const hebrewYear = new HDate(today).getFullYear();
+  const hebrewYear = (events[0].getDate() as HDate).getFullYear();
 
-  const events = HebrewCalendar.calendar({
-    year: hebrewYear,
-    isHebrewYear: true,
-    il: isIsrael,
-    omer: true,
-  });
-
-  const omerEvents = events
-    .filter((event): event is OmerEvent => event instanceof OmerEvent)
-    .sort((a, b) => a.omer - b.omer);
-
-  const days = omerEvents.map((event) => {
-    // Omer count is recited at night, so display by the civil evening date.
-    const gregDate = subtractOneDay(event.greg());
-    const isToday = toIsoDate(gregDate) === todayIso;
+  const days: OmerDayEntry[] = events.map((ev) => {
+    const day = ev.omer as number;
+    const g = ev.getDate().greg();
+    const gMidnight = new Date(g.getFullYear(), g.getMonth(), g.getDate());
 
     return {
-      day: event.omer,
-      hebrewDay: toHebrewNumber(event.omer),
-      weekdayHebrew: WEEKDAY_HEBREW[gregDate.getDay()] ?? "",
-      shabbatReading: gregDate.getDay() === 6 ? getShabbatReading(gregDate, isIsrael) : null,
-      hebrewDate: event.getDate().renderGematriya(true, false),
-      gregorianDate: GREGORIAN_FORMATTER.format(gregDate),
-      sefira: event.sefira("he"),
-      countText: event.getTodayIs("he"),
-      isToday,
+      day,
+      hebrewDate: ev.getDate().toString(),
+      gregorianDate: g,
+      hebrewText: ev.render("he") as string,
+      countText: ev.getTodayIs("he") as string,
+      sefira: ev.sefira("he") as string,
+      isToday: day === currentDay,
+      isPast: gMidnight < todayMidnight,
+      isFuture: gMidnight > todayMidnight,
     };
   });
 
-  const currentDay = days.find((day) => day.isToday)?.day ?? null;
-  const firstDay = omerEvents[0] ? subtractOneDay(omerEvents[0].greg()) : undefined;
-  const lastDay = omerEvents[omerEvents.length - 1]
-    ? subtractOneDay(omerEvents[omerEvents.length - 1].greg())
-    : undefined;
+  return { hebrewYear, currentDay, isInSeason, startDate, endDate, days };
+}
 
-  return {
-    hebrewYear,
-    currentDay,
-    isInSeason: currentDay !== null,
-    startGregorian: firstDay ? GREGORIAN_FORMATTER.format(firstDay) : "",
-    endGregorian: lastDay ? GREGORIAN_FORMATTER.format(lastDay) : "",
-    days,
-  };
-};
+/** Format a Date as DD/MM */
+export function formatDayMonth(d: Date): string {
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
