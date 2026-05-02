@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, type LucideProps } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -417,9 +417,9 @@ const ThemePicker = () => {
         onClick={() => setOpen(v => !v)}
         title="ערכת נושא"
         className="flex items-center justify-center h-8 w-8 rounded-lg transition-all hover:opacity-80"
-        style={{ background: open ? "#c8a04d22" : "transparent", border: "1px solid #c8a04d66" }}
+        style={{ background: open ? "#c8a04d22" : "transparent", border: "1px solid #c8a04d44" }}
       >
-        <span style={{ fontSize: "1rem", filter: "sepia(1) saturate(3) hue-rotate(5deg)" }}>🎨</span>
+        <Palette className="h-4 w-4" style={{ color: "#c8a04d" }} />
       </button>
 
       {open && (
