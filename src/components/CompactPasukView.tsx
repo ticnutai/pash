@@ -211,6 +211,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
                   {/* Pasuk Text */}
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <p 
+                      dir="rtl"
                       style={{ 
                         fontFamily: settings.pasukFont || "'David Libre', 'Noto Serif Hebrew', serif",
                         fontSize: `${Math.min((settings.pasukSize || 20) * (displayStyles.fontScale || 1), displayStyles.isMobile ? 22 : 26)}px`,
@@ -219,12 +220,13 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
                         lineHeight: displayStyles.lineHeight || '2',
                         letterSpacing: displayStyles.letterSpacing,
                         wordSpacing: displayStyles.wordSpacing,
-                        textAlign: 'justify',
-                        textAlignLast: 'right',
+                        textAlign: displayStyles.textAlign,
+                        textAlignLast: displayStyles.textAlign === 'justify' ? 'right' : displayStyles.textAlign,
                         textRendering: 'optimizeLegibility',
                         WebkitFontSmoothing: 'antialiased',
-                        wordBreak: 'break-word',
+                        wordBreak: 'normal',
                         overflowWrap: 'break-word',
+                        hyphens: 'none',
                       }}
                     >
                       {formatTorahText(pasuk.text)}
