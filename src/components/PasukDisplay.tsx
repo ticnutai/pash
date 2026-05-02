@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, memo } from "react";
+import { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ChevronDown, 
@@ -169,6 +169,24 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
     setEditorContext({ type: "title", defaultTab: "title" });
     setEditorOpen(true);
   };
+
+  // Stable callbacks for QuestionSection memo (avoids defeating React.memo optimization)
+  const handleAddAnswer = useCallback((questionId: number) => {
+    setEditorContext({ type: "answer", questionId, defaultTab: "answer" });
+    setEditorOpen(true);
+  }, []);
+  const handleEditQuestion = useCallback((id: number, text: string) => {
+    setEditingQuestion({ id, text });
+  }, []);
+  const handleDeleteQuestion = useCallback((id: number) => {
+    setDeletingQuestion(id);
+  }, []);
+  const handleEditAnswer = useCallback((id: number, text: string, mefaresh: string) => {
+    setEditingAnswer({ id, text, mefaresh });
+  }, []);
+  const handleDeleteAnswer = useCallback((id: number) => {
+    setDeletingAnswer(id);
+  }, []);
 
   // פונקציה למציאת מיקום הכותרת בפסוק (מתעלמת מניקוד)
   const findTitlePositionInPasuk = (title: string, pasukText: string): number => {
@@ -504,18 +522,11 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                     seferId={seferId}
                     perek={pasuk.perek}
                     pasukNum={pasuk.pasuk_num}
-                    onAddAnswer={(questionId) => {
-                      setEditorContext({ 
-                        type: "answer", 
-                        questionId,
-                        defaultTab: "answer" 
-                      });
-                      setEditorOpen(true);
-                    }}
-                    onEditQuestion={(id, text) => setEditingQuestion({ id, text })}
-                    onDeleteQuestion={(id) => setDeletingQuestion(id)}
-                    onEditAnswer={(id, text, mefaresh) => setEditingAnswer({ id, text, mefaresh })}
-                    onDeleteAnswer={(id) => setDeletingAnswer(id)}
+                    onAddAnswer={handleAddAnswer}
+                    onEditQuestion={handleEditQuestion}
+                    onDeleteQuestion={handleDeleteQuestion}
+                    onEditAnswer={handleEditAnswer}
+                    onDeleteAnswer={handleDeleteAnswer}
                     displayMode={displayMode}
                     userQuestions={userQuestions}
                     userAnswers={userAnswers}

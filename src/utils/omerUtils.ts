@@ -66,8 +66,13 @@ export function getOmerBoardData(): OmerBoardData {
     }
   }
 
+  // Guard: @hebcal/core should always return 49 events, but be safe
+  if (events.length === 0) {
+    return { hebrewYear: gregYear + 3760, currentDay: null, isInSeason: false, startDate: new Date(), endDate: new Date(), days: [] };
+  }
+
   const startDate = events[0].getDate().greg();
-  const endDate = events[48].getDate().greg();
+  const endDate = events[events.length - 1].getDate().greg();
 
   const todayEvent = events.find((ev) => {
     const g = ev.getDate().greg();
