@@ -20,6 +20,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Loader2, WifiOff } from "lucide-react";
 import { PWAReloadPrompt } from "@/components/PWAReloadPrompt";
 import { ReminderPopup } from "@/components/ReminderPopup";
+import { OmerEntryPopup } from "@/components/OmerEntryPopup";
 import { useNotifications } from "@/hooks/useNotifications";
 import { MetaSyncInitializer } from "@/components/MetaSyncInitializer";
 
@@ -126,6 +127,7 @@ const App = () => {
                       <PWAReloadPrompt />
                       <OfflineBanner />
                       <ReminderPopup reminder={popupReminder} onDismiss={dismissPopup} />
+                      <OmerEntryPopup />
                       {DevChatWidget && showDevFloating && showDevChat && <Suspense fallback={null}><DevChatWidget /></Suspense>}
                       {ScreenshotTool && showDevFloating && showScreenshotTool && <Suspense fallback={null}><ScreenshotTool /></Suspense>}
                       <Router
