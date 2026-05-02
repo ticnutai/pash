@@ -95,6 +95,20 @@ const FontSelector = ({ label, value, onChange }: { label: string; value: string
   </div>
 );
 
+/* ─── UI ↔ Actual mapping (0-100 scale, step 5) ─────────── */
+// Snap actual value → nearest step-5 position on 0-100 scale
+const toUi = (actual: number, min: number, max: number) =>
+  Math.min(100, Math.max(0, Math.round(((actual - min) / (max - min)) * 20) * 5));
+// Map UI position (0-100) back to actual value
+const fromUi = (ui: number, min: number, max: number) =>
+  min + (ui / 100) * (max - min);
+// Width discrete positions on the 0-100 scale
+const W_POS: Record<string, number> = { narrow: 0, normal: 35, wide: 65, full: 100 };
+const wFromUi = (ui: number): "narrow" | "normal" | "wide" | "full" =>
+  (["narrow", "normal", "wide", "full"] as const).reduce((best, k) =>
+    Math.abs(W_POS[k] - ui) < Math.abs(W_POS[best] - ui) ? k : best,
+    "normal" as "narrow" | "normal" | "wide" | "full");
+
 /* ─── SettingsControls ───────────────────────────────────── */
 interface SettingsControlsProps {
   sizeValue: number;    onSizeChange: (v: number) => void;   sizeLabel: string;
@@ -109,8 +123,6 @@ const SettingsControls = ({
   boldValue, onBoldChange,
   settings, updateSettings,
 }: SettingsControlsProps) => {
-  const currentWidthIdx      = widthValues.indexOf(settings.contentWidth);
-
   // Convert presets to numeric for continuous sliders
   const lhNum = settings.lineHeight === "custom"
     ? (settings.lineHeightCustom ?? 1.5)
@@ -124,6 +136,14 @@ const SettingsControls = ({
     ? (settings.letterSpacingCustom ?? 0)
     : settings.letterSpacing === "tight" ? -0.02 : settings.letterSpacing === "wide" ? 0.05 : settings.letterSpacing === "wider" ? 0.1 : 0;
 
+  // UI positions on the unified 0-100 scale
+  const sizeUi  = toUi(sizeValue, 8, 36);
+  const lhUi    = toUi(lhNum, 1.0, 2.5);
+  const spUi    = toUi(spacingNum, 0, 3);
+  const widthUi = W_POS[settings.contentWidth] ?? 35;
+  const lsUi    = toUi(lsNum, -0.05, 0.2);
+  const wsUi    = toUi(settings.wordSpacing ?? 0, 0, 0.5);
+
   return (
     <div className="space-y-4 py-1" dir="rtl">
       <FontSelector label={fontLabel} value={fontValue} onChange={onFontChange} />
@@ -136,10 +156,10 @@ const SettingsControls = ({
       <Separator className="bg-accent/20" />
 
       <SliderSection
-        label={sizeLabel} valueBadge={`${sizeValue}px`}
-        value={sizeValue} onChange={onSizeChange}
-        min={8} max={36} step={1}
-        marks={["36", "24", "8"]}
+        label={sizeLabel} valueBadge={`${Math.round(fromUi(sizeUi, 8, 36))}px`}
+        value={sizeUi} onChange={(ui) => onSizeChange(Math.round(fromUi(ui, 8, 36)))}
+        min={0} max={100} step={5}
+        marks={["36px", "22px", "8px"]}
         icon={<Type className="h-3.5 w-3.5" />}
       />
 
@@ -176,22 +196,22 @@ const SettingsControls = ({
 
       <SliderSection
         label="גובה שורה"
-        valueBadge={lhNum.toFixed(2)}
-        value={lhNum}
-        onChange={(v) => updateSettings({ lineHeight: "custom", lineHeightCustom: parseFloat(v.toFixed(2)) })}
-        min={1.0} max={2.5} step={0.05}
-        marks={["1.0", "1.5", "2.0", "2.5"]}
+        valueBadge={fromUi(lhUi, 1.0, 2.5).toFixed(2)}
+        value={lhUi}
+        onChange={(ui) => updateSettings({ lineHeight: "custom", lineHeightCustom: parseFloat(fromUi(ui, 1.0, 2.5).toFixed(2)) })}
+        min={0} max={100} step={5}
+        marks={["2.5", "1.75", "1.0"]}
       />
 
       <Separator className="bg-accent/20" />
 
       <SliderSection
         label="מרווח תוכן"
-        valueBadge={`${spacingNum.toFixed(1)}rem`}
-        value={spacingNum}
-        onChange={(v) => updateSettings({ contentSpacing: "custom", contentSpacingCustom: parseFloat(v.toFixed(1)) })}
-        min={0} max={3} step={0.1}
-        marks={["0", "1", "2", "3"]}
+        valueBadge={`${fromUi(spUi, 0, 3).toFixed(1)}rem`}
+        value={spUi}
+        onChange={(ui) => updateSettings({ contentSpacing: "custom", contentSpacingCustom: parseFloat(fromUi(ui, 0, 3).toFixed(1)) })}
+        min={0} max={100} step={5}
+        marks={["3rem", "1.5rem", "0"]}
       />
 
       <Separator className="bg-accent/20" />
@@ -199,32 +219,32 @@ const SettingsControls = ({
       <SliderSection
         label="רוחב תוכן"
         valueBadge={widthLabels[settings.contentWidth]}
-        value={currentWidthIdx >= 0 ? currentWidthIdx : 1}
-        onChange={(v) => updateSettings({ contentWidth: widthValues[v] })}
-        min={0} max={3} step={1}
-        marks={["מלא", "רחב", "רגיל", "צר"]}
+        value={widthUi}
+        onChange={(ui) => updateSettings({ contentWidth: wFromUi(ui) })}
+        min={0} max={100} step={5}
+        marks={["מלא", "רגיל", "צר"]}
       />
 
       <Separator className="bg-accent/20" />
 
       <SliderSection
         label="מרווח בין אותיות"
-        valueBadge={`${lsNum.toFixed(2)}em`}
-        value={lsNum}
-        onChange={(v) => updateSettings({ letterSpacing: "custom", letterSpacingCustom: parseFloat(v.toFixed(2)) })}
-        min={-0.05} max={0.2} step={0.01}
-        marks={["-0.05", "0", "0.1", "0.2"]}
+        valueBadge={`${fromUi(lsUi, -0.05, 0.2).toFixed(3)}em`}
+        value={lsUi}
+        onChange={(ui) => updateSettings({ letterSpacing: "custom", letterSpacingCustom: parseFloat(fromUi(ui, -0.05, 0.2).toFixed(3)) })}
+        min={0} max={100} step={5}
+        marks={["0.2em", "0.08em", "-0.05em"]}
       />
 
       <Separator className="bg-accent/20" />
 
       <SliderSection
         label="מרווח בין מילים"
-        valueBadge={`${(settings.wordSpacing ?? 0).toFixed(2)}em`}
-        value={settings.wordSpacing ?? 0}
-        onChange={(v) => updateSettings({ wordSpacing: parseFloat(v.toFixed(2)) })}
-        min={0} max={0.5} step={0.01}
-        marks={["0", "0.25", "0.5"]}
+        valueBadge={`${fromUi(wsUi, 0, 0.5).toFixed(2)}em`}
+        value={wsUi}
+        onChange={(ui) => updateSettings({ wordSpacing: parseFloat(fromUi(ui, 0, 0.5).toFixed(2)) })}
+        min={0} max={100} step={5}
+        marks={["0.5em", "0.25em", "0"]}
       />
     </div>
   );
