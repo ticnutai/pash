@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getOmerBoardData, OMER_BLESSING } from "@/utils/omerUtils";
+import { getOmerBoardData, isOmerPopupEnabled, OMER_BLESSING } from "@/utils/omerUtils";
 import { Flame, Check, X, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -70,6 +70,7 @@ export function OmerEntryPopup() {
   const navigate = useNavigate();
   const boardData = useMemo(() => getOmerBoardData(), []);
   const { hebrewYear, currentDay, isInSeason, days } = boardData;
+  const popupEnabled = isOmerPopupEnabled();
 
   const [open, setOpen] = useState(false);
   const [showBlessing, setShowBlessing] = useState(false);
@@ -78,6 +79,7 @@ export function OmerEntryPopup() {
   const todayEntry = useMemo(() => days.find((d) => d.isToday) ?? null, [days]);
 
   useEffect(() => {
+    if (!popupEnabled) return;
     if (!isInSeason || !currentDay || !todayEntry) return;
     // Already dismissed today → don't show
     if (isDismissedToday(hebrewYear, currentDay)) return;
@@ -85,8 +87,9 @@ export function OmerEntryPopup() {
     if (isDayCounted(hebrewYear, currentDay)) setCounted(true);
     const t = setTimeout(() => setOpen(true), 900);
     return () => clearTimeout(t);
-  }, [isInSeason, currentDay, hebrewYear, todayEntry]);
+  }, [popupEnabled, isInSeason, currentDay, hebrewYear, todayEntry]);
 
+  if (!popupEnabled) return null;
   if (!isInSeason || !currentDay || !todayEntry) return null;
 
   function handleClose() {

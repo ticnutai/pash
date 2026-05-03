@@ -34,6 +34,18 @@ export const OMER_BLESSING =
 export const OMER_AFTER_BLESSING =
   "הָרַחֲמָן הוּא יַחֲזִיר לָנוּ עֲבוֹדַת בֵּית הַמִּקְדָּשׁ לִמְקוֹמָהּ, בִּמְהֵרָה בְיָמֵינוּ אָמֵן סֶלָה";
 
+export const OMER_POPUP_ENABLED_KEY = "omer_popup_enabled_v1";
+
+export function isOmerPopupEnabled(): boolean {
+  try {
+    const raw = localStorage.getItem(OMER_POPUP_ENABLED_KEY);
+    // Default is enabled for users who never changed the setting.
+    return raw === null ? true : raw === "true";
+  } catch {
+    return true;
+  }
+}
+
 function buildEvents(gregYear: number) {
   return HebrewCalendar.calendar({ year: gregYear, isHebrewYear: false, omer: true }).filter(
     (e) => e.getFlags() & flags.OMER_COUNT,

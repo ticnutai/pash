@@ -2,9 +2,17 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, Bell, BellOff, ChevronDown, ChevronUp, Star, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getOmerBoardData, OMER_BLESSING, OMER_AFTER_BLESSING, formatDayMonth } from "@/utils/omerUtils";
+import {
+  getOmerBoardData,
+  isOmerPopupEnabled,
+  OMER_AFTER_BLESSING,
+  OMER_BLESSING,
+  OMER_POPUP_ENABLED_KEY,
+  formatDayMonth,
+} from "@/utils/omerUtils";
 import { useOmerChecklist } from "@/hooks/useOmerChecklist";
 import { useOmerReminders } from "@/hooks/useOmerReminders";
+import { Switch } from "@/components/ui/switch";
 
 /* ─── Sefirot week labels ─────────────────────────────────── */
 const WEEK_NAMES = ["חסד", "גבורה", "תפארת", "נצח", "הוד", "יסוד", "מלכות"];
@@ -28,6 +36,7 @@ export default function OmerPage() {
   const [remindersOpen, setRemindersOpen] = useState(false);
   const [reminderHour, setReminderHour] = useState(config.hour);
   const [reminderMinute, setReminderMinute] = useState(config.minute);
+  const [popupEnabled, setPopupEnabled] = useState(() => isOmerPopupEnabled());
 
   // Keep local time inputs in sync with config
   useEffect(() => {
@@ -61,6 +70,15 @@ export default function OmerPage() {
     setReminderHour(h);
     setReminderMinute(m);
     await updateTime(h, m);
+  }
+
+  function handlePopupToggle(enabled: boolean) {
+    setPopupEnabled(enabled);
+    try {
+      localStorage.setItem(OMER_POPUP_ENABLED_KEY, String(enabled));
+    } catch {
+      // Ignore storage errors; UI state is still updated for this session.
+    }
   }
 
   /* ─── Page ───────────────────────────────────────────────── */
@@ -352,6 +370,23 @@ export default function OmerPage() {
               )}
             </div>
           )}
+        </div>
+
+        {/* ── Entry popup preference ── */}
+        <div className="rounded-xl border border-[#c8a44d]/20 bg-[#1a1030] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-right">
+              <p className="text-sm text-[#e8dcc8]/85">פופאפ ספירת העומר בכניסה</p>
+              <p className="text-xs text-[#e8dcc8]/50 mt-1">
+                כשהאפשרות פעילה, תופיע תזכורת קצרה בכניסה לאפליקציה בעונת העומר.
+              </p>
+            </div>
+            <Switch
+              checked={popupEnabled}
+              onCheckedChange={handlePopupToggle}
+              aria-label="הפעלת פופאפ ספירת העומר"
+            />
+          </div>
         </div>
 
       </div>
