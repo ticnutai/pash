@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Bookmark as BookmarkIcon, 
@@ -10,7 +10,8 @@ import {
   Trash2,
   ChevronDown,
   User,
-  BookOpen
+  BookOpen,
+  GripVertical
 } from "lucide-react";
 import { useBookmarks } from "@/contexts/BookmarksContext";
 import { useNotes } from "@/contexts/NotesContext";
@@ -51,6 +52,8 @@ interface SideContentPanelProps {
   selectedPasuk: FlatPasuk | null;
   seferId: number;
   inGrid?: boolean;
+  width?: number;
+  onWidthChange?: (w: number) => void;
 }
 
 export const SideContentPanel = ({ 
@@ -60,7 +63,9 @@ export const SideContentPanel = ({
   onModeChange,
   selectedPasuk,
   seferId,
-  inGrid = false
+  inGrid = false,
+  width = 320,
+  onWidthChange,
 }: SideContentPanelProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -102,10 +107,10 @@ export const SideContentPanel = ({
 
   const panelContent = (
     <FontAndColorSettingsProvider scopeKey="side-panel">
-      <div className="flex flex-col h-full space-y-4 min-w-0" dir="rtl">
+      <div className="flex flex-col min-h-0 flex-1 overflow-hidden" dir="rtl">
       {/* Header with mode toggle - only for desktop (mobile gets SheetHeader) */}
       {!isMobile && (
-        <div className="flex flex-col gap-2 min-w-0">
+        <div className="flex flex-col gap-2 flex-shrink-0 p-3 pb-0 border-b border-border/60">
           {/* Top row: T (text settings) on the right, X close on the left — always visible */}
           <div className="flex items-center justify-between gap-1.5 min-w-0">
             <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full h-8 w-8 flex-shrink-0">
@@ -165,7 +170,7 @@ export const SideContentPanel = ({
       )}
 
       {/* Content based on mode */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {mode === "pasuk" ? (
           <PasukContentView pasuk={selectedPasuk} seferId={seferId} />
         ) : (
@@ -215,18 +220,10 @@ export const SideContentPanel = ({
     );
   }
 
-  // Desktop: in-grid panel (overlaid on left margin, same height as verse cards & quick selector)
+  // Desktop: in-grid panel
   if (inGrid) {
     if (!isOpen) return null;
-    return (
-      <Card
-        dir="rtl"
-        data-layout="side-panel" data-layout-label="\ud83d\udccb \u05e4\u05d0\u05e0\u05dc \u05ea\u05d5\u05db\u05df \u05e6\u05d3\u05d9"
-        className="p-4 h-fit w-full animate-fade-in flex flex-col overflow-y-auto"
-      >
-        {panelContent}
-      </Card>
-    );
+    return <ResizableInGridPanel width={width} onWidthChange={onWidthChange}>{panelContent}</ResizableInGridPanel>;
   }
 
   // Desktop: side panel (legacy fixed position)
@@ -368,7 +365,18 @@ const PasukContentView = ({
                       </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="px-3 pb-3 text-sm leading-relaxed border-t border-border/50">
+                      <div
+                        dir="rtl"
+                        className="px-3 pb-3 text-sm border-t border-border/50"
+                        style={{
+                          lineHeight: "1.8",
+                          wordBreak: "break-word",
+                          overflowWrap: "anywhere",
+                          whiteSpace: "pre-wrap",
+                          textAlign: "right",
+                          fontFamily: "'Frank Ruhl Libre', serif",
+                        }}
+                      >
                         {commentary.text}
                       </div>
                     </CollapsibleContent>
@@ -604,5 +612,95 @@ const UserContentView = ({
         </Collapsible>
       </div>
     </ScrollArea>
+  );
+};
+
+// ── Resizable in-grid panel wrapper ──────────────────────────────────────────
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 700;
+
+const ResizableInGridPanel = ({
+  children,
+  width,
+  onWidthChange,
+}: {
+  children: React.ReactNode;
+  width?: number;
+  onWidthChange?: (w: number) => void;
+}) => {
+  const dragRef = useRef<{ startX: number; startW: number } | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragRef.current = { startX: e.clientX, startW: width ?? 320 };
+    setIsResizing(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [width]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    // Panel is on the LEFT side visually (RTL grid — 3rd column renders on left).
+    // Dragging the handle LEFT (decreasing clientX) → panel should GROW.
+    const delta = dragRef.current.startX - e.clientX;
+    const newW = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragRef.current.startW + delta));
+    onWidthChange?.(Math.round(newW));
+  }, [onWidthChange]);
+
+  const onPointerUp = useCallback(() => {
+    dragRef.current = null;
+    setIsResizing(false);
+  }, []);
+
+  return (
+    <div
+      data-layout="side-panel"
+      data-layout-label="📋 פאנל תוכן צד"
+      className="animate-fade-in sticky top-4 self-start"
+      style={{
+        maxHeight: "calc(100vh - 100px)",
+        userSelect: isResizing ? "none" : undefined,
+      }}
+    >
+      {/* Inner wrapper for relative positioning of the resize handle */}
+      <div className="relative h-full">
+      {/* Resize handle — sits on the right edge (between panel and main content in RTL) */}
+      {onWidthChange && (
+        <div
+          className={cn(
+            "absolute right-0 top-0 bottom-0 z-10 flex items-center justify-center",
+            "w-3 cursor-col-resize group select-none",
+            isResizing && "bg-accent/10"
+          )}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          title="גרור לשינוי רוחב הפאנל"
+        >
+          <div className={cn(
+            "w-1 rounded-full transition-all h-16",
+            "bg-border group-hover:bg-accent",
+            isResizing && "bg-accent h-24"
+          )} />
+          <GripVertical className={cn(
+            "absolute h-4 w-4 text-muted-foreground/50 group-hover:text-accent transition-colors",
+            isResizing && "text-accent"
+          )} />
+        </div>
+      )}
+
+      {/* Panel card — leave room for the resize handle on the right */}
+      <Card
+        dir="rtl"
+        className={cn(
+          "flex flex-col overflow-hidden",
+          "h-[calc(100vh-100px)]",
+          onWidthChange ? "mr-3" : ""
+        )}
+      >
+        {children}
+      </Card>
+      </div>
+    </div>
   );
 };

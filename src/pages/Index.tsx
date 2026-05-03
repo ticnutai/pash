@@ -130,6 +130,9 @@ const Index = () => {
   const [sidePanelMode, setSidePanelMode] = useState<"user" | "pasuk">("pasuk");
   const [sidePanelPasuk, setSidePanelPasuk] = useState<FlatPasuk | null>(null);
   const [chumashSelectedPasukId, setChumashSelectedPasukId] = useState<number | null>(null);
+  const [sidePanelWidth, setSidePanelWidth] = useState<number>(() => {
+    try { return parseInt(localStorage.getItem("side_panel_width") || "320", 10) || 320; } catch { return 320; }
+  });
 
   const currentSeferOptions = corpusMode === "torah" ? TORAH_SEFARIM : NEVIIM_SEFARIM;
   // appTitle removed – no longer shown in mobile header
@@ -1198,12 +1201,14 @@ const Index = () => {
             )}
 
             <div className="relative" ref={gridRef}>
-            <div className={cn(
-              "grid gap-2 w-full max-w-full overflow-hidden items-start",
-              sidePanelOpen && !isMobile
-                ? "lg:grid-cols-[320px_1fr_320px]"
-                : "lg:grid-cols-[320px_1fr]"
-            )}>
+            <div
+              className="grid gap-2 w-full max-w-full overflow-hidden items-start"
+              style={
+                sidePanelOpen && !isMobile
+                  ? { gridTemplateColumns: `320px 1fr ${sidePanelWidth}px` }
+                  : { gridTemplateColumns: "320px 1fr" }
+              }
+            >
               {/* Quick Selector Sidebar - Hide on mobile when content is showing */}
               {(!isMobile || filteredPesukim.length === 0) && (
                 <div data-layout="quick-selector" data-layout-label="בחירה מהירה (סרגל צד)">
@@ -1283,6 +1288,11 @@ const Index = () => {
                     selectedPasuk={sidePanelPasuk}
                     seferId={selectedSefer}
                     inGrid={true}
+                    width={sidePanelWidth}
+                    onWidthChange={(w) => {
+                      setSidePanelWidth(w);
+                      localStorage.setItem("side_panel_width", String(w));
+                    }}
                   />
                 </Suspense>
               )}
