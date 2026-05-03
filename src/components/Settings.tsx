@@ -60,6 +60,7 @@ const saveApiKeyLocal = (key: string, value: string) => {
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
 const DEV_FLOATING_ENABLED_KEY = "dev-floating-buttons-enabled";
+const DEV_LAYOUT_EDITOR_ENABLED_KEY = "dev-layout-editor-enabled";
 const DEV_FEATURES_EVENT = "dev-features:changed";
 
 const getDevFeatureEnabled = (key: string, defaultValue: boolean): boolean => {
@@ -172,6 +173,7 @@ export const Settings = () => {
   const [devFloatingEnabled, setDevFloatingEnabled] = useState(() => getDevFeatureEnabled(DEV_FLOATING_ENABLED_KEY, true));
   const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
   const [devScreenshotEnabled, setDevScreenshotEnabled] = useState(() => getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true));
+  const [devLayoutEditorEnabled, setDevLayoutEditorEnabled] = useState(() => getDevFeatureEnabled(DEV_LAYOUT_EDITOR_ENABLED_KEY, false));
   const [apiKeys, setApiKeys] = useState<ApiKeys>(loadLocalApiKeys);
 
   // Load API keys from cloud on mount
@@ -272,6 +274,23 @@ export const Settings = () => {
       }
     })();
 
+    // dev_layout_editor_enabled
+    (() => {
+      const cloudVal = meta.dev_layout_editor_enabled;
+      const cloudTs = meta.dev_layout_editor_enabled_ts ?? 0;
+      const localTs = (() => { try { return Number(localStorage.getItem(DEV_LAYOUT_EDITOR_ENABLED_KEY + '-ts')) || 0; } catch { return 0; } })();
+      if (cloudVal !== true && cloudVal !== false) return;
+      if (cloudTs >= localTs) {
+        setDevLayoutEditorEnabled(cloudVal);
+        localStorage.setItem(DEV_LAYOUT_EDITOR_ENABLED_KEY, String(cloudVal));
+        localStorage.setItem(DEV_LAYOUT_EDITOR_ENABLED_KEY + '-ts', String(cloudTs));
+        window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+      } else {
+        const local = getDevFeatureEnabled(DEV_LAYOUT_EDITOR_ENABLED_KEY, false);
+        Object.assign(pushUpdates, { dev_layout_editor_enabled: local, dev_layout_editor_enabled_ts: localTs });
+      }
+    })();
+
     if (Object.keys(pushUpdates).length > 0) {
       supabase.auth.updateUser({ data: { ...meta, ...pushUpdates } }).catch(() => {});
     }
@@ -340,6 +359,19 @@ export const Settings = () => {
     toast.success(checked ? "כל כפתורי הפיתוח הופעלו" : "כל כפתורי הפיתוח כובו");
     if (user) {
       supabase.auth.updateUser({ data: { ...user.user_metadata, dev_floating_enabled: checked, dev_floating_enabled_ts: now } })
+        .catch(() => {});
+    }
+  };
+
+  const handleDevLayoutEditorToggle = (checked: boolean) => {
+    const now = Date.now();
+    setDevLayoutEditorEnabled(checked);
+    localStorage.setItem(DEV_LAYOUT_EDITOR_ENABLED_KEY, String(checked));
+    localStorage.setItem(DEV_LAYOUT_EDITOR_ENABLED_KEY + '-ts', String(now));
+    window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+    toast.success(checked ? "אייקון עריכת פריסה הופעל" : "אייקון עריכת פריסה כובה");
+    if (user) {
+      supabase.auth.updateUser({ data: { ...user.user_metadata, dev_layout_editor_enabled: checked, dev_layout_editor_enabled_ts: now } })
         .catch(() => {});
     }
   };
@@ -1580,6 +1612,26 @@ export const Settings = () => {
                 </div>
                 <div className="ml-2 text-muted-foreground">
                   {devScreenshotEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                <Switch
+                  id="dev-layout-editor-toggle"
+                  checked={devLayoutEditorEnabled}
+                  onCheckedChange={handleDevLayoutEditorToggle}
+                  disabled={!devFloatingEnabled}
+                />
+                <div className="flex-1 text-right mr-3">
+                  <Label htmlFor="dev-layout-editor-toggle" className="text-base font-semibold cursor-pointer">
+                    אייקון Layout Editor
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    מציג/מסתיר את האייקון הסגול של עריכת פריסה (Ctrl+Shift+L)
+                  </p>
+                </div>
+                <div className="ml-2 text-muted-foreground">
+                  {devLayoutEditorEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </div>
               </div>
             </Card>

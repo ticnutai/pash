@@ -142,7 +142,14 @@ export const LayoutOverlay = () => {
   const [hiddenCats, setHiddenCats] = useState<Set<string>>(new Set());
   const [legendOpen, setLegendOpen] = useState(true);
   const [devVisible, setDevVisible] = useState(() => {
-    try { return localStorage.getItem("dev-floating-buttons-enabled") !== "false"; } catch { return true; }
+    try {
+      const floatingEnabled = localStorage.getItem("dev-floating-buttons-enabled") !== "false";
+      const layoutEditorRaw = localStorage.getItem("dev-layout-editor-enabled");
+      const layoutEditorEnabled = layoutEditorRaw === null ? false : layoutEditorRaw === "true";
+      return floatingEnabled && layoutEditorEnabled;
+    } catch {
+      return false;
+    }
   });
   const isSmallViewport = typeof window !== "undefined" && window.innerWidth < 768;
   const dragRef = useRef<{
@@ -152,7 +159,14 @@ export const LayoutOverlay = () => {
   // ── Listen for dev-features toggle changes ───────────────────────
   useEffect(() => {
     const handler = () => {
-      try { setDevVisible(localStorage.getItem("dev-floating-buttons-enabled") !== "false"); } catch { /* */ }
+      try {
+        const floatingEnabled = localStorage.getItem("dev-floating-buttons-enabled") !== "false";
+        const layoutEditorRaw = localStorage.getItem("dev-layout-editor-enabled");
+        const layoutEditorEnabled = layoutEditorRaw === null ? false : layoutEditorRaw === "true";
+        setDevVisible(floatingEnabled && layoutEditorEnabled);
+      } catch {
+        // ignore
+      }
     };
     window.addEventListener("dev-features:changed", handler);
     return () => window.removeEventListener("dev-features:changed", handler);
