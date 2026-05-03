@@ -1018,6 +1018,9 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
     textAlignment: siddurSettings.siddurTextAlignment,
     lineHeight: siddurSettings.siddurLineHeight,
     lineHeightCustom: siddurSettings.siddurLineHeightCustom,
+    letterSpacing: siddurSettings.siddurLetterSpacing,
+    letterSpacingCustom: siddurSettings.siddurLetterSpacingCustom,
+    wordSpacing: siddurSettings.siddurWordSpacing,
   };
 
   return (
@@ -1077,6 +1080,9 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
     textAlignment: siddurSettings.siddurTextAlignment,
     lineHeight: siddurSettings.siddurLineHeight,
     lineHeightCustom: siddurSettings.siddurLineHeightCustom,
+    letterSpacing: siddurSettings.siddurLetterSpacing,
+    letterSpacingCustom: siddurSettings.siddurLetterSpacingCustom,
+    wordSpacing: siddurSettings.siddurWordSpacing,
   };
 
   // Reset when sections array changes (e.g. tab switch)
@@ -1211,6 +1217,9 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
     textAlignment: siddurSettings.siddurTextAlignment,
     lineHeight: siddurSettings.siddurLineHeight,
     lineHeightCustom: siddurSettings.siddurLineHeightCustom,
+    letterSpacing: siddurSettings.siddurLetterSpacing,
+    letterSpacingCustom: siddurSettings.siddurLetterSpacingCustom,
+    wordSpacing: siddurSettings.siddurWordSpacing,
   };
   if (loading)
     return (
@@ -1314,6 +1323,9 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
     textAlignment: s.siddurTextAlignment,
     lineHeight: s.siddurLineHeight,
     lineHeightCustom: s.siddurLineHeightCustom,
+    letterSpacing: s.siddurLetterSpacing,
+    letterSpacingCustom: s.siddurLetterSpacingCustom,
+    wordSpacing: s.siddurWordSpacing,
   };
 
   useEffect(() => { setSelIdx(0); }, [catId, nusach]);
@@ -1427,6 +1439,9 @@ const BookColumnPane = ({ nusach, catId }: { nusach: string; catId: string }) =>
     textAlignment: s.siddurTextAlignment,
     lineHeight: s.siddurLineHeight,
     lineHeightCustom: s.siddurLineHeightCustom,
+    letterSpacing: s.siddurLetterSpacing,
+    letterSpacingCustom: s.siddurLetterSpacingCustom,
+    wordSpacing: s.siddurWordSpacing,
   };
 
   if (loading)
