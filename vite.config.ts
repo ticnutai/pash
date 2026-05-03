@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 7000,
-    strictPort: false,
+    strictPort: true,
     hmr: {
       protocol: 'ws',
       host: 'localhost',
