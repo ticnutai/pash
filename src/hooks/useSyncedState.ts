@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'error';
 
@@ -20,6 +19,12 @@ interface SyncState<T> {
   lastSynced: number | null;
 }
 
+interface LocalSyncMeta {
+  updatedAt: number;
+  lastCloudUpdatedAt?: number;
+  lastCloudValue?: string;
+}
+
 export function useSyncedState<T>({
   localStorageKey,
   tableName,
@@ -29,30 +34,30 @@ export function useSyncedState<T>({
   defaultValue,
   debounceMs = 1000,
 }: UseSyncedStateOptions<T>) {
-  const { toast } = useToast();
   const [syncState, setSyncState] = useState<SyncState<T>>(() => {
     try {
       const saved = localStorage.getItem(localStorageKey);
-      if (!saved) return {
-        data: defaultValue,
-        status: 'synced' as SyncStatus,
-        lastSynced: null,
-      };
-      
-      // Try to parse as JSON, if fails use the raw value (for backward compatibility)
+      if (!saved) {
+        return {
+          data: defaultValue,
+          status: 'synced' as SyncStatus,
+          lastSynced: null,
+        };
+      }
+
       try {
         const parsed = JSON.parse(saved);
-        // Merge with defaultValue to ensure all properties exist
-        const merged = typeof parsed === 'object' && parsed !== null && typeof defaultValue === 'object' && defaultValue !== null
-          ? { ...defaultValue, ...parsed }
-          : parsed;
+        const merged =
+          typeof parsed === 'object' && parsed !== null && typeof defaultValue === 'object' && defaultValue !== null
+            ? { ...defaultValue, ...parsed }
+            : parsed;
+
         return {
           data: merged,
           status: 'synced' as SyncStatus,
           lastSynced: null,
         };
       } catch {
-        // If not valid JSON, assume it's a primitive value (string, etc.)
         return {
           data: saved as T,
           status: 'synced' as SyncStatus,
@@ -73,12 +78,49 @@ export function useSyncedState<T>({
   const syncQueueRef = useRef<T | null>(null);
   const isOnlineRef = useRef(navigator.onLine);
 
-  // Save to localStorage immediately, also update local timestamp metadata
+  const readLocalMeta = useCallback((): LocalSyncMeta => {
+    try {
+      const raw = localStorage.getItem(`${localStorageKey}__meta`);
+      if (!raw) return { updatedAt: 0 };
+      const parsed = JSON.parse(raw) as Partial<LocalSyncMeta>;
+      return {
+        updatedAt: Number(parsed.updatedAt) || 0,
+        lastCloudUpdatedAt: Number(parsed.lastCloudUpdatedAt) || 0,
+        lastCloudValue: typeof parsed.lastCloudValue === 'string' ? parsed.lastCloudValue : undefined,
+      };
+    } catch {
+      return { updatedAt: 0 };
+    }
+  }, [localStorageKey]);
+
+  const writeLocalMeta = useCallback((patch: Partial<LocalSyncMeta>) => {
+    try {
+      const current = readLocalMeta();
+      const next: LocalSyncMeta = {
+        updatedAt: patch.updatedAt ?? current.updatedAt ?? 0,
+        lastCloudUpdatedAt: patch.lastCloudUpdatedAt ?? current.lastCloudUpdatedAt,
+        lastCloudValue: patch.lastCloudValue ?? current.lastCloudValue,
+      };
+      localStorage.setItem(`${localStorageKey}__meta`, JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
+  }, [localStorageKey, readLocalMeta]);
+
+  const safeSerialize = useCallback((value: unknown): string | undefined => {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return undefined;
+    }
+  }, []);
+
+  // Save to localStorage immediately and update local edit timestamp.
   const saveToLocalStorage = useCallback((data: T, tsOverride?: number) => {
     localStorage.setItem(localStorageKey, JSON.stringify(data));
     const ts = tsOverride !== undefined ? tsOverride : Date.now();
-    localStorage.setItem(`${localStorageKey}__meta`, JSON.stringify({ updatedAt: ts }));
-  }, [localStorageKey]);
+    writeLocalMeta({ updatedAt: ts });
+  }, [localStorageKey, writeLocalMeta]);
 
   // Re-read from localStorage when key changes (e.g., device type switch)
   useEffect(() => {
@@ -87,46 +129,53 @@ export function useSyncedState<T>({
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          const merged = typeof parsed === 'object' && parsed !== null && typeof defaultValue === 'object' && defaultValue !== null
-            ? { ...defaultValue, ...parsed }
-            : parsed;
-          setSyncState(prev => ({ ...prev, data: merged }));
+          const merged =
+            typeof parsed === 'object' && parsed !== null && typeof defaultValue === 'object' && defaultValue !== null
+              ? { ...defaultValue, ...parsed }
+              : parsed;
+          setSyncState((prev) => ({ ...prev, data: merged }));
         } catch {
-          setSyncState(prev => ({ ...prev, data: saved as T }));
+          setSyncState((prev) => ({ ...prev, data: saved as T }));
         }
       } else {
-        setSyncState(prev => ({ ...prev, data: defaultValue }));
+        setSyncState((prev) => ({ ...prev, data: defaultValue }));
       }
-    } catch { /* ignore */ }
-  }, [localStorageKey]);
+    } catch {
+      // ignore
+    }
+  }, [localStorageKey, defaultValue]);
 
   // Save to Supabase (debounced)
   const saveToCloud = useCallback(async (data: T) => {
     if (!syncToCloud || !userId || !tableName || !column) return;
 
     try {
-      setSyncState(prev => ({ ...prev, status: 'syncing' }));
+      setSyncState((prev) => ({ ...prev, status: 'syncing' }));
 
       const upsertData = { user_id: userId, [column]: data, updated_at: new Date().toISOString() };
-      const { error } = await supabase
-        .from(tableName as never)
-        .upsert(upsertData as never, { onConflict: 'user_id' });
+      const { error } = await supabase.from(tableName as never).upsert(upsertData as never, { onConflict: 'user_id' });
 
       if (error) throw error;
 
-      setSyncState(prev => ({
+      const now = Date.now();
+      writeLocalMeta({
+        lastCloudUpdatedAt: now,
+        lastCloudValue: safeSerialize(data),
+      });
+
+      setSyncState((prev) => ({
         ...prev,
         status: 'synced',
-        lastSynced: Date.now(),
+        lastSynced: now,
       }));
     } catch (error) {
       console.error('Cloud sync error:', error);
-      setSyncState(prev => ({ ...prev, status: 'error' }));
-      syncQueueRef.current = data; // Queue for retry
+      setSyncState((prev) => ({ ...prev, status: 'error' }));
+      syncQueueRef.current = data;
     }
-  }, [syncToCloud, userId, tableName, column]);
+  }, [syncToCloud, userId, tableName, column, writeLocalMeta, safeSerialize]);
 
-  // Load from cloud on mount
+  // Load from cloud on mount and resolve conflict by real value changes, not only row updated_at.
   useEffect(() => {
     const loadFromCloud = async () => {
       if (!syncToCloud || !userId || !tableName || !column) return;
@@ -140,42 +189,95 @@ export function useSyncedState<T>({
 
         if (error) throw error;
 
-        if (cloudData && (cloudData as Record<string, unknown>)[column] != null) {
-          const cloudValue = (cloudData as Record<string, unknown>)[column] as T;
-          const rawCloudTs = (cloudData as Record<string, unknown>)['updated_at'];
-          const cloudUpdatedAt = rawCloudTs ? new Date(rawCloudTs as string).getTime() : 0;
+        if (!cloudData || (cloudData as Record<string, unknown>)[column] == null) return;
 
-          // Get local timestamp metadata
-          const localMetaRaw = localStorage.getItem(`${localStorageKey}__meta`);
-          const localUpdatedAt: number = localMetaRaw
-            ? (JSON.parse(localMetaRaw).updatedAt ?? 0)
-            : 0;
+        const cloudValueRaw = (cloudData as Record<string, unknown>)[column] as T;
+        const cloudValue =
+          typeof cloudValueRaw === 'object' && cloudValueRaw !== null && typeof defaultValue === 'object' && defaultValue !== null
+            ? ({ ...defaultValue, ...cloudValueRaw } as T)
+            : cloudValueRaw;
 
-          if (localUpdatedAt > cloudUpdatedAt) {
-            // Local is newer (e.g. edited while offline) → push local to cloud, keep local
-            const currentRaw = localStorage.getItem(localStorageKey);
-            if (currentRaw) {
-              try {
-                const currentLocal = JSON.parse(currentRaw) as T;
-                saveToCloud(currentLocal);
-              } catch { /* ignore */ }
-            }
-          } else {
-            // Cloud is newer or equal → use cloud data
-            const merged = typeof cloudValue === 'object' && cloudValue !== null && typeof defaultValue === 'object' && defaultValue !== null
-              ? { ...defaultValue, ...cloudValue }
-              : cloudValue;
+        const rawCloudTs = (cloudData as Record<string, unknown>)['updated_at'];
+        const cloudUpdatedAt = rawCloudTs ? new Date(rawCloudTs as string).getTime() : 0;
 
-            setSyncState({
-              data: merged,
-              status: 'synced',
-              lastSynced: Date.now(),
-            });
-            // Save to localStorage with cloud's timestamp so we don't falsely detect
-            // local as newer on next load
-            localStorage.setItem(localStorageKey, JSON.stringify(merged));
-            localStorage.setItem(`${localStorageKey}__meta`, JSON.stringify({ updatedAt: cloudUpdatedAt }));
+        const localMeta = readLocalMeta();
+        const localUpdatedAt = localMeta.updatedAt || 0;
+        const lastCloudUpdatedAt = localMeta.lastCloudUpdatedAt || 0;
+        const lastCloudValue = localMeta.lastCloudValue;
+
+        const localRaw = localStorage.getItem(localStorageKey);
+        let localValue: T | null = null;
+        if (localRaw) {
+          try {
+            const parsed = JSON.parse(localRaw) as T;
+            localValue =
+              typeof parsed === 'object' && parsed !== null && typeof defaultValue === 'object' && defaultValue !== null
+                ? ({ ...defaultValue, ...parsed } as T)
+                : parsed;
+          } catch {
+            localValue = null;
           }
+        }
+
+        const localSerialized = localValue == null ? undefined : safeSerialize(localValue);
+        const cloudSerialized = safeSerialize(cloudValue);
+
+        const localChangedSinceLastCloud =
+          !!localSerialized && !!lastCloudValue
+            ? localSerialized !== lastCloudValue
+            : localUpdatedAt > lastCloudUpdatedAt;
+
+        const cloudChangedSinceLastCloud =
+          !!cloudSerialized && !!lastCloudValue
+            ? cloudSerialized !== lastCloudValue
+            : cloudUpdatedAt > lastCloudUpdatedAt;
+
+        const adoptCloud = () => {
+          const now = Date.now();
+          localStorage.setItem(localStorageKey, JSON.stringify(cloudValue));
+          writeLocalMeta({
+            updatedAt: now,
+            lastCloudUpdatedAt: now,
+            lastCloudValue: cloudSerialized,
+          });
+          setSyncState({
+            data: cloudValue,
+            status: 'synced',
+            lastSynced: now,
+          });
+        };
+
+        if (!localRaw) {
+          adoptCloud();
+          return;
+        }
+
+        if (localSerialized && cloudSerialized && localSerialized === cloudSerialized) {
+          const now = Date.now();
+          writeLocalMeta({
+            lastCloudUpdatedAt: now,
+            lastCloudValue: cloudSerialized,
+          });
+          return;
+        }
+
+        if (localChangedSinceLastCloud && !cloudChangedSinceLastCloud) {
+          if (localValue != null) {
+            saveToCloud(localValue);
+          }
+          return;
+        }
+
+        if (cloudChangedSinceLastCloud && !localChangedSinceLastCloud) {
+          adoptCloud();
+          return;
+        }
+
+        // Both sides changed or we cannot determine safely: fallback to timestamp tiebreaker.
+        if (localUpdatedAt > cloudUpdatedAt && localValue != null) {
+          saveToCloud(localValue);
+        } else {
+          adoptCloud();
         }
       } catch (error) {
         console.error('Failed to load from cloud:', error);
@@ -183,14 +285,23 @@ export function useSyncedState<T>({
     };
 
     loadFromCloud();
-  }, [userId, tableName, column, syncToCloud, localStorageKey, saveToLocalStorage]);
+  }, [
+    userId,
+    tableName,
+    column,
+    syncToCloud,
+    localStorageKey,
+    defaultValue,
+    readLocalMeta,
+    writeLocalMeta,
+    safeSerialize,
+    saveToCloud,
+  ]);
 
   // Update data
   const setData = useCallback((newData: T | ((prev: T) => T)) => {
-    setSyncState(prev => {
-      const updated = typeof newData === 'function' 
-        ? (newData as (prev: T) => T)(prev.data)
-        : newData;
+    setSyncState((prev) => {
+      const updated = typeof newData === 'function' ? (newData as (prev: T) => T)(prev.data) : newData;
 
       // Save to localStorage immediately
       saveToLocalStorage(updated);
@@ -213,9 +324,8 @@ export function useSyncedState<T>({
   useEffect(() => {
     const handleOnline = () => {
       isOnlineRef.current = true;
-      setSyncState(prev => ({ ...prev, status: 'synced' }));
-      
-      // Retry queued sync
+      setSyncState((prev) => ({ ...prev, status: 'synced' }));
+
       if (syncQueueRef.current) {
         saveToCloud(syncQueueRef.current);
         syncQueueRef.current = null;
@@ -224,7 +334,7 @@ export function useSyncedState<T>({
 
     const handleOffline = () => {
       isOnlineRef.current = false;
-      setSyncState(prev => ({ ...prev, status: 'offline' }));
+      setSyncState((prev) => ({ ...prev, status: 'offline' }));
     };
 
     window.addEventListener('online', handleOnline);
@@ -236,7 +346,6 @@ export function useSyncedState<T>({
     };
   }, [saveToCloud]);
 
-  // Manual sync
   const syncNow = useCallback(async () => {
     if (syncToCloud && userId) {
       await saveToCloud(syncState.data);

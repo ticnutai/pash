@@ -9,6 +9,7 @@ const STORAGE_KEY = "dailyLearningReminders_v2";
 const FIRST_INSTALL_KEY = "app_first_install_done";
 const CHANNEL_ID = "daily_learning_reminders_v2";
 const PERMISSION_AUTO_REQUEST_KEY = "daily_notifications_permission_auto_requested_v1";
+const SETTINGS_CHANGED_EVENT = "daily_learning_reminders_changed_v1";
 
 async function ensureNotificationChannel() {
   if (!Capacitor.isNativePlatform()) return;
@@ -119,6 +120,12 @@ export function loadReminderSettings(): ReminderSettings {
 
 export function saveReminderSettings(settings: ReminderSettings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  try {
+    window.dispatchEvent(new CustomEvent<ReminderSettings>(SETTINGS_CHANGED_EVENT, { detail: settings }));
+  } catch {
+    // ignore dispatch errors
+  }
+  console.debug("[notifications] saveReminderSettings", settings);
   // Sync enabled reminders to Web Push (VAPID) server for background delivery
   if (webPushService.isWebPushSupported()) {
     const pushReminders: webPushService.ServerReminder[] = settings.reminders
@@ -143,18 +150,14 @@ function maybeAutoEnable(): ReminderSettings {
   if (done) return loadReminderSettings();
 
   localStorage.setItem(FIRST_INSTALL_KEY, "1");
-  const settings: ReminderSettings = {
-    enabled: true,
-    hour: 7,
-    minute: 0,
-    message: "זמן ללמוד תורה! 📖",
-    reminders: [
-      createDefaultReminder({ label: "תזכורת בוקר", hour: 7, minute: 0 }),
-      createDefaultReminder({ label: "תזכורת ערב", hour: 20, minute: 0, message: "ערב טוב! זמן לחזור וללמוד 📖" }),
-    ],
-  };
-  saveReminderSettings(settings);
-  return settings;
+  // Do not auto-enable reminders on first install. Users must opt in.
+  const existing = loadReminderSettings();
+  if (existing.reminders.length > 0) {
+    console.debug("[notifications] first install marker set, preserving existing reminders");
+    return existing;
+  }
+  console.debug("[notifications] first install marker set, keeping reminders disabled by default");
+  return DEFAULT_SETTINGS;
 }
 
 /* ─── Permission ─────────────────────────────────────────── */
@@ -310,6 +313,11 @@ export function useNotifications() {
   useEffect(() => {
     if (!shouldAutoRequestPermission(settings.reminders, permission)) return;
 
+    console.debug("[notifications] auto permission request start", {
+      permission,
+      enabledCount: settings.reminders.filter((r) => r.enabled).length,
+    });
+
     requestNotificationPermission()
       .then((result) => setPermission(result))
       .catch(() => {})
@@ -321,6 +329,28 @@ export function useNotifications() {
         }
       });
   }, [settings.reminders, permission]);
+
+  // Keep multiple hook instances in sync within the same tab and across tabs.
+  useEffect(() => {
+    const syncFromStorage = () => {
+      setSettings(loadReminderSettings());
+    };
+    const onSettingsChanged = (e: Event) => {
+      const custom = e as CustomEvent<ReminderSettings>;
+      if (custom.detail) {
+        setSettings(custom.detail);
+        return;
+      }
+      syncFromStorage();
+    };
+
+    window.addEventListener("storage", syncFromStorage);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, onSettingsChanged as EventListener);
+    return () => {
+      window.removeEventListener("storage", syncFromStorage);
+      window.removeEventListener(SETTINGS_CHANGED_EVENT, onSettingsChanged as EventListener);
+    };
+  }, []);
 
   // Browser polling
   useEffect(() => {

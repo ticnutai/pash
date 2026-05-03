@@ -82,7 +82,34 @@ export function init(): Promise<void> {
 
   _initPromise = (async () => {
     try {
-      _registration = await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+      // CLEANUP: unregister any legacy `/push-sw.js` registrations that were
+      // installed under scope `/` (the old buggy behaviour). Leaving them in
+      // place keeps the SW ping-pong with VitePWA's `sw.js` going.
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const r of regs) {
+          const scriptURL =
+            r.active?.scriptURL || r.waiting?.scriptURL || r.installing?.scriptURL || "";
+          if (scriptURL.endsWith("/push-sw.js") && r.scope.endsWith("/")) {
+            // Only unregister registrations whose scope is exactly the origin root.
+            const u = new URL(r.scope);
+            if (u.pathname === "/") {
+              await r.unregister();
+            }
+          }
+        }
+      } catch {
+        /* non-fatal */
+      }
+
+      // IMPORTANT: register under a NARROW scope (`/push/`) so this SW does NOT
+      // collide with the main VitePWA SW (`sw.js` at scope `/`). Two service
+      // workers registered for the same scope cause the browser to ping-pong
+      // between them; with VitePWA's `registerType:'autoUpdate'` that ping-pong
+      // triggers `controllerchange` → `window.location.reload()` in an infinite
+      // loop, which is what we observed in production (page reloading every
+      // ~1.5s, CLS=0 because nothing has time to actually paint).
+      _registration = await navigator.serviceWorker.register("/push-sw.js", { scope: "/push/" });
       _subscription = await _registration.pushManager.getSubscription();
     } catch (err) {
       console.warn("[webPushService] init failed:", err);

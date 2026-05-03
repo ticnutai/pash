@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX, Activity } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +58,7 @@ const saveApiKeyLocal = (key: string, value: string) => {
 };
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
+const DEBUG_RENDERS_KEY = "debug_renders";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
 const DEV_FLOATING_ENABLED_KEY = "dev-floating-buttons-enabled";
 const DEV_LAYOUT_EDITOR_ENABLED_KEY = "dev-layout-editor-enabled";
@@ -172,6 +173,20 @@ export const Settings = () => {
   const { user } = useAuth();
   const [devFloatingEnabled, setDevFloatingEnabled] = useState(() => getDevFeatureEnabled(DEV_FLOATING_ENABLED_KEY, true));
   const [devChatEnabled, setDevChatEnabled] = useState(() => getDevFeatureEnabled(DEV_CHAT_ENABLED_KEY, true));
+  const [debugRendersEnabled, setDebugRendersEnabled] = useState(() => {
+    try { return localStorage.getItem(DEBUG_RENDERS_KEY) === "1"; } catch { return false; }
+  });
+
+  const handleDebugRendersToggle = (checked: boolean) => {
+    setDebugRendersEnabled(checked);
+    try {
+      if (checked) localStorage.setItem(DEBUG_RENDERS_KEY, "1");
+      else localStorage.removeItem(DEBUG_RENDERS_KEY);
+    } catch { /* ignore */ }
+    toast.success(checked
+      ? "דיבאג רינדורים + CLS הופעל. רענן את הדף כדי להתחיל לראות לוגים בקונסול."
+      : "דיבאג רינדורים כובה. רענן את הדף.");
+  };
   const [devScreenshotEnabled, setDevScreenshotEnabled] = useState(() => getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true));
   const [devLayoutEditorEnabled, setDevLayoutEditorEnabled] = useState(() => getDevFeatureEnabled(DEV_LAYOUT_EDITOR_ENABLED_KEY, false));
   const [apiKeys, setApiKeys] = useState<ApiKeys>(loadLocalApiKeys);
@@ -576,7 +591,6 @@ export const Settings = () => {
                         <div className="flex items-center justify-between">
                           <Switch
                             checked={allRemindersEnabled}
-                            disabled={permission !== "granted"}
                             onCheckedChange={(v) => updateAllReminders({ enabled: v })}
                           />
                           <span className="text-sm text-right">כל התזכורות פעילות</span>
@@ -626,7 +640,6 @@ export const Settings = () => {
                           <div className="flex items-center gap-3">
                             <Switch
                               checked={reminder.enabled}
-                              disabled={permission !== "granted"}
                               onCheckedChange={(v) => updateReminder(reminder.id, { enabled: v })}
                             />
                             <div className="text-right">
@@ -1632,6 +1645,36 @@ export const Settings = () => {
                 </div>
                 <div className="ml-2 text-muted-foreground">
                   {devLayoutEditorEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg mb-2">דיבאג ביצועים</h3>
+                <p className="text-sm text-muted-foreground">
+                  מעקב אחרי קפיצות פריסה (CLS) ורינדורים מיותרים. הלוגים נכתבים לקונסול הדפדפן.
+                </p>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                <Switch
+                  id="debug-renders-toggle"
+                  checked={debugRendersEnabled}
+                  onCheckedChange={handleDebugRendersToggle}
+                />
+                <div className="flex-1 text-right mr-3">
+                  <Label htmlFor="debug-renders-toggle" className="text-base font-semibold cursor-pointer">
+                    דיבאג רינדורים וקפיצות (CLS)
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    אחרי הפעלה ורענון: כל קפיצת פריסה תודפס בקונסול עם האלמנט שקפץ. בקונסול אפשר להריץ <code>__dumpRenders()</code> לטבלת רינדורים.
+                  </p>
+                </div>
+                <div className="ml-2 text-primary">
+                  <Activity className="h-5 w-5" />
                 </div>
               </div>
             </Card>

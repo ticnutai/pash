@@ -259,21 +259,24 @@ const normalizeSettings = (settings: FontAndColorSettings): FontAndColorSettings
 
 const FontAndColorSettingsContext = createContext<FontAndColorSettingsContextType | undefined>(undefined);
 
-export const FontAndColorSettingsProvider = ({ children }: { children: ReactNode }) => {
+export const FontAndColorSettingsProvider = ({ children, scopeKey }: { children: ReactNode; scopeKey?: string }) => {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const { isMobile } = useDevice();
 
   // Use device-specific column and localStorage key
-  const column = isMobile ? "font_settings_mobile" : "font_settings";
-  const localStorageKey = isMobile ? "torah-font-color-settings-mobile" : "torah-font-color-settings";
+  const baseColumn = isMobile ? "font_settings_mobile" : "font_settings";
+  const baseKey = isMobile ? "torah-font-color-settings-mobile" : "torah-font-color-settings";
+  // Scoped instance (e.g. side panel) uses its own localStorage key and skips cloud sync
+  const column = scopeKey ? `${baseColumn}_${scopeKey}` : baseColumn;
+  const localStorageKey = scopeKey ? `${baseKey}-${scopeKey}` : baseKey;
 
   const { data: settings, setData: setSettingsData, status } = useSyncedState<FontAndColorSettings>({
     localStorageKey,
     tableName: "user_settings",
     column,
     userId,
-    syncToCloud: !!userId,
+    syncToCloud: !scopeKey && !!userId,
     defaultValue: defaultSettings,
   });
 

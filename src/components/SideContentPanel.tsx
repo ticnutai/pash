@@ -39,6 +39,7 @@ import { SefariaCommentary } from "@/types/sefaria";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { NavigateFunction } from "react-router-dom";
 import { useDevice } from "@/contexts/DeviceContext";
+import { FontAndColorSettingsProvider } from "@/contexts/FontAndColorSettingsContext";
 
 type PanelMode = "user" | "pasuk";
 
@@ -100,34 +101,39 @@ export const SideContentPanel = ({
   const totalUserItems = bookmarks.length + notes.length + questions.length + highlights.length;
 
   const panelContent = (
-    <div className="flex flex-col h-full space-y-4" dir="rtl">
+    <FontAndColorSettingsProvider scopeKey="side-panel">
+      <div className="flex flex-col h-full space-y-4 min-w-0" dir="rtl">
       {/* Header with mode toggle - only for desktop (mobile gets SheetHeader) */}
       {!isMobile && (
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-2 min-w-0">
+          {/* Top row: T (text settings) on the right, X close on the left — always visible */}
+          <div className="flex items-center justify-between gap-1.5 min-w-0">
+            <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full h-8 w-8 flex-shrink-0">
+              <X className="h-4 w-4" />
+            </Button>
+            <span data-layout="btn-text-settings-side-panel" data-layout-label="✏️ הגדרות טקסט (פאנל צד)" className="flex-shrink-0">
+              <TextDisplaySettings />
+            </span>
+          </div>
+          {/* Mode buttons row — wraps if needed */}
+          <div className="flex flex-wrap gap-2 min-w-0">
             <Button
               variant={mode === "pasuk" ? "default" : "outline"}
               size="sm"
               onClick={() => onModeChange("pasuk")}
-              className={cn("gap-2 font-semibold", mode === "pasuk" ? "shadow-sm" : "")}
+              className={cn("gap-2 font-semibold flex-1 min-w-0", mode === "pasuk" ? "shadow-sm" : "")}
             >
-              <BookOpen className="h-4 w-4" />
-              פירושים
+              <BookOpen className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">פירושים</span>
             </Button>
             <Button
               variant={mode === "user" ? "default" : "outline"}
               size="sm"
               onClick={() => onModeChange("user")}
-              className={cn("gap-2 font-semibold", mode === "user" ? "shadow-sm" : "")}
+              className={cn("gap-2 font-semibold flex-1 min-w-0", mode === "user" ? "shadow-sm" : "")}
             >
-              <User className="h-4 w-4" />
-              שלי ({totalUserItems})
-            </Button>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span data-layout="btn-text-settings-side-panel" data-layout-label="✏️ הגדרות טקסט (פאנל צד)"><TextDisplaySettings /></span>
-            <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full h-8 w-8">
-              <X className="h-4 w-4" />
+              <User className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">שלי ({totalUserItems})</span>
             </Button>
           </div>
         </div>
@@ -181,7 +187,8 @@ export const SideContentPanel = ({
           />
         )}
       </div>
-    </div>
+      </div>
+    </FontAndColorSettingsProvider>
   );
 
   // Mobile: bottom sheet

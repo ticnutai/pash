@@ -39,10 +39,10 @@ export const OMER_POPUP_ENABLED_KEY = "omer_popup_enabled_v1";
 export function isOmerPopupEnabled(): boolean {
   try {
     const raw = localStorage.getItem(OMER_POPUP_ENABLED_KEY);
-    // Default is enabled for users who never changed the setting.
-    return raw === null ? true : raw === "true";
+    // Default is disabled until user explicitly opts in.
+    return raw === "true";
   } catch {
-    return true;
+    return false;
   }
 }
 
