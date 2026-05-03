@@ -22,8 +22,34 @@
     
     <!-- Primary fonts preloaded for immediate rendering -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Noto+Serif+Hebrew:wght@400;700;900&display=swap">
-    <!-- Secondary fonts deferred -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=David+Libre:wght@400;500;700&family=Miriam+Libre:wght@400;700&family=Rubik:wght@400;700&family=Heebo:wght@400;700&family=Alef:wght@400;700&family=Varela+Round&family=Assistant:wght@400;700&family=Secular+One&family=Suez+One&display=swap" media="print" onload="this.media='all'">
+    <!-- Secondary fonts are loaded lazily to avoid startup render stalls -->
+    <script>
+      (function () {
+        var href = "https://fonts.googleapis.com/css2?family=David+Libre:wght@400;500;700&family=Miriam+Libre:wght@400;700&family=Rubik:wght@400;700&family=Heebo:wght@400;700&family=Alef:wght@400;700&family=Varela+Round&family=Assistant:wght@400;700&family=Secular+One&family=Suez+One&display=swap";
+        var loadSecondaryFonts = function () {
+          if (document.querySelector('link[data-font-pack="secondary-hebrew"]')) return;
+          var link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = href;
+          link.setAttribute("data-font-pack", "secondary-hebrew");
+          document.head.appendChild(link);
+        };
+
+        var schedule = function () {
+          if ("requestIdleCallback" in window) {
+            window.requestIdleCallback(loadSecondaryFonts, { timeout: 4000 });
+          } else {
+            setTimeout(loadSecondaryFonts, 2000);
+          }
+        };
+
+        if (document.readyState === "complete") {
+          schedule();
+        } else {
+          window.addEventListener("load", schedule, { once: true });
+        }
+      })();
+    </script>
     <title>חמישה חומשי תורה עם פירושים</title>
     <meta name="description" content="חמישה חומשי תורה עם פירושים של מפרשים מובילים. חפש ולמד עם חיפוש מתקדם." />
     <meta name="author" content="תורה ופירושים" />

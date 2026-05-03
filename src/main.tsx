@@ -5,9 +5,11 @@ import { torahDB } from "./utils/torahDB";
 import { Capacitor } from "@capacitor/core";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import { installStartupDiagnostics } from "./utils/startupDiagnostics";
 
 // Init IndexedDB early for fast cache access
 torahDB.init();
+installStartupDiagnostics();
 
 // Initialize Capacitor plugins on native platforms
 if (Capacitor.isNativePlatform()) {
