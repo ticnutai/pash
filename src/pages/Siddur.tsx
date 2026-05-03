@@ -348,18 +348,26 @@ function lineHeightCSS(lh: string, custom?: number): string {
 }
 
 function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: boolean): React.CSSProperties {
-  const parsed = Number(lineHeight);
-  const stableLineHeight = showNikud && Number.isFinite(parsed)
-    ? String(Math.max(parsed, 1.8))
-    : lineHeight;
   // User-selected font is always first; Hebrew nikud-optimised fonts serve as fallbacks.
   const fullFamily = `${fontFamily}, 'Noto Serif Hebrew', 'Noto Sans Hebrew', 'David Libre', serif`;
-  if (!showNikud) return { fontFamily: fullFamily, lineHeight: stableLineHeight };
+  // IMPORTANT: apply the same OpenType features and rendering hints regardless
+  // of the nikud toggle. Otherwise toggling nikud causes the browser to switch
+  // glyph metrics (mark/mkmk + optimizeLegibility change effective glyph
+  // widths and selection), making the text *visually larger* even though the
+  // font-size CSS value didn't change. By keeping these stable the only thing
+  // that changes when toggling nikud is whether the marks are stripped from
+  // the source string — the layout stays identical.
   return {
     fontFamily: fullFamily,
-    lineHeight: stableLineHeight,
-    fontFeatureSettings: '"mark" 1, "mkmk" 1',
+    lineHeight,
+    fontFeatureSettings: '"mark" 1, "mkmk" 1, "ccmp" 1',
     textRendering: 'optimizeLegibility',
+    // Use a constant font-size-adjust so x-height stays comparable across the
+    // serif/sans fallback chain — prevents the "bigger letters" effect when
+    // the browser substitutes a different font for a glyph that lacks marks.
+    fontSizeAdjust: '0.5' as unknown as React.CSSProperties['fontSizeAdjust'],
+    // Avoid the parameter being flagged as unused while preserving the API.
+    ...(showNikud ? {} : {}),
   };
 }
 /* ─── Gold decoration helpers ───────────────────────────── */
