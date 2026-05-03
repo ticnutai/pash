@@ -113,17 +113,24 @@ const ChumashViewComponent = ({
                       >
                         {toHebrewNumber(pasuk.pasuk_num)}
                       </span>
+
+                      {/* Keep content indicator adjacent to pasuk number so RTL wrapping doesn't visually shift it to next pasuk */}
+                      {hasContent && !isSelected && (
+                        <span
+                          className="inline-block w-1.5 h-1.5 rounded-full bg-primary/50 dark:bg-primary/60"
+                          style={{
+                            verticalAlign: 'super',
+                            marginInlineStart: '0.05em',
+                            marginInlineEnd: '0.3em',
+                          }}
+                        />
+                      )}
                       
                       {/* Pasuk text with highlights support */}
                       <TextHighlighter
                         text={pasuk.text}
                         pasukId={pasukIdStr}
                       />
-                      
-                      {/* Visual indicator for content */}
-                      {hasContent && !isSelected && (
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/50 dark:bg-primary/60 mx-0.5" style={{ verticalAlign: 'middle' }} />
-                      )}
                       
                       {/* Space between pesukim */}
                       {index < group.pesukim.length - 1 && " "}
