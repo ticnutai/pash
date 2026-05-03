@@ -11,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   use: {
-    baseURL: "http://localhost:6001",
+    baseURL: "http://localhost:4300",
     locale: "he-IL",
     timezoneId: "Asia/Jerusalem",
     screenshot: "only-on-failure",
@@ -38,7 +38,7 @@ export default defineConfig({
 
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:6001",
+    url: "http://localhost:4300",
     reuseExistingServer: true,
     timeout: 30_000,
   },

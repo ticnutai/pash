@@ -6,6 +6,17 @@ import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext"
 import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { TextHighlighter } from "@/components/TextHighlighter";
 
+const shouldTraceChumash = () => {
+  if (!import.meta.env.DEV) return false;
+  try {
+    const byStorage = localStorage.getItem("debug_chumash_trace") === "true";
+    const byWindow = (window as Window & { __CHUMASH_TRACE__?: boolean }).__CHUMASH_TRACE__ === true;
+    return byStorage || byWindow;
+  } catch {
+    return false;
+  }
+};
+
 interface ChumashViewProps {
   pesukim: FlatPasuk[];
   seferId: number;
@@ -89,6 +100,10 @@ const ChumashViewComponent = ({
                   return (
                     <span
                       key={pasuk.id}
+                      data-chumash-item="pasuk"
+                      data-pasuk-id={pasuk.id}
+                      data-pasuk-num={pasuk.pasuk_num}
+                      data-has-content={hasContent ? "true" : "false"}
                       className={cn(
                         "inline cursor-pointer transition-colors duration-200 rounded-sm",
                         isSelected 
@@ -97,10 +112,30 @@ const ChumashViewComponent = ({
                             ? "hover:bg-accent/30 dark:hover:bg-accent/20" 
                             : "hover:bg-muted/50",
                       )}
-                      onClick={() => handlePasukClick(pasuk.id, pasuk)}
+                      onMouseEnter={() => {
+                        if (!shouldTraceChumash()) return;
+                        console.debug("[ChumashTrace] hover", {
+                          pasukId: pasuk.id,
+                          pasukNum: pasuk.pasuk_num,
+                          hasContent,
+                          isSelected,
+                        });
+                      }}
+                      onClick={() => {
+                        if (shouldTraceChumash()) {
+                          console.debug("[ChumashTrace] click", {
+                            pasukId: pasuk.id,
+                            pasukNum: pasuk.pasuk_num,
+                            hasContent,
+                            isSelected,
+                          });
+                        }
+                        handlePasukClick(pasuk.id, pasuk);
+                      }}
                     >
                       {/* Pasuk number */}
                       <span 
+                        data-chumash-role="number"
                         className="font-bold select-none"
                         style={{
                           color: 'hsl(var(--primary))',
@@ -117,6 +152,7 @@ const ChumashViewComponent = ({
                       {/* Keep content indicator adjacent to pasuk number so RTL wrapping doesn't visually shift it to next pasuk */}
                       {hasContent && !isSelected && (
                         <span
+                          data-chumash-role="content-dot"
                           className="inline-block w-1.5 h-1.5 rounded-full bg-primary/50 dark:bg-primary/60"
                           style={{
                             verticalAlign: 'super',
