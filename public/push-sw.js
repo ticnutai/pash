@@ -4,6 +4,18 @@
  * Receives push events from the server and shows notifications.
  * ────────────────────────────────────────────────────────── */
 
+// Skip the wait queue on install so the activate handler (and its self-heal
+// scope check) runs immediately on every update — otherwise a buggy version
+// stuck in WAITING never gets a chance to unregister itself.
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+// Allow the page to force-activate if needed.
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
