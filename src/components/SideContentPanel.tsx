@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Collapsible,
@@ -132,6 +133,7 @@ export const SideContentPanel = ({
       {/* Mobile mode tabs inside sheet */}
       {isMobile && (
         <div className="flex gap-2 px-3 pt-2 pb-2 border-b border-border flex-shrink-0">
+          <TextDisplaySettings />
           <Button
             variant={mode === "pasuk" ? "default" : "outline"}
             size="sm"
