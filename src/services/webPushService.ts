@@ -83,19 +83,21 @@ export function init(): Promise<void> {
   _initPromise = (async () => {
     try {
       // CLEANUP: unregister any legacy `/push-sw.js` registrations that were
-      // installed under scope `/` (the old buggy behaviour). Leaving them in
-      // place keeps the SW ping-pong with VitePWA's `sw.js` going.
+      // installed under the root scope `/` (the old buggy behaviour). We must
+      // check ALL three lifecycle slots (active / waiting / installing) — not
+      // just the first one that exists — because in the bug-state seen in
+      // production the registration had VitePWA's `sw.js` ACTIVE while
+      // `push-sw.js` was sitting in the WAITING slot of the same root-scoped
+      // registration, queued to take over the controller and trigger another
+      // reload loop.
       try {
         const regs = await navigator.serviceWorker.getRegistrations();
         for (const r of regs) {
-          const scriptURL =
-            r.active?.scriptURL || r.waiting?.scriptURL || r.installing?.scriptURL || "";
-          if (scriptURL.endsWith("/push-sw.js") && r.scope.endsWith("/")) {
-            // Only unregister registrations whose scope is exactly the origin root.
-            const u = new URL(r.scope);
-            if (u.pathname === "/") {
-              await r.unregister();
-            }
+          const scopeUrl = new URL(r.scope);
+          if (scopeUrl.pathname !== "/") continue; // only nuke ROOT-scope rows
+          const slots = [r.active?.scriptURL, r.waiting?.scriptURL, r.installing?.scriptURL];
+          if (slots.some((s) => typeof s === "string" && s.endsWith("/push-sw.js"))) {
+            await r.unregister();
           }
         }
       } catch {
