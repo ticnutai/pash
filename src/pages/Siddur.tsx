@@ -229,13 +229,39 @@ function heNum(n: number): string {
 }
 
 /* ─── HTML line cleaner ──────────────────────────────────── */
+/**
+ * Some siddur source data uses self-closing pseudo-tags as bracket markers
+ * around emphasized spans, e.g.  `<b/>פתיחת אליהו<b/>`  instead of the
+ * proper `<b>פתיחת אליהו</b>`. Without normalization those tags slip past
+ * `renderLineContent` (which only matches paired `<b>...</b>`) and end up
+ * displayed as literal `<b/>` text in the UI.
+ *
+ * We pair occurrences of each self-closing tag — odd ones become opening
+ * tags, even ones become closing tags. Any unmatched trailing opener is
+ * dropped so we never emit invalid HTML.
+ */
+function pairSelfClosingTags(html: string): string {
+  for (const tag of ["b", "small"]) {
+    const re = new RegExp(`<\\s*${tag}\\s*\\/\\s*>`, "gi");
+    let count = 0;
+    html = html.replace(re, () => (count++ % 2 === 0 ? `<${tag}>` : `</${tag}>`));
+    if (count % 2 === 1) {
+      // odd => last opener has no closer; strip it to avoid unclosed markup
+      html = html.replace(new RegExp(`<${tag}>(?![\\s\\S]*<\\/${tag}>)`), "");
+    }
+  }
+  return html;
+}
+
 function sanitizeHebrewMarkup(html: string): string {
-  return html
-    .normalize("NFKC")
-    .replace(/<\s*big\s*>/gi, "<b>")
-    .replace(/<\s*\/\s*big\s*>/gi, "</b>")
-    .replace(/<\s*big\s*\/\s*>/gi, "")
-    .replace(/<\s*br\s*\/??\s*>/gi, "\n")
+  return pairSelfClosingTags(
+    html
+      .normalize("NFKC")
+      .replace(/<\s*big\s*>/gi, "<b>")
+      .replace(/<\s*\/\s*big\s*>/gi, "</b>")
+      .replace(/<\s*big\s*\/\s*>/gi, "")
+      .replace(/<\s*br\s*\/??\s*>/gi, "\n")
+  )
     // Keep only supported inline tags to avoid raw tag names in the UI.
     .replace(/<\/?(?!b\b|small\b)[a-z0-9:-]+[^>]*>/gi, "");
 }
@@ -272,7 +298,9 @@ function stripText(text: string, showNikud: boolean, showTaamim: boolean): strin
 }
 
 function classifyLine(html: string): "heading" | "instruction" | "prayer" {
-  const t = html.trim();
+  // Normalize self-closing pseudo-tags first so `<b/>title<b/>` is recognised
+  // as a heading just like the canonical `<b>title</b>` form.
+  const t = pairSelfClosingTags(html).trim();
   if (t.startsWith("<small>")) return "instruction";
   const m = t.match(/^<b>([^<]+)<\/b>$/);
   if (m && m[1].replace(NIKUD_RE, "").replace(/\s/g, "").length <= 20) return "heading";

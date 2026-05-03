@@ -113,6 +113,34 @@ export function init(): Promise<void> {
       // ~1.5s, CLS=0 because nothing has time to actually paint).
       _registration = await navigator.serviceWorker.register("/push-sw.js", { scope: "/push/" });
       _subscription = await _registration.pushManager.getSubscription();
+
+      // SELF-HEAL: if the user previously granted notification permission but
+      // we lost the subscription (e.g. the old root-scoped registration was
+      // unregistered as part of the reload-loop fix, which also dropped its
+      // pushManager subscription), silently re-subscribe so push delivery
+      // keeps working without forcing the user to toggle permissions again.
+      if (!_subscription && Notification.permission === "granted") {
+        try {
+          _subscription = await _registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(getVapidPublicKey()),
+          });
+          let userId: string | undefined;
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            userId = user?.id;
+          } catch { /* anon is fine */ }
+          await callPushApi({
+            action: "subscribe",
+            subscription: serializeSub(_subscription),
+            reminders: [],
+            userId,
+          });
+          console.log("[webPushService] self-healed push subscription");
+        } catch (err) {
+          console.warn("[webPushService] self-heal subscribe failed:", err);
+        }
+      }
     } catch (err) {
       console.warn("[webPushService] init failed:", err);
     }
