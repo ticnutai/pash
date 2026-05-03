@@ -87,11 +87,35 @@ function OfflineBanner() {
   );
 }
 
+// Renders the reminder popup only when explicitly enabled (after first idle).
+// Isolating useNotifications inside its own component prevents its 4 mount
+// effects + setInterval from running during the initial render of <App />.
+function DeferredReminderPopup() {
+  const { popupReminder, dismissPopup } = useNotifications();
+  return <ReminderPopup reminder={popupReminder} onDismiss={dismissPopup} />;
+}
+
 const App = () => {
   const [showDevFloating, setShowDevFloating] = useState(() => readDevFeatureFlag(DEV_FLOATING_ENABLED_KEY, true));
   const [showDevChat, setShowDevChat] = useState(() => readDevFeatureFlag(DEV_CHAT_ENABLED_KEY, true));
   const [showScreenshotTool, setShowScreenshotTool] = useState(() => readDevFeatureFlag(DEV_SCREENSHOT_ENABLED_KEY, true));
-  const { popupReminder, dismissPopup } = useNotifications();
+  // Defer mounting the reminder popup hook until after first paint so its
+  // localStorage reads + permission checks don't run on the critical path.
+  // Without this, useNotifications fired its mount effects during initial
+  // render and could pop a dialog (auto-enabled on first install) before the
+  // user saw the app, registering as a perceived "second render".
+  const [reminderHookEnabled, setReminderHookEnabled] = useState(false);
+  useEffect(() => {
+    const idle = (cb: () => void) => {
+      const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
+      if (typeof w.requestIdleCallback === "function") {
+        w.requestIdleCallback(cb, { timeout: 2000 });
+      } else {
+        window.setTimeout(cb, 800);
+      }
+    };
+    idle(() => setReminderHookEnabled(true));
+  }, []);
 
   useEffect(() => {
     const syncDevFeatures = () => {
@@ -126,7 +150,7 @@ const App = () => {
                       <Sonner />
                       <PWAReloadPrompt />
                       <OfflineBanner />
-                      <ReminderPopup reminder={popupReminder} onDismiss={dismissPopup} />
+                      {reminderHookEnabled && <DeferredReminderPopup />}
                       {DevChatWidget && showDevFloating && showDevChat && <Suspense fallback={null}><DevChatWidget /></Suspense>}
                       {ScreenshotTool && showDevFloating && showScreenshotTool && <Suspense fallback={null}><ScreenshotTool /></Suspense>}
                       <Router
