@@ -826,7 +826,7 @@ const QuestionSection = memo(({
               seferId={seferId}
               perek={perek}
               pasukNum={pasukNum}
-              onAddAnswer={onAddAnswer ? () => onAddAnswer(parseInt(question.id)) : undefined}
+              onAddAnswer={onAddAnswer ? () => onAddAnswer(question.id) : undefined}
               onEditAnswer={onEditAnswer}
               onDeleteAnswer={onDeleteAnswer}
               userAnswers={userAnswers}
