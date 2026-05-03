@@ -23,6 +23,12 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && devChatPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        // Disable PWA/SW in `npm run dev` so localhost stays free of cached
+        // assets and stale service workers. Use `npm run preview` to test the
+        // real PWA build before deploy.
+        enabled: false,
+      },
       includeAssets: ['favicon.ico', 'robots.txt'],
       manifest: {
         name: 'חמישה חומשי תורה - שאלות ופירושים',
