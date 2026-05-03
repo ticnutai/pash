@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -294,6 +294,17 @@ export const Settings = () => {
     setCalendarPreference(checked);
   };
 
+  const hasReminders = notifSettings.reminders.length > 0;
+  const allRemindersEnabled = hasReminders && notifSettings.reminders.every((r) => r.enabled);
+  const allPopupsEnabled = hasReminders && notifSettings.reminders.every((r) => r.popup);
+  const allSoundsEnabled = hasReminders && notifSettings.reminders.every((r) => r.sound);
+
+  const updateAllReminders = useCallback((partial: { enabled?: boolean; popup?: boolean; sound?: boolean }) => {
+    for (const reminder of notifSettings.reminders) {
+      updateReminder(reminder.id, partial);
+    }
+  }, [notifSettings.reminders, updateReminder]);
+
   const handleDevChatToggle = (checked: boolean) => {
     const now = Date.now();
     setDevChatEnabled(checked);
@@ -522,6 +533,41 @@ export const Settings = () => {
                       </div>
                     )}
 
+                    {/* Global toggles */}
+                    {hasReminders && (
+                      <div className="p-4 rounded-lg border bg-card/50 space-y-4">
+                        <div className="text-right space-y-1">
+                          <p className="text-sm font-semibold">שליטה מהירה על כל ההתראות</p>
+                          <p className="text-xs text-muted-foreground">כאן אפשר להדליק/לכבות בבת אחת את כל התזכורות, הפופאפ והצליל</p>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <Switch
+                            checked={allRemindersEnabled}
+                            disabled={permission !== "granted"}
+                            onCheckedChange={(v) => updateAllReminders({ enabled: v })}
+                          />
+                          <span className="text-sm text-right">כל התזכורות פעילות</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <Switch
+                            checked={allPopupsEnabled}
+                            onCheckedChange={(v) => updateAllReminders({ popup: v })}
+                          />
+                          <span className="text-sm text-right">כל הפופאפים באפליקציה</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <Switch
+                            checked={allSoundsEnabled}
+                            onCheckedChange={(v) => updateAllReminders({ sound: v })}
+                          />
+                          <span className="text-sm text-right">כל הצלילים פעילים</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Reminders list */}
                     {notifSettings.reminders.length === 0 && (
                       <div className="p-6 text-center text-muted-foreground text-sm border rounded-lg border-dashed">
@@ -644,6 +690,18 @@ export const Settings = () => {
                             onCheckedChange={(v) => updateReminder(reminder.id, { popup: v })}
                           />
                           <span className="text-sm text-right">הצג פופ-אפ באפליקציה</span>
+                        </div>
+
+                        {/* Sound toggle */}
+                        <div className="flex items-center justify-between">
+                          <Switch
+                            checked={reminder.sound}
+                            onCheckedChange={(v) => updateReminder(reminder.id, { sound: v })}
+                          />
+                          <span className="text-sm text-right flex items-center gap-1.5">
+                            <span>{reminder.sound ? "צליל פעיל" : "צליל כבוי"}</span>
+                            {reminder.sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                          </span>
                         </div>
                       </div>
                     ))}
