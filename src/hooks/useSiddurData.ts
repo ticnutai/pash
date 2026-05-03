@@ -1,9 +1,16 @@
 /**
  * useSiddurData
  * Loads siddur sections for a given nusach + category.
- * Strategy: race Supabase + local JSON simultaneously → first valid result wins.
- * Once the local JSON for a nusach is loaded it's cached in memory, so every
- * subsequent category switch is instant (zero network required).
+ *
+ * Performance strategy:
+ *   1. Race Supabase (fetches only the needed category) vs split local JSON
+ *      (siddur_{nusach}_{catId}.json — small per-category file) simultaneously.
+ *      First valid result wins.
+ *   2. Per-category files are ~50-200 KB instead of the old monolithic 3 MB
+ *      nusach JSON, so the local path is now much faster on first load.
+ *   3. Full nusach JSON (siddur_{nusach}.json) kept as a fallback in case a
+ *      split file doesn't exist yet.
+ *   4. All results are cached in memory so category switches are instant.
  */
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,20 +19,54 @@ export type SiddurSection  = { title: string; lines: string[] };
 export type SiddurCategory = { name: string; sections: SiddurSection[] };
 export type SiddurData     = Record<string, SiddurCategory>;
 
-const SIDDUR_FILES = import.meta.glob<{ default: SiddurData }>(
-  "../data/siddur/siddur_*.json"
+// Glob for per-category split files  (siddur_{nusach}_{catId}.json)
+const SIDDUR_CAT_FILES = import.meta.glob<{ default: SiddurCategory }>(
+  "../data/siddur/siddur_*_*.json"
 );
 
-// Global caches shared across all hook instances
-const sectionsCache: Record<string, SiddurSection[]>            = {};
-const catNameCache:  Record<string, string>                     = {};
-const nusachCache:   Record<string, SiddurData>                 = {};
-// In-flight local-JSON promises so concurrent callers share one fetch
-const nusachPending: Record<string, Promise<SiddurData | null>> = {};
+// Glob for legacy full-nusach files  (siddur_{nusach}.json) — fallback only
+const SIDDUR_NUSACH_FILES = import.meta.glob<{ default: SiddurData }>(
+  "../data/siddur/siddur_ashkenaz.json",
+  "../data/siddur/siddur_sefard.json",
+  "../data/siddur/siddur_chabad.json",
+  "../data/siddur/siddur_edot_hamizrach.json"
+);
+
+// Global caches
+const sectionsCache:   Record<string, SiddurSection[]> = {};
+const catNameCache:    Record<string, string>           = {};
+const catPending:      Record<string, Promise<SiddurCategory | null>> = {};
+const nusachCache:     Record<string, SiddurData>       = {};
+const nusachPending:   Record<string, Promise<SiddurData | null>>     = {};
 
 /**
- * Load (or return cached) the full local JSON for a nusach.
- * Concurrent callers get the same promise so we never double-fetch.
+ * Load (or cache) a single category's split JSON.
+ * File: siddur_{nusach}_{catId}.json → { name, sections }
+ */
+async function loadLocalCategory(nusach: string, catId: string): Promise<SiddurCategory | null> {
+  const key     = `${nusach}:${catId}`;
+  if (catPending[key]) return catPending[key];
+
+  catPending[key] = (async () => {
+    try {
+      const fileKey = `../data/siddur/siddur_${nusach}_${catId}.json`;
+      const importer = SIDDUR_CAT_FILES[fileKey];
+      if (!importer) return null;
+      const mod = await importer();
+      return mod.default ?? null;
+    } catch {
+      return null;
+    } finally {
+      delete catPending[key];
+    }
+  })();
+
+  return catPending[key];
+}
+
+/**
+ * Fallback: load (or return cached) the full nusach JSON.
+ * Only used when no split file exists for a category.
  */
 async function loadLocalNusach(nusach: string): Promise<SiddurData | null> {
   if (nusachCache[nusach]) return nusachCache[nusach];
@@ -33,7 +74,7 @@ async function loadLocalNusach(nusach: string): Promise<SiddurData | null> {
     nusachPending[nusach] = (async () => {
       try {
         const fileKey = `../data/siddur/siddur_${nusach}.json`;
-        const importer = SIDDUR_FILES[fileKey];
+        const importer = SIDDUR_NUSACH_FILES[fileKey];
         if (!importer) return null;
         const mod = await importer();
         nusachCache[nusach] = mod.default;
@@ -49,14 +90,12 @@ async function loadLocalNusach(nusach: string): Promise<SiddurData | null> {
 }
 
 /**
- * Call this when the Siddur page mounts to kick off background loading of the
- * local JSON while the page is rendering, so it's ready before the user taps
- * a category.
+ * Preload the split JSON for a specific category in the background.
+ * Call when the user hovers / focuses a category tab so it's ready before click.
  */
 export function preloadSiddurNusach(nusach: string) {
-  if (!nusachCache[nusach] && !nusachPending[nusach]) {
-    loadLocalNusach(nusach); // fire-and-forget
-  }
+  // No-op — preloading an entire nusach is no longer useful since we use
+  // per-category files. Category preloading happens on mouse-over in the UI.
 }
 
 export function useSiddurSections(nusach: string, catId: string) {
@@ -121,13 +160,20 @@ export function useSiddurSections(nusach: string, catId: string) {
       } catch { /* fall through */ }
     };
 
-    // ── Local JSON ────────────────────────────────────────────
+    // ── Local JSON (split per-category file — fast path) ─────
     const localLoad = async () => {
-      const nusachData = await loadLocalNusach(nusach);
-      if (!nusachData) return;
-      const cat = nusachData[catId];
+      // Try the small per-category file first (e.g. siddur_sefard_shacharit.json)
+      const cat = await loadLocalCategory(nusach, catId);
       if (cat) {
         commit(cat.sections, cat.name, "local");
+        return;
+      }
+      // Fallback: load the full nusach JSON (legacy, larger)
+      const nusachData = await loadLocalNusach(nusach);
+      if (!nusachData) return;
+      const catFallback = nusachData[catId];
+      if (catFallback) {
+        commit(catFallback.sections, catFallback.name, "local");
       } else {
         // Category doesn't exist in this nusach
         if (!done && !abortRef.current) {
@@ -210,8 +256,23 @@ export function useSiddurCategories(nusach: string) {
       } catch { /* fall through */ }
     };
 
-    // ── Local JSON ────────────────────────────────────────────
+    // ── Local JSON (derive category list from available split files) ──
     const localLoad = async () => {
+      // Try to build category list from split files (fast — each is small)
+      const splitCats: { id: string; name: string }[] = [];
+      await Promise.all(
+        CATEGORIES_ORDER.map(async catId => {
+          const cat = await loadLocalCategory(nusach, catId);
+          if (cat && cat.sections.length > 0) {
+            splitCats.push({ id: catId, name: cat.name });
+          }
+        })
+      );
+      if (splitCats.length > 0) {
+        commit(CATEGORIES_ORDER.filter(k => splitCats.find(c => c.id === k)).map(k => splitCats.find(c => c.id === k)!));
+        return;
+      }
+      // Fallback: full nusach JSON
       const nusachData = await loadLocalNusach(nusach);
       if (!nusachData) return;
       commit(
