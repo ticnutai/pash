@@ -725,7 +725,7 @@ const QuestionSection = memo(({
   onEditAnswer?: (id: number, text: string, mefaresh: string) => void;
   onDeleteAnswer?: (id: number) => void;
   displayMode?: string;
-  userQuestions?: Question[];
+  userQuestions?: { id: number }[];
   userAnswers?: Perush[];
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -826,7 +826,7 @@ const QuestionSection = memo(({
               seferId={seferId}
               perek={perek}
               pasukNum={pasukNum}
-              onAddAnswer={onAddAnswer ? () => onAddAnswer(parseInt(question.id)) : undefined}
+              onAddAnswer={onAddAnswer ? () => onAddAnswer(question.id) : undefined}
               onEditAnswer={onEditAnswer}
               onDeleteAnswer={onDeleteAnswer}
               userAnswers={userAnswers}
