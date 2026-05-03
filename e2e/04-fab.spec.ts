@@ -26,14 +26,13 @@ test.describe("FAB (Floating Action Button) on mobile", () => {
     const fab = page.locator('[data-layout="floating-fab"]');
     await expect(fab).toBeVisible({ timeout: 10_000 });
 
-    // Click the FAB main button
-    const mainBtn = fab.locator("button").first();
-    await mainBtn.click();
+    // Click the FAB main button (the drag div has data-layout="fab-toggle")
+    await page.locator('[data-layout="fab-toggle"]').click();
     await page.waitForTimeout(500);
 
-    // Should show action labels like "בחירה מהירה", "חיפוש", "עוד פונקציות"
-    const navAction = page.getByText("בחירה מהירה");
-    const searchAction = page.getByText("חיפוש");
+    // Should show action buttons (icon-only with title attributes)
+    const navAction = page.locator('[title="בחירה מהירה"]');
+    const searchAction = page.locator('[title="חיפוש"]');
     
     const navVisible = await navAction.isVisible().catch(() => false);
     const searchVisible = await searchAction.isVisible().catch(() => false);
@@ -45,11 +44,11 @@ test.describe("FAB (Floating Action Button) on mobile", () => {
     await expect(fab).toBeVisible({ timeout: 10_000 });
 
     // Open FAB
-    await fab.locator("button").first().click();
+    await page.locator('[data-layout="fab-toggle"]').click();
     await page.waitForTimeout(500);
 
     // Click search action
-    const searchAction = page.getByText("חיפוש").first();
+    const searchAction = page.locator('[title="חיפוש"]').first();
     if (await searchAction.isVisible()) {
       await searchAction.click();
       await page.waitForTimeout(1000);

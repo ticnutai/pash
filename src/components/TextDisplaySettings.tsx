@@ -546,6 +546,16 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
     }
   }, [open, initialTab]);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   // Drag logic
   const startDrag = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if ((e.target as HTMLElement).closest("button,select,input,[role='slider']")) return;
@@ -614,7 +624,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
             overflow: "hidden",
           }}
           className="rounded-xl border-2 border-accent bg-card text-foreground shadow-2xl flex flex-col"
-          data-layout="floating-text-settings"
+          data-layout="dialog-text-display"
         >
           {/* ── Drag handle / title bar ── */}
           <div

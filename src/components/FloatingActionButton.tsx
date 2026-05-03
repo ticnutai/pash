@@ -346,6 +346,7 @@ export const FloatingActionButton = ({
 
         {/* Main FAB - Draggable */}
         <div
+          data-layout="fab-toggle"
           className={cn(
             "rounded-full shadow-xl cursor-grab active:cursor-grabbing select-none",
             "bg-accent text-accent-foreground border-2 border-accent flex items-center justify-center",

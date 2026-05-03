@@ -70,4 +70,3 @@ test.describe("Header button functionality on mobile", () => {
     expect(loginVisible || menuVisible).toBe(true);
   });
 });
-});

@@ -869,13 +869,25 @@ const Index = () => {
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
                 {/* Mode switcher: חומש / סידור / עומר */}
                 <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
+                  <span data-layout="btn-corpus">
                   <button
-                    onClick={() => {}}
+                    onClick={() => {
+                      const next = corpusMode === "torah" ? "neviim" : "torah";
+                      setCorpusMode(next);
+                      localStorage.setItem("corpusMode", next);
+                      const firstSeferId = next === "neviim" ? NEVIIM_SEFARIM[0].id : TORAH_SEFARIM[0].id;
+                      setSelectedSefer(firstSeferId);
+                      setSelectedParsha(null);
+                      setSelectedPerek(null);
+                      setSelectedPasuk(null);
+                    }}
                     className="flex items-center justify-center h-8 w-8 rounded-md text-xs font-semibold transition-all text-accent"
                     title="חומש"
                   >
                     <Book className="h-4 w-4" />
                   </button>
+                  </span>
+                  <span data-layout="btn-siddur">
                   <button
                     onClick={() => navigate('/siddur')}
                     className="flex items-center justify-center h-8 w-8 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
@@ -883,6 +895,7 @@ const Index = () => {
                   >
                     <BookMarked className="h-4 w-4" />
                   </button>
+                  </span>
                   <button
                     onClick={() => navigate('/omer')}
                     className="flex items-center justify-center h-8 w-8 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
@@ -929,14 +942,26 @@ const Index = () => {
 
               {/* Center: Mode switcher — חומש / סידור / עומר */}
               <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
+                <span data-layout="btn-corpus">
                 <button
-                  onClick={() => {}}
+                  onClick={() => {
+                    const next = corpusMode === "torah" ? "neviim" : "torah";
+                    setCorpusMode(next);
+                    localStorage.setItem("corpusMode", next);
+                    const firstSeferId = next === "neviim" ? NEVIIM_SEFARIM[0].id : TORAH_SEFARIM[0].id;
+                    setSelectedSefer(firstSeferId);
+                    setSelectedParsha(null);
+                    setSelectedPerek(null);
+                    setSelectedPasuk(null);
+                  }}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition-all text-accent"
                   title="חומש"
                 >
                   <Book className="h-4 w-4" />
                   <span>חומש</span>
                 </button>
+                </span>
+                <span data-layout="btn-siddur">
                 <button
                   onClick={() => navigate('/siddur')}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
@@ -945,6 +970,7 @@ const Index = () => {
                   <BookMarked className="h-4 w-4" />
                   <span>סידור</span>
                 </button>
+                </span>
                 <button
                   onClick={() => navigate('/omer')}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"

@@ -43,17 +43,17 @@ test.describe("Dialogs & overlays on mobile", () => {
     // Try to open settings via FAB
     const fab = page.locator('[data-layout="floating-fab"]');
     await expect(fab).toBeVisible({ timeout: 10_000 });
-    await fab.locator("button").first().click();
+    await page.locator('[data-layout="fab-toggle"]').click();
     await page.waitForTimeout(500);
 
-    // Look for "עוד פונקציות" to expand
-    const moreBtn = page.getByText("עוד פונקציות");
+    // Look for "עוד פונקציות" to expand (icon-only button with title attr)
+    const moreBtn = page.locator('[title="עוד פונקציות"]');
     if (await moreBtn.isVisible()) {
       await moreBtn.click();
       await page.waitForTimeout(500);
     }
 
-    const settingsAction = page.getByText("הגדרות").first();
+    const settingsAction = page.locator('[title="הגדרות"]').first();
     if (await settingsAction.isVisible()) {
       await settingsAction.click();
       await page.waitForTimeout(1000);
