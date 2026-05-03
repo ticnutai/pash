@@ -725,7 +725,7 @@ const QuestionSection = memo(({
   onEditAnswer?: (id: number, text: string, mefaresh: string) => void;
   onDeleteAnswer?: (id: number) => void;
   displayMode?: string;
-  userQuestions?: Question[];
+  userQuestions?: { id: number }[];
   userAnswers?: Perush[];
 }) => {
   const [isOpen, setIsOpen] = useState(false);
