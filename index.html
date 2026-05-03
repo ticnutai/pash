@@ -20,8 +20,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Primary fonts preloaded for immediate rendering -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Noto+Serif+Hebrew:wght@400;700;900&display=swap">
+    <!-- Primary fonts loaded non-render-blocking. The display=swap query keeps the
+         system font stack visible until the web font is ready, eliminating the FOIT
+         that previously caused a perceptible re-render after the SW resolved fonts. -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Noto+Serif+Hebrew:wght@400;700;900&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    >
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Noto+Serif+Hebrew:wght@400;700;900&display=swap">
+    </noscript>
     <!-- Secondary fonts are loaded lazily to avoid startup render stalls -->
     <script>
       (function () {

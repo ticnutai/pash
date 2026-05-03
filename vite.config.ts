@@ -56,6 +56,11 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         globIgnores: ['**/assets/data-*.js'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+        // NOTE: Google Fonts (fonts.googleapis.com / fonts.gstatic.com) are intentionally
+        // NOT routed through Workbox. The browser HTTP cache + Google CDN already serve
+        // them optimally; intercepting through the SW caused a visible network race on
+        // every reload (the "Workbox: finished loading https://fonts.googleapis..."
+        // messages) which produced a late font swap and re-render after first paint.
         runtimeCaching: [
           {
             urlPattern: /\.json$/,
@@ -65,28 +70,6 @@ export default defineConfig(({ mode }) => ({
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 30
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gstatic-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365
               }
             }
           },
