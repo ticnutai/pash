@@ -1,5 +1,7 @@
 type TraceHandle = {
   stop: () => void;
+  log: (event: string, details?: unknown) => void;
+  snapshot: () => unknown;
 };
 
 type OverlaySnapshot = {
@@ -16,6 +18,10 @@ type OverlaySnapshot = {
   longTasks: number;
   fcpMs: number | null;
   lcpMs: number | null;
+  mutations: number;
+  reactRenders: number;
+  topMutationTarget: string;
+  topRenderId: string;
 };
 
 type TraceLevel = "metric" | "log" | "info" | "warn" | "error" | "debug";
@@ -86,6 +92,22 @@ export function installStartupDiagnostics() {
 
   const start = performance.now();
   const events: TraceEvent[] = [];
+
+  // React render counters fed by <DenseProfiler> in App.tsx via window.__pashRecordRender
+  const renderCounts: Record<string, number> = {};
+  const renderDurations: Record<string, number> = {};
+  let totalRenders = 0;
+  (window as unknown as { __pashRecordRender?: (id: string, phase: string, actualDuration: number) => void }).__pashRecordRender = (
+    id: string,
+    phase: string,
+    actualDuration: number,
+  ) => {
+    totalRenders += 1;
+    renderCounts[id] = (renderCounts[id] || 0) + 1;
+    renderDurations[id] = (renderDurations[id] || 0) + actualDuration;
+    // Log every render at trace level so we can see in chrono order which subtree rendered
+    log("react-render", { id, phase, ms: Math.round(actualDuration * 100) / 100, n: renderCounts[id] });
+  };
 
   const trackedFonts = [
     "David Libre",
@@ -267,6 +289,8 @@ export function installStartupDiagnostics() {
       `google css=${snapshot.googleCssReq} files=${snapshot.googleFontFilesReq}`,
       `fcp=${snapshot.fcpMs ?? "-"}ms lcp=${snapshot.lcpMs ?? "-"}ms`,
       `cls=${snapshot.cls.toFixed(4)} longtasks=${snapshot.longTasks}`,
+      `MUT=${snapshot.mutations} top=${snapshot.topMutationTarget}`,
+      `RND=${snapshot.reactRenders} top=${snapshot.topRenderId}`,
       `events=${events.length}`,
     ].join("\n");
 
@@ -425,6 +449,43 @@ export function installStartupDiagnostics() {
   safeObserve("layout-shift");
   safeObserve("longtask");
 
+  // ── DOM mutation tracer ──────────────────────────────────
+  // This is the closest we can get to "what just changed visually".
+  // We watch #root subtree and log meaningful mutations (not text nodes inside
+  // existing elements) so we can correlate every perceived re-render to an
+  // actual DOM change.
+  let mutationCount = 0;
+  const mutationsByTarget: Record<string, number> = {};
+  const startMutationObserver = () => {
+    const root = document.getElementById("root");
+    if (!root) {
+      window.setTimeout(startMutationObserver, 50);
+      return;
+    }
+    const mo = new MutationObserver((records) => {
+      for (const rec of records) {
+        mutationCount += 1;
+        const target = rec.target as Element;
+        const desc = target.nodeType === 1
+          ? `${target.tagName.toLowerCase()}${target.id ? "#" + target.id : ""}${target.className && typeof target.className === "string" ? "." + target.className.split(" ").slice(0, 2).join(".") : ""}`
+          : target.nodeName;
+        mutationsByTarget[desc] = (mutationsByTarget[desc] || 0) + 1;
+        // Only log structural changes, not text/attr churn (those are noisy).
+        if (rec.type === "childList" && (rec.addedNodes.length || rec.removedNodes.length)) {
+          const added = Array.from(rec.addedNodes).filter((n) => n.nodeType === 1).map((n) => (n as Element).tagName.toLowerCase());
+          const removed = Array.from(rec.removedNodes).filter((n) => n.nodeType === 1).map((n) => (n as Element).tagName.toLowerCase());
+          if (added.length || removed.length) {
+            log("dom-mutation", { target: desc, added, removed });
+          }
+        }
+      }
+    });
+    mo.observe(root, { childList: true, subtree: true, attributes: true, characterData: false });
+    perfObservers.push({ disconnect: () => mo.disconnect() } as PerformanceObserver);
+    log("mutation-observer-installed", { rootChildren: root.children.length });
+  };
+  startMutationObserver();
+
   let ticks = 0;
   // Delay the first tick by 1.5 s so it never runs during the initial paint /
   // hydration window. Then poll every 2 s instead of 1 s and stop after 30 ticks
@@ -450,6 +511,9 @@ export function installStartupDiagnostics() {
       swControlled: !!navigator.serviceWorker?.controller,
     });
 
+    const topMutationEntry = Object.entries(mutationsByTarget).sort((a, b) => b[1] - a[1])[0];
+    const topRenderEntry = Object.entries(renderCounts).sort((a, b) => b[1] - a[1])[0];
+
     renderOverlay({
       t: `${nowSeconds(start)}s`,
       tick: ticks,
@@ -464,6 +528,10 @@ export function installStartupDiagnostics() {
       longTasks,
       fcpMs,
       lcpMs,
+      mutations: mutationCount,
+      reactRenders: totalRenders,
+      topMutationTarget: topMutationEntry ? `${topMutationEntry[0]}(${topMutationEntry[1]})` : "-",
+      topRenderId: topRenderEntry ? `${topRenderEntry[0]}(${topRenderEntry[1]})` : "-",
     });
 
     if (ticks % 3 === 0) {
@@ -517,5 +585,9 @@ export function installStartupDiagnostics() {
     delete window.__pashTraceHandle;
   };
 
-  window.__pashTraceHandle = { stop };
+  window.__pashTraceHandle = {
+    stop,
+    log,
+    snapshot: () => ({ events: events.slice(), cls, longTasks, fcpMs, lcpMs }),
+  };
 }

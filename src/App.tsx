@@ -16,7 +16,7 @@ import { ContentProvider } from "@/contexts/ContentContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, Profiler, type ProfilerOnRenderCallback } from "react";
 import { Loader2, WifiOff } from "lucide-react";
 import { PWAReloadPrompt } from "@/components/PWAReloadPrompt";
 import { ReminderPopup } from "@/components/ReminderPopup";
@@ -95,6 +95,18 @@ function DeferredReminderPopup() {
   return <ReminderPopup reminder={popupReminder} onDismiss={dismissPopup} />;
 }
 
+// Dense React render tracer. Forwards every Profiler callback to
+// window.__pashRecordRender so startupDiagnostics can attribute every render
+// to a specific subtree id with phase + actualDuration. Activated by the same
+// trigger as the diagnostics overlay (?traceFonts=1 / debug-font-trace=true).
+const recordRender: ProfilerOnRenderCallback = (id, phase, actualDuration) => {
+  const w = window as unknown as { __pashRecordRender?: (id: string, phase: string, actualDuration: number) => void };
+  w.__pashRecordRender?.(id, phase, actualDuration);
+};
+function Trace({ id, children }: { id: string; children: React.ReactNode }) {
+  return <Profiler id={id} onRender={recordRender}>{children}</Profiler>;
+}
+
 const App = () => {
   const [showDevFloating, setShowDevFloating] = useState(() => readDevFeatureFlag(DEV_FLOATING_ENABLED_KEY, true));
   const [showDevChat, setShowDevChat] = useState(() => readDevFeatureFlag(DEV_CHAT_ENABLED_KEY, true));
@@ -135,15 +147,24 @@ const App = () => {
 
   return (
     <ErrorBoundary fallbackTitle="שגיאה כללית באפליקציה">
+    <Trace id="App.root">
     <AuthProvider>
       <MetaSyncInitializer />
+      <Trace id="App.Device">
       <DeviceProvider>
+        <Trace id="App.Theme">
         <ThemeProvider>
+          <Trace id="App.FontAndColor">
           <FontAndColorSettingsProvider>
+            <Trace id="App.DisplayMode">
             <DisplayModeProvider>
+              <Trace id="App.Highlights">
               <HighlightsProvider>
+                <Trace id="App.Notes">
                 <NotesProvider>
+                  <Trace id="App.Bookmarks">
                   <BookmarksProvider>
+                    <Trace id="App.Content">
                     <ContentProvider>
                       <TooltipProvider>
                       <Toaster />
@@ -161,6 +182,7 @@ const App = () => {
                       >
                         <OmerEntryPopup />
                         <ErrorBoundary fallbackTitle="שגיאה בטעינת הדף">
+                          <Trace id="App.Routes">
                           <Suspense fallback={<LoadingFallback />}>
                             <Routes>
                               <Route path="/" element={<Index />} />
@@ -175,18 +197,28 @@ const App = () => {
                               <Route path="*" element={<NotFound />} />
                             </Routes>
                           </Suspense>
+                          </Trace>
                         </ErrorBoundary>
                       </Router>
                       </TooltipProvider>
                     </ContentProvider>
+                    </Trace>
                   </BookmarksProvider>
+                  </Trace>
                 </NotesProvider>
+                </Trace>
               </HighlightsProvider>
+              </Trace>
             </DisplayModeProvider>
+            </Trace>
           </FontAndColorSettingsProvider>
+          </Trace>
         </ThemeProvider>
+        </Trace>
       </DeviceProvider>
+      </Trace>
     </AuthProvider>
+    </Trace>
   </ErrorBoundary>
   );
 };
