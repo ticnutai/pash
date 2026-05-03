@@ -195,7 +195,7 @@ const defaultSettings: FontAndColorSettings = {
   siddurFont: "Noto Serif Hebrew",
   siddurSize: 18,
   siddurBold: false,
-  siddurTextAlignment: "right",
+  siddurTextAlignment: "justify",
   siddurLineHeight: "normal",
   siddurLineHeightCustom: 1.5,
   siddurContentWidth: "normal",
