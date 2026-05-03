@@ -35,6 +35,8 @@ export interface SiddurTheme {
   emoji: string;
   bg: string;                   // page background
   headerBg: string;             // header/tabs background
+  headerTextColor?: string;     // text in header/tabs area (defaults to textColor)
+  headerAccentColor?: string;   // accent in header/tabs area (defaults to accentColor)
   textColor: string;            // prayer text color
   headingColor?: string;        // section headings (defaults to accentColor)
   instructionColor?: string;    // rubric / instruction lines (defaults to textColor)
@@ -159,6 +161,7 @@ function saveCustomTheme(t: SiddurTheme) {
 interface SiddurThemeCtx {
   theme: SiddurTheme;
   setTheme: (t: SiddurTheme) => void;
+  previewTheme: (t: SiddurTheme) => void;
   customTheme: SiddurTheme;
   setCustomTheme: (t: SiddurTheme) => void;
 }
@@ -168,6 +171,7 @@ const useSiddurTheme = (): SiddurThemeCtx => {
   if (!ctx) return {
     theme: SIDDUR_PRESET_THEMES[0],
     setTheme: () => {},
+    previewTheme: () => {},
     customTheme: loadCustomTheme(),
     setCustomTheme: () => {},
   };
@@ -539,10 +543,14 @@ const SiddurPagePreview = ({ theme, label = "תצוגה מקדימה" }: { theme
 
 /* ─── ThemePicker ────────────────────────────────────────── */
 const COLOR_FIELDS: { key: keyof SiddurTheme; label: string; group: string; colorOnly?: boolean }[] = [
-  { key: "bg",               label: "רקע דף",           group: "רקע" },
-  { key: "headerBg",         label: "רקע כותרת/טאבים",  group: "רקע" },
-  { key: "cardBg",           label: "רקע כרטיס",        group: "רקע" },
-  { key: "cardBorder",       label: "מסגרת כרטיס",      group: "מסגרות" },
+  // Header/tabs — independent container
+  { key: "headerBg",           label: "רקע כותרת/טאבים",  group: "כותרת" },
+  { key: "headerTextColor",    label: "טקסט כותרת",        group: "כותרת" },
+  { key: "headerAccentColor",  label: "הדגשה בכותרת",      group: "כותרת", colorOnly: true },
+  // Body
+  { key: "bg",               label: "רקע דף",           group: "גוף הדף" },
+  { key: "cardBg",           label: "רקע כרטיס",        group: "גוף הדף" },
+  { key: "cardBorder",       label: "מסגרת כרטיס",      group: "גוף הדף" },
   { key: "textColor",        label: "טקסט תפילה",       group: "טקסט" },
   { key: "headingColor",     label: "כותרת מקטע",       group: "טקסט" },
   { key: "instructionColor", label: "הוראות / רוביקה",  group: "טקסט" },
@@ -550,20 +558,71 @@ const COLOR_FIELDS: { key: keyof SiddurTheme; label: string; group: string; colo
 ];
 
 const ThemePicker = () => {
-  const { theme, setTheme, customTheme, setCustomTheme } = useSiddurTheme();
+  const { theme, setTheme, customTheme, setCustomTheme, previewTheme } = useSiddurTheme();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"presets" | "custom">("presets");
   const [draft, setDraft] = useState<SiddurTheme>({ ...customTheme });
   const [hoverTheme, setHoverTheme] = useState<SiddurTheme | null>(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Captures the saved theme at dialog-open time so we can revert on cancel
+  const originalThemeRef = useRef<SiddurTheme>(theme);
 
   // Keep draft in sync when customTheme changes externally
   useEffect(() => { setDraft(prev => ({ ...prev, ...customTheme })); }, [customTheme]);
 
+  // On open: snapshot current theme + position panel near top-right
+  useEffect(() => {
+    if (open) {
+      originalThemeRef.current = theme;
+      setPos({
+        x: Math.max(8, window.innerWidth - 644),
+        y: 64,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Mouse-drag logic
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: MouseEvent) => {
+      setPos({
+        x: Math.max(0, Math.min(e.clientX - dragOffset.current.x, window.innerWidth - 120)),
+        y: Math.max(0, Math.min(e.clientY - dragOffset.current.y, window.innerHeight - 60)),
+      });
+    };
+    const onUp = () => setIsDragging(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [isDragging]);
+
+  const startDrag = (e: React.MouseEvent) => {
+    // Don't start drag when clicking interactive elements inside the handle
+    if ((e.target as HTMLElement).closest("button, input")) return;
+    e.preventDefault();
+    if (!panelRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    setIsDragging(true);
+  };
+
+  // Cancel: revert page to saved theme and close
+  const handleClose = () => {
+    previewTheme(originalThemeRef.current);
+    setDraft({ ...customTheme });
+    setOpen(false);
+  };
+
   const allThemes = [...SIDDUR_PRESET_THEMES, { ...customTheme }];
 
-  // The theme shown in the preview pane:
-  // - presets tab: hovered theme or current theme
-  // - custom tab: draft (live as user edits)
+  // Mini-preview panel still shows hovered / draft theme
   const previewedTheme: SiddurTheme = tab === "custom" ? draft : (hoverTheme ?? theme);
 
   const applyCustom = () => {
@@ -572,14 +631,25 @@ const ThemePicker = () => {
     saveCustomTheme(t);
     setCustomTheme(t);
     setTheme(t);
+    originalThemeRef.current = t; // update anchor so closing won't revert
     setOpen(false);
   };
 
   const fieldVal = (key: keyof SiddurTheme): string =>
     (draft[key] as string | undefined) ?? "";
 
-  // Group fields
+  // Update draft AND push live to the page immediately
+  const updateDraft = (key: keyof SiddurTheme, value: string) => {
+    const newDraft: SiddurTheme = { ...draft, [key]: value, id: "custom", isCustom: true };
+    setDraft(newDraft);
+    previewTheme(newDraft);
+  };
+
   const groups = Array.from(new Set(COLOR_FIELDS.map(f => f.group)));
+
+  const panelBg = theme.headerBg.includes("gradient") || theme.headerBg.includes("linear")
+    ? "#1a1a2e"
+    : theme.headerBg;
 
   return (
     <div className="relative">
@@ -593,193 +663,230 @@ const ThemePicker = () => {
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-[998]" onClick={() => setOpen(false)} />
+        <div
+          ref={panelRef}
+          className="fixed z-[999] rounded-xl shadow-2xl flex flex-col overflow-hidden"
+          style={{
+            left: pos.x,
+            top: pos.y,
+            background: panelBg,
+            border: `1px solid ${theme.accentColor}44`,
+            direction: "rtl",
+            maxHeight: "88vh",
+            width: "628px",
+            maxWidth: "calc(100vw - 16px)",
+            userSelect: isDragging ? "none" : "auto",
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* ── Drag handle / header ── */}
           <div
-            className="fixed left-1 right-1 sm:absolute sm:left-0 sm:right-auto top-12 sm:top-10 z-[999] rounded-xl shadow-2xl flex flex-col overflow-hidden"
+            className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
             style={{
-              background: theme.headerBg.includes("gradient") ? "#1a1a2e" : theme.headerBg,
-              border: `1px solid ${theme.accentColor}44`,
-              direction: "rtl",
-              maxHeight: "88vh",
-              // Wide on desktop to fit side-by-side layout
-              width: "auto",
+              borderColor: `${theme.accentColor}22`,
+              cursor: isDragging ? "grabbing" : "grab",
             }}
-            onClick={e => e.stopPropagation()}
+            onMouseDown={startDrag}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0" style={{ borderColor: `${theme.accentColor}22` }}>
-              <span className="text-sm font-bold" style={{ color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', serif" }}>ערכת נושא</span>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => { setTab("presets"); setHoverTheme(null); }}
-                  className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
-                  style={{ background: tab === "presets" ? theme.accentColor : `rgba(255,255,255,0.08)`, color: tab === "presets" ? "#1a1a1a" : theme.textColor }}
-                >
-                  ערכות מובנות
-                </button>
-                <button
-                  onClick={() => { setTab("custom"); setHoverTheme(null); }}
-                  className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
-                  style={{ background: tab === "custom" ? theme.accentColor : `rgba(255,255,255,0.08)`, color: tab === "custom" ? "#1a1a1a" : theme.textColor }}
-                >
-                  עריכה מותאמת
-                </button>
-              </div>
-            </div>
-
-            {/* Body: side-by-side on sm+, stacked on mobile */}
-            <div className="flex flex-col sm:flex-row flex-1 min-h-0">
-
-              {/* ── Controls column (right in RTL) ── */}
-              <div className="overflow-y-auto sm:w-[330px] flex-shrink-0">
-                {tab === "presets" && (
-                  <div className="p-3 grid grid-cols-4 gap-2">
-                    {allThemes.map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => { setTheme(t); setOpen(false); }}
-                        onMouseEnter={() => setHoverTheme(t)}
-                        onMouseLeave={() => setHoverTheme(null)}
-                        className="flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all hover:scale-105 active:scale-95"
-                        style={{
-                          background: theme.id === t.id ? `${theme.accentColor}22` : "rgba(255,255,255,0.05)",
-                          border: `1.5px solid ${(hoverTheme?.id ?? theme.id) === t.id ? theme.accentColor : "transparent"}`,
-                        }}
-                      >
-                        {/* Mini swatch */}
-                        <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0" style={{ border: `1px solid ${t.accentColor}55` }}>
-                          <div className="h-4 w-full" style={{ background: t.bg.includes("gradient") ? t.accentColor : t.bg }} />
-                          <div className="h-3 w-full flex items-center justify-center" style={{ background: t.cardBg.includes("rgba") ? t.bg : t.cardBg }}>
-                            <span style={{ fontSize: "7px", color: t.textColor, fontFamily: "serif" }}>אבג</span>
-                          </div>
-                          <div className="h-3 w-full flex items-center justify-center" style={{ background: t.headerBg.includes("gradient") ? t.accentColor : t.headerBg }}>
-                            <span style={{ fontSize: "6px", color: t.accentColor }}>❧</span>
-                          </div>
-                        </div>
-                        <span className="text-[9px] text-center leading-tight font-medium" style={{ color: theme.textColor }}>{t.emoji} {t.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {tab === "custom" && (
-                  <div className="p-3 space-y-4" dir="rtl">
-                    {/* Theme name */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold w-24 flex-shrink-0" style={{ color: theme.accentColor }}>שם ערכה</span>
-                      <input
-                        type="text"
-                        value={draft.name}
-                        onChange={e => setDraft(prev => ({ ...prev, name: e.target.value }))}
-                        className="flex-1 rounded px-2 py-1 text-xs"
-                        style={{ background: "rgba(255,255,255,0.1)", border: `1px solid ${theme.accentColor}44`, color: theme.textColor }}
-                        dir="rtl"
-                        placeholder="שם ערכת הנושא"
-                      />
-                    </div>
-
-                    {/* Color groups */}
-                    {groups.map(group => (
-                      <div key={group}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: theme.accentColor }}>{group}</span>
-                          <div className="flex-1 h-px" style={{ background: `${theme.accentColor}33` }} />
-                        </div>
-                        <div className="space-y-2">
-                          {COLOR_FIELDS.filter(f => f.group === group).map(({ key, label, colorOnly }) => {
-                            const val = fieldVal(key);
-                            const isHex = val.startsWith("#");
-                            return (
-                              <div key={key} className="flex items-center gap-2">
-                                <span className="text-xs flex-shrink-0 w-28" style={{ color: theme.textColor }}>{label}</span>
-                                <div className="flex items-center gap-1.5 flex-1">
-                                  <input
-                                    type="color"
-                                    value={isHex ? val : "#c8a04d"}
-                                    onChange={e => setDraft(prev => ({ ...prev, [key]: e.target.value }))}
-                                    className="h-7 w-9 rounded cursor-pointer flex-shrink-0"
-                                    style={{ background: "transparent", border: `1px solid ${theme.accentColor}44`, padding: "1px" }}
-                                  />
-                                  {!colorOnly && (
-                                    <input
-                                      type="text"
-                                      value={val}
-                                      onChange={e => setDraft(prev => ({ ...prev, [key]: e.target.value }))}
-                                      className="flex-1 rounded px-2 py-1 text-[10px] font-mono min-w-0"
-                                      style={{ background: "rgba(255,255,255,0.08)", border: `1px solid ${theme.accentColor}22`, color: theme.textColor }}
-                                      dir="ltr"
-                                      placeholder="#hex / rgba(...) / linear-gradient(...)"
-                                    />
-                                  )}
-                                  {colorOnly && isHex && (
-                                    <span className="text-[10px] font-mono" style={{ color: theme.textColor, opacity: 0.6 }}>{val}</span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Action buttons */}
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => {
-                          const base = SIDDUR_PRESET_THEMES[0];
-                          setDraft({ ...base, id: "custom", name: "מותאם אישית", emoji: "🎨", isCustom: true });
-                        }}
-                        className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-                        style={{ background: "rgba(255,255,255,0.08)", color: theme.textColor, border: `1px solid ${theme.accentColor}22` }}
-                      >
-                        אפס
-                      </button>
-                      <button
-                        onClick={applyCustom}
-                        className="flex-1 py-1.5 rounded-lg text-sm font-bold transition-all hover:opacity-90"
-                        style={{ background: theme.accentColor, color: "#1a1a1a" }}
-                      >
-                        החל ושמור
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ── Preview column (left in RTL) — desktop only ── */}
-              <div
-                className="hidden sm:flex flex-col border-r flex-shrink-0"
-                style={{
-                  width: "220px",
-                  borderColor: `${theme.accentColor}22`,
-                  background: "rgba(0,0,0,0.15)",
-                }}
+            {/* Title + live-preview badge */}
+            <div className="flex items-center gap-2 pointer-events-none">
+              <span className="text-sm font-bold" style={{ color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', serif" }}>
+                ✦ ערכת נושא
+              </span>
+              <span
+                className="text-[9px] px-1.5 py-0.5 rounded-full"
+                style={{ background: `${theme.accentColor}25`, color: theme.accentColor }}
               >
-                {/* Preview header */}
-                <div className="px-3 py-2 text-center flex-shrink-0" style={{ borderBottom: `1px solid ${theme.accentColor}22` }}>
-                  <span style={{ color: theme.accentColor, fontSize: "10px", fontFamily: "'Noto Serif Hebrew', serif", opacity: 0.8 }}>
-                    {tab === "custom" ? "⟳ מתעדכן בזמן אמת" : "עבר עם העכבר לתצוגה מקדימה"}
-                  </span>
-                </div>
-                {/* Preview content */}
-                <div className="flex-1 p-2.5 overflow-hidden">
-                  <SiddurPagePreview
-                    theme={previewedTheme}
-                    label={previewedTheme.name || "תצוגה מקדימה"}
-                  />
-                </div>
-                {/* Selected theme indicator */}
-                <div className="px-3 py-1.5 text-center flex-shrink-0" style={{ borderTop: `1px solid ${theme.accentColor}22` }}>
-                  <span style={{ color: previewedTheme.accentColor, fontSize: "9px", fontFamily: "'Noto Serif Hebrew', serif" }}>
-                    {previewedTheme.emoji} {previewedTheme.name}
-                  </span>
-                </div>
-              </div>
-
+                תצוגה חיה בדף
+              </span>
+            </div>
+            {/* Tabs + close */}
+            <div className="flex gap-1 items-center">
+              <button
+                onClick={() => { setTab("presets"); setHoverTheme(null); }}
+                className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                style={{ background: tab === "presets" ? theme.accentColor : `rgba(255,255,255,0.08)`, color: tab === "presets" ? "#1a1a1a" : theme.textColor }}
+              >
+                ערכות מובנות
+              </button>
+              <button
+                onClick={() => { setTab("custom"); setHoverTheme(null); }}
+                className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                style={{ background: tab === "custom" ? theme.accentColor : `rgba(255,255,255,0.08)`, color: tab === "custom" ? "#1a1a1a" : theme.textColor }}
+              >
+                עריכה מותאמת
+              </button>
+              <button
+                onClick={handleClose}
+                className="mr-1 h-6 w-6 flex items-center justify-center rounded-full text-sm transition-all hover:opacity-80"
+                style={{ background: "rgba(255,255,255,0.1)", color: theme.textColor }}
+                title="סגור"
+              >
+                ✕
+              </button>
             </div>
           </div>
-        </>
+
+          {/* ── Body: controls (flex-1) + mini preview (fixed 200px) ── */}
+          <div className="flex flex-row flex-1 min-h-0">
+
+            {/* Controls column */}
+            <div className="overflow-y-auto flex-1 min-w-0">
+              {tab === "presets" && (
+                <div className="p-3 grid grid-cols-4 gap-2">
+                  {allThemes.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        setTheme(t);
+                        originalThemeRef.current = t; // anchor updated — closing won't revert
+                        setOpen(false);
+                      }}
+                      onMouseEnter={() => { setHoverTheme(t); previewTheme(t); }}
+                      onMouseLeave={() => { setHoverTheme(null); previewTheme(originalThemeRef.current); }}
+                      className="flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all hover:scale-105 active:scale-95"
+                      style={{
+                        background: theme.id === t.id ? `${theme.accentColor}22` : "rgba(255,255,255,0.05)",
+                        border: `1.5px solid ${(hoverTheme?.id ?? theme.id) === t.id ? theme.accentColor : "transparent"}`,
+                      }}
+                    >
+                      <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0" style={{ border: `1px solid ${t.accentColor}55` }}>
+                        <div className="h-4 w-full" style={{ background: t.bg.includes("gradient") ? t.accentColor : t.bg }} />
+                        <div className="h-3 w-full flex items-center justify-center" style={{ background: t.cardBg.includes("rgba") ? t.bg : t.cardBg }}>
+                          <span style={{ fontSize: "7px", color: t.textColor, fontFamily: "serif" }}>אבג</span>
+                        </div>
+                        <div className="h-3 w-full flex items-center justify-center" style={{ background: t.headerBg.includes("gradient") ? t.accentColor : t.headerBg }}>
+                          <span style={{ fontSize: "6px", color: t.accentColor }}>❧</span>
+                        </div>
+                      </div>
+                      <span className="text-[9px] text-center leading-tight font-medium" style={{ color: theme.textColor }}>{t.emoji} {t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {tab === "custom" && (
+                <div className="p-3 space-y-4" dir="rtl">
+                  {/* Theme name */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold w-24 flex-shrink-0" style={{ color: theme.accentColor }}>שם ערכה</span>
+                    <input
+                      type="text"
+                      value={draft.name}
+                      onChange={e => setDraft(prev => ({ ...prev, name: e.target.value }))}
+                      className="flex-1 rounded px-2 py-1 text-xs"
+                      style={{ background: "rgba(255,255,255,0.1)", border: `1px solid ${theme.accentColor}44`, color: theme.textColor }}
+                      dir="rtl"
+                      placeholder="שם ערכת הנושא"
+                    />
+                  </div>
+
+                  {/* Color groups */}
+                  {groups.map(group => (
+                    <div key={group}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: theme.accentColor }}>{group}</span>
+                        <div className="flex-1 h-px" style={{ background: `${theme.accentColor}33` }} />
+                      </div>
+                      <div className="space-y-2">
+                        {COLOR_FIELDS.filter(f => f.group === group).map(({ key, label, colorOnly }) => {
+                          const val = fieldVal(key);
+                          const isHex = val.startsWith("#");
+                          return (
+                            <div key={key} className="flex items-center gap-2">
+                              <span className="text-xs flex-shrink-0 w-28" style={{ color: theme.textColor }}>{label}</span>
+                              <div className="flex items-center gap-1.5 flex-1">
+                                <input
+                                  type="color"
+                                  value={isHex ? val : "#c8a04d"}
+                                  onChange={e => updateDraft(key, e.target.value)}
+                                  className="h-7 w-9 rounded cursor-pointer flex-shrink-0"
+                                  style={{ background: "transparent", border: `1px solid ${theme.accentColor}44`, padding: "1px" }}
+                                />
+                                {!colorOnly && (
+                                  <input
+                                    type="text"
+                                    value={val}
+                                    onChange={e => updateDraft(key, e.target.value)}
+                                    className="flex-1 rounded px-2 py-1 text-[10px] font-mono min-w-0"
+                                    style={{ background: "rgba(255,255,255,0.08)", border: `1px solid ${theme.accentColor}22`, color: theme.textColor }}
+                                    dir="ltr"
+                                    placeholder="#hex / rgba(...) / linear-gradient(...)"
+                                  />
+                                )}
+                                {colorOnly && isHex && (
+                                  <span className="text-[10px] font-mono" style={{ color: theme.textColor, opacity: 0.6 }}>{val}</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => {
+                        const base = SIDDUR_PRESET_THEMES[0];
+                        const reset: SiddurTheme = { ...base, id: "custom", name: "מותאם אישית", emoji: "🎨", isCustom: true };
+                        setDraft(reset);
+                        previewTheme(reset);
+                      }}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+                      style={{ background: "rgba(255,255,255,0.08)", color: theme.textColor, border: `1px solid ${theme.accentColor}22` }}
+                    >
+                      אפס
+                    </button>
+                    <button
+                      onClick={handleClose}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+                      style={{ background: "rgba(255,255,255,0.08)", color: theme.textColor, border: `1px solid ${theme.accentColor}22` }}
+                    >
+                      ביטול
+                    </button>
+                    <button
+                      onClick={applyCustom}
+                      className="flex-1 py-1.5 rounded-lg text-sm font-bold transition-all hover:opacity-90"
+                      style={{ background: theme.accentColor, color: "#1a1a1a" }}
+                    >
+                      החל ושמור
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Mini preview column ── */}
+            <div
+              className="flex flex-col border-r flex-shrink-0"
+              style={{
+                width: "200px",
+                borderColor: `${theme.accentColor}22`,
+                background: "rgba(0,0,0,0.15)",
+              }}
+            >
+              <div className="px-3 py-2 text-center flex-shrink-0" style={{ borderBottom: `1px solid ${theme.accentColor}22` }}>
+                <span style={{ color: theme.accentColor, fontSize: "10px", fontFamily: "'Noto Serif Hebrew', serif", opacity: 0.8 }}>
+                  {tab === "custom" ? "⟳ תצוגה מקדימה" : "עבר עם העכבר לתצוגה"}
+                </span>
+              </div>
+              <div className="flex-1 p-2.5 overflow-hidden">
+                <SiddurPagePreview
+                  theme={previewedTheme}
+                  label={previewedTheme.name || "תצוגה מקדימה"}
+                />
+              </div>
+              <div className="px-3 py-1.5 text-center flex-shrink-0" style={{ borderTop: `1px solid ${theme.accentColor}22` }}>
+                <span style={{ color: previewedTheme.accentColor, fontSize: "9px", fontFamily: "'Noto Serif Hebrew', serif" }}>
+                  {previewedTheme.emoji} {previewedTheme.name}
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1948,9 +2055,9 @@ export const Siddur = () => {
 
   // Cloud sync helpers
   const cloudSaveActiveTheme = useCallback(async (t: SiddurTheme) => {
-    if (!user) return;
     const ts = Date.now();
     localStorage.setItem(`${ACTIVE_THEME_KEY}__ts`, String(ts));
+    if (!user) return;
     try {
       const { data: { user: u } } = await supabase.auth.getUser();
       if (!u) return;
@@ -2024,6 +2131,11 @@ export const Siddur = () => {
   const { categories, loading: catsLoading } = useSiddurCategories(nusach);
   const { settings: fontSettings } = useFontAndColorSettings();
 
+  // Header-scoped color helpers — use headerTextColor/headerAccentColor when set (custom theme),
+  // otherwise fall back to the body textColor/accentColor (preset themes are unaffected)
+  const hText   = activeTheme.headerTextColor   ?? activeTheme.textColor;
+  const hAccent = activeTheme.headerAccentColor ?? activeTheme.accentColor;
+
   // Kick off local JSON download as early as possible so it's ready when sections load
   useEffect(() => { preloadSiddurNusach(nusach); }, [nusach]);
   const isSpecial = NUSACH_INDEP.has(catId);
@@ -2069,6 +2181,7 @@ export const Siddur = () => {
         localStorage.setItem(ACTIVE_THEME_KEY, t.id);
         cloudSaveActiveTheme(t);
       },
+      previewTheme: t => setActiveTheme(t),
       customTheme,
       setCustomTheme: (t) => {
         setCustomTheme(t);
@@ -2089,7 +2202,7 @@ export const Siddur = () => {
         style={{
           background: activeTheme.headerBg,
           paddingTop: "max(var(--safe-area-inset-top, var(--sai-top, env(safe-area-inset-top, 0px))), 24px)",
-          boxShadow: "0 2px 16px rgba(0,0,0,0.18), 0 1px 0 rgba(200,160,77,0.15)",
+          boxShadow: `0 2px 16px rgba(0,0,0,0.18), 0 1px 0 ${hAccent}15`,
         }}
       >
         <div className="w-full px-3 sm:px-5">
@@ -2102,9 +2215,9 @@ export const Siddur = () => {
               <h1
                 className="text-lg sm:text-2xl font-bold tracking-wide whitespace-nowrap"
                 style={{
-                  color: activeTheme.textColor,
+                  color: hText,
                   fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                  textShadow: `0 0 20px ${activeTheme.accentColor}33`,
+                  textShadow: `0 0 20px ${hAccent}33`,
                 }}
               >
                 סידור תפילה
@@ -2114,7 +2227,7 @@ export const Siddur = () => {
                 size="sm"
                 onClick={() => navigate(-1)}
                 className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0 whitespace-nowrap"
-                style={{ color: `${activeTheme.textColor}bf`, background: "transparent" }}
+                style={{ color: `${hText}bf`, background: "transparent" }}
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">חזרה</span>
@@ -2136,7 +2249,7 @@ export const Siddur = () => {
                       variant="ghost"
                       size="sm"
                       className="h-8 gap-1 px-2 text-xs font-medium rounded-lg"
-                      style={{ color: activeTheme.accentColor, background: `${activeTheme.accentColor}18`, border: `1px solid ${activeTheme.accentColor}44` }}
+                      style={{ color: hAccent, background: `${hAccent}18`, border: `1px solid ${hAccent}44` }}
                     >
                       <Layers className="h-3.5 w-3.5 flex-shrink-0" />
                       <span className="hidden md:inline max-w-[80px] truncate">{VIEW_MODES.find(m => m.id === viewMode)?.title ?? "תצוגה"}</span>
@@ -2157,7 +2270,7 @@ export const Siddur = () => {
                           <span className={cn("block text-sm", viewMode === m.id && "font-semibold text-foreground")}>{m.title}</span>
                           {m.desc && <span className="block text-[10px] text-muted-foreground">{m.desc}</span>}
                         </div>
-                        {viewMode === m.id && <span className="text-xs flex-shrink-0" style={{ color: activeTheme.accentColor }}>✓</span>}
+                        {viewMode === m.id && <span className="text-xs flex-shrink-0" style={{ color: hAccent }}>✓</span>}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -2178,15 +2291,15 @@ export const Siddur = () => {
                   <Book className="h-3.5 w-3.5 flex-shrink-0" />
                   <span className="hidden sm:inline">חומש</span>
                 </button>
-                <span className="w-px h-3.5 opacity-25" style={{ background: activeTheme.accentColor }} />
+                <span className="w-px h-3.5 opacity-25" style={{ background: hAccent }} />
                 <div
                   className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold"
-                  style={{ color: activeTheme.accentColor }}
+                  style={{ color: hAccent }}
                 >
                   <BookMarked className="h-3.5 w-3.5 flex-shrink-0" />
                   <span className="hidden sm:inline">סידור</span>
                 </div>
-                <span className="w-px h-3.5 opacity-25" style={{ background: activeTheme.accentColor }} />
+                <span className="w-px h-3.5 opacity-25" style={{ background: hAccent }} />
                 <button
                   onClick={() => navigate('/omer')}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-80"
@@ -2212,8 +2325,8 @@ export const Siddur = () => {
                 className="px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-all"
                 style={
                   nusach === n.id
-                    ? { background: activeTheme.accentColor, color: "hsl(var(--sidebar-background))", boxShadow: `0 2px 8px ${activeTheme.accentColor}55`, fontWeight: 700 }
-                    : { background: "transparent", color: `${activeTheme.textColor}a0` }
+                    ? { background: hAccent, color: "hsl(var(--sidebar-background))", boxShadow: `0 2px 8px ${hAccent}55`, fontWeight: 700 }
+                    : { background: "transparent", color: `${hText}a0` }
                 }
               >
                 {n.label}
@@ -2228,7 +2341,7 @@ export const Siddur = () => {
         className="border-b flex items-stretch"
         style={{
           background: activeTheme.headerBg,
-          borderColor: `${activeTheme.accentColor}30`,
+          borderColor: `${hAccent}30`,
         }}
       >
         {/* Scrollable tabs */}
@@ -2253,8 +2366,8 @@ export const Siddur = () => {
               className="flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all"
               style={{
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                color: catId === cat.id ? activeTheme.accentColor : `${activeTheme.textColor}99`,
-                borderBottomColor: catId === cat.id ? activeTheme.accentColor : "transparent",
+                color: catId === cat.id ? hAccent : `${hText}99`,
+                borderBottomColor: catId === cat.id ? hAccent : "transparent",
               }}
             >
               <CatIcon id={cat.id} />
@@ -2275,8 +2388,8 @@ export const Siddur = () => {
               className="flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all"
               style={{
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                color: catId === tab.id ? activeTheme.accentColor : `${activeTheme.textColor}99`,
-                borderBottomColor: catId === tab.id ? activeTheme.accentColor : "transparent",
+                color: catId === tab.id ? hAccent : `${hText}99`,
+                borderBottomColor: catId === tab.id ? hAccent : "transparent",
               }}
             >
               <CatIcon id={tab.id} />
@@ -2296,7 +2409,7 @@ export const Siddur = () => {
               <DropdownMenuTrigger asChild>
                 <button
                   className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
-                  style={{ background: `${activeTheme.accentColor}18`, color: activeTheme.accentColor }}
+                  style={{ background: `${hAccent}18`, color: hAccent }}
                   title={VIEW_MODES.find(m => m.id === viewMode)?.title}
                 >
                   {VIEW_MODES.find(m => m.id === viewMode)?.icon}
