@@ -370,6 +370,18 @@ function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: 
     // metrics within the same font.
     fontFeatureSettings: '"mark" 1, "mkmk" 1, "ccmp" 1',
     textRendering: 'optimizeLegibility',
+    // Lock metrics so per-glyph fallback (if it ever happens) and any
+    // contextual substitution can't change letter heights/baselines:
+    fontSynthesis: 'none' as React.CSSProperties['fontSynthesis'],
+    fontVariant: 'normal',
+    fontKerning: 'normal',
+    // Prevent mobile auto text-size adjustments that scale individual lines.
+    WebkitTextSizeAdjust: '100%',
+    textSizeAdjust: '100%' as unknown as React.CSSProperties['textSizeAdjust'],
+    // Keep all glyphs on the same baseline — defends against accidental
+    // sub/superscript variants that some Hebrew fonts apply for marks.
+    verticalAlign: 'baseline',
+    fontVariantPosition: 'normal' as unknown as React.CSSProperties['fontVariantPosition'],
     // Avoid the parameter being flagged as unused while preserving the API.
     ...(showNikud ? {} : {}),
   };
