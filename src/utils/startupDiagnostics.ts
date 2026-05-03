@@ -18,6 +18,15 @@ type OverlaySnapshot = {
   lcpMs: number | null;
 };
 
+type TraceLevel = "metric" | "log" | "info" | "warn" | "error" | "debug";
+
+type TraceEvent = {
+  t: string;
+  level: TraceLevel;
+  event: string;
+  details?: unknown;
+};
+
 declare global {
   interface Window {
     __pashTraceHandle?: TraceHandle;
@@ -25,6 +34,8 @@ declare global {
 }
 
 const TRACE_KEY = "debug-font-trace";
+const TRACE_STORAGE_KEY = "debug-startup-trace-last";
+const MAX_EVENTS = 2000;
 
 function shouldEnableTrace() {
   try {
@@ -50,12 +61,32 @@ function checkFontLoaded(family: string) {
   }
 }
 
+function stringifySafe(value: unknown) {
+  try {
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack,
+      };
+    }
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value == null) {
+      return value;
+    }
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return String(value);
+  }
+}
+
 export function installStartupDiagnostics() {
   if (typeof window === "undefined") return;
   if (!shouldEnableTrace()) return;
   if (window.__pashTraceHandle) return;
 
   const start = performance.now();
+  const events: TraceEvent[] = [];
+
   const trackedFonts = [
     "David Libre",
     "Frank Ruhl Libre",
@@ -64,25 +95,92 @@ export function installStartupDiagnostics() {
     "Rubik",
   ];
 
+  const nativeConsole = {
+    log: console.log.bind(console),
+    info: console.info.bind(console),
+    warn: console.warn.bind(console),
+    error: console.error.bind(console),
+    debug: console.debug.bind(console),
+  };
+
+  let overlayEl: HTMLDivElement | null = null;
+
+  const pushEvent = (level: TraceLevel, event: string, details?: unknown) => {
+    const item: TraceEvent = {
+      t: `${nowSeconds(start)}s`,
+      level,
+      event,
+      details: stringifySafe(details),
+    };
+    events.push(item);
+    if (events.length > MAX_EVENTS) {
+      events.splice(0, events.length - MAX_EVENTS);
+    }
+  };
+
   const log = (event: string, details?: Record<string, unknown>) => {
     const payload = {
       t: `${nowSeconds(start)}s`,
       event,
       ...(details || {}),
     };
-    console.log("[startup-trace]", payload);
+    pushEvent("metric", event, details);
+    nativeConsole.log("[startup-trace]", payload);
   };
 
-  let overlayEl: HTMLDivElement | null = null;
+  const persistLogs = () => {
+    try {
+      localStorage.setItem(
+        TRACE_STORAGE_KEY,
+        JSON.stringify({
+          exportedAt: new Date().toISOString(),
+          href: window.location.href,
+          userAgent: navigator.userAgent,
+          events,
+        }),
+      );
+    } catch {
+      // ignore storage quota issues in trace mode
+    }
+  };
+
+  const exportLogs = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      href: window.location.href,
+      userAgent: navigator.userAgent,
+      events,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `startup-trace-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyLogs = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(events, null, 2));
+      log("copy-logs-success", { count: events.length });
+    } catch (error) {
+      log("copy-logs-failed", { error: stringifySafe(error) });
+    }
+  };
+
   const ensureOverlay = () => {
     if (overlayEl) return overlayEl;
+
     const panel = document.createElement("div");
     panel.id = "startup-trace-overlay";
     panel.style.position = "fixed";
     panel.style.left = "10px";
     panel.style.bottom = "10px";
     panel.style.zIndex = "2147483647";
-    panel.style.background = "rgba(10, 16, 26, 0.92)";
+    panel.style.background = "rgba(10, 16, 26, 0.94)";
     panel.style.color = "#d9f5ff";
     panel.style.border = "1px solid rgba(76, 188, 255, 0.45)";
     panel.style.borderRadius = "10px";
@@ -90,31 +188,60 @@ export function installStartupDiagnostics() {
     panel.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
     panel.style.fontSize = "11px";
     panel.style.lineHeight = "1.35";
-    panel.style.minWidth = "260px";
-    panel.style.maxWidth = "45vw";
-    panel.style.whiteSpace = "pre";
+    panel.style.minWidth = "280px";
+    panel.style.maxWidth = "48vw";
     panel.style.pointerEvents = "auto";
     panel.style.boxShadow = "0 8px 28px rgba(0,0,0,0.35)";
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = "Stop Trace";
-    btn.style.display = "block";
-    btn.style.marginBottom = "8px";
-    btn.style.padding = "2px 8px";
-    btn.style.background = "#123d5f";
-    btn.style.border = "1px solid #2a78b0";
-    btn.style.color = "#d9f5ff";
-    btn.style.borderRadius = "6px";
-    btn.style.cursor = "pointer";
-    btn.addEventListener("click", () => window.__pashTraceHandle?.stop());
+    const controls = document.createElement("div");
+    controls.style.display = "flex";
+    controls.style.gap = "6px";
+    controls.style.marginBottom = "8px";
+    controls.style.flexWrap = "wrap";
+
+    const makeBtn = (label: string, onClick: () => void) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = label;
+      btn.style.padding = "2px 8px";
+      btn.style.background = "#123d5f";
+      btn.style.border = "1px solid #2a78b0";
+      btn.style.color = "#d9f5ff";
+      btn.style.borderRadius = "6px";
+      btn.style.cursor = "pointer";
+      btn.addEventListener("click", onClick);
+      return btn;
+    };
+
+    controls.appendChild(makeBtn("Stop", () => window.__pashTraceHandle?.stop()));
+    controls.appendChild(makeBtn("Export JSON", exportLogs));
+    controls.appendChild(makeBtn("Copy", () => {
+      void copyLogs();
+    }));
+    controls.appendChild(makeBtn("Clear", () => {
+      events.splice(0, events.length);
+      persistLogs();
+      log("events-cleared");
+    }));
 
     const body = document.createElement("div");
     body.id = "startup-trace-overlay-body";
-    body.textContent = "collecting...";
+    body.style.whiteSpace = "pre";
 
-    panel.appendChild(btn);
+    const feed = document.createElement("div");
+    feed.id = "startup-trace-overlay-feed";
+    feed.style.marginTop = "8px";
+    feed.style.maxHeight = "140px";
+    feed.style.overflow = "auto";
+    feed.style.whiteSpace = "pre-wrap";
+    feed.style.borderTop = "1px solid rgba(76, 188, 255, 0.25)";
+    feed.style.paddingTop = "6px";
+    feed.style.color = "#b7e3ff";
+
+    panel.appendChild(controls);
     panel.appendChild(body);
+    panel.appendChild(feed);
+
     document.body.appendChild(panel);
     overlayEl = panel;
     return panel;
@@ -122,8 +249,10 @@ export function installStartupDiagnostics() {
 
   const renderOverlay = (snapshot: OverlaySnapshot) => {
     const panel = ensureOverlay();
-    const body = panel.querySelector("#startup-trace-overlay-body");
-    if (!body) return;
+    const body = panel.querySelector("#startup-trace-overlay-body") as HTMLDivElement | null;
+    const feed = panel.querySelector("#startup-trace-overlay-feed") as HTMLDivElement | null;
+    if (!body || !feed) return;
+
     body.textContent = [
       `t=${snapshot.t} tick=${snapshot.tick}`,
       `ready=${snapshot.readyState} sw=${snapshot.swControlled ? "yes" : "no"}`,
@@ -131,7 +260,14 @@ export function installStartupDiagnostics() {
       `google css=${snapshot.googleCssReq} files=${snapshot.googleFontFilesReq}`,
       `fcp=${snapshot.fcpMs ?? "-"}ms lcp=${snapshot.lcpMs ?? "-"}ms`,
       `cls=${snapshot.cls.toFixed(4)} longtasks=${snapshot.longTasks}`,
+      `events=${events.length}`,
     ].join("\n");
+
+    const latest = events.slice(-10).map((e) => {
+      const detail = e.details === undefined ? "" : ` ${JSON.stringify(e.details)}`;
+      return `${e.t} [${e.level}] ${e.event}${detail}`;
+    });
+    feed.textContent = latest.join("\n");
   };
 
   log("trace-start", {
@@ -140,6 +276,60 @@ export function installStartupDiagnostics() {
     online: navigator.onLine,
     swControlled: !!navigator.serviceWorker?.controller,
   });
+
+  const consoleKeys: Array<keyof typeof nativeConsole> = ["log", "info", "warn", "error", "debug"];
+  for (const key of consoleKeys) {
+    const original = nativeConsole[key];
+    (console as Record<string, (...args: unknown[]) => void>)[key] = (...args: unknown[]) => {
+      original(...args);
+      if (typeof args[0] === "string" && args[0].includes("[startup-trace]")) return;
+      pushEvent(key as TraceLevel, `console.${key}`, args.map(stringifySafe));
+    };
+  }
+
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
+    const req = args[0] instanceof Request ? args[0] : new Request(args[0], args[1]);
+    const t0 = performance.now();
+    try {
+      const response = await originalFetch(...args);
+      pushEvent("metric", "fetch", {
+        url: req.url,
+        method: req.method,
+        status: response.status,
+        durationMs: Number((performance.now() - t0).toFixed(1)),
+        fromSWCache: response.headers.get("x-sw-cache") ?? null,
+      });
+      return response;
+    } catch (error) {
+      pushEvent("error", "fetch-error", {
+        url: req.url,
+        method: req.method,
+        durationMs: Number((performance.now() - t0).toFixed(1)),
+        error: stringifySafe(error),
+      });
+      throw error;
+    }
+  };
+
+  const onWindowError = (event: ErrorEvent) => {
+    pushEvent("error", "window-error", {
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      error: stringifySafe(event.error),
+    });
+  };
+
+  const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+    pushEvent("error", "unhandled-rejection", {
+      reason: stringifySafe(event.reason),
+    });
+  };
+
+  window.addEventListener("error", onWindowError);
+  window.addEventListener("unhandledrejection", onUnhandledRejection);
 
   const fontFaceSet = (document as Document & { fonts?: FontFaceSet }).fonts;
   const onLoading = () => log("fonts-loading", { status: fontFaceSet?.status ?? "unknown" });
@@ -161,7 +351,15 @@ export function installStartupDiagnostics() {
       hasController: !!navigator.serviceWorker.controller,
     });
   };
+
+  const onSWMessage = (event: MessageEvent) => {
+    pushEvent("metric", "sw-message", {
+      data: stringifySafe(event.data),
+    });
+  };
+
   navigator.serviceWorker?.addEventListener("controllerchange", onSWControllerChange);
+  navigator.serviceWorker?.addEventListener("message", onSWMessage);
 
   const onPageShow = (e: PageTransitionEvent) => log("pageshow", { persisted: e.persisted });
   const onVisibility = () => log("visibility", { state: document.visibilityState });
@@ -223,22 +421,24 @@ export function installStartupDiagnostics() {
   let ticks = 0;
   const intervalId = window.setInterval(() => {
     ticks += 1;
+
     const resources = performance.getEntriesByType("resource");
     const googleCss = resources.filter((r) => r.name.includes("fonts.googleapis.com/css2"));
     const googleFiles = resources.filter((r) => r.name.includes("fonts.gstatic.com"));
+
+    const loadedFonts = trackedFonts.filter(checkFontLoaded);
 
     log("tick", {
       tick: ticks,
       readyState: document.readyState,
       fontStatus: fontFaceSet?.status ?? "unknown",
-      loadedFonts: trackedFonts.filter(checkFontLoaded),
+      loadedFonts,
       missingFonts: trackedFonts.filter((f) => !checkFontLoaded(f)),
       googleCssReq: googleCss.length,
       googleFontFilesReq: googleFiles.length,
       swControlled: !!navigator.serviceWorker?.controller,
     });
 
-    const loadedFonts = trackedFonts.filter(checkFontLoaded);
     renderOverlay({
       t: `${nowSeconds(start)}s`,
       tick: ticks,
@@ -255,28 +455,54 @@ export function installStartupDiagnostics() {
       lcpMs,
     });
 
-    if (ticks >= 45) {
+    if (ticks % 3 === 0) {
+      persistLogs();
+    }
+
+    if (ticks >= 60) {
       stop();
     }
   }, 1000);
 
   const stop = () => {
     window.clearInterval(intervalId);
+
+    for (const key of consoleKeys) {
+      (console as Record<string, (...args: unknown[]) => void>)[key] = nativeConsole[key];
+    }
+
+    window.fetch = originalFetch;
+
     if (fontFaceSet) {
       fontFaceSet.removeEventListener("loading", onLoading as EventListener);
       fontFaceSet.removeEventListener("loadingdone", onLoadingDone as EventListener);
       fontFaceSet.removeEventListener("loadingerror", onLoadingError as EventListener);
     }
+
+    window.removeEventListener("error", onWindowError);
+    window.removeEventListener("unhandledrejection", onUnhandledRejection);
     navigator.serviceWorker?.removeEventListener("controllerchange", onSWControllerChange);
+    navigator.serviceWorker?.removeEventListener("message", onSWMessage);
     window.removeEventListener("pageshow", onPageShow);
     document.removeEventListener("visibilitychange", onVisibility);
     window.removeEventListener("load", onLoad);
+
     perfObservers.forEach((o) => o.disconnect());
+
     if (overlayEl) {
       overlayEl.remove();
       overlayEl = null;
     }
-    log("trace-stop", { cls: Number(cls.toFixed(4)) });
+
+    persistLogs();
+    log("trace-stop", {
+      cls: Number(cls.toFixed(4)),
+      longTasks,
+      lcpMs,
+      fcpMs,
+      totalEvents: events.length,
+    });
+
     delete window.__pashTraceHandle;
   };
 
