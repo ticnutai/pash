@@ -54,7 +54,35 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// Keep SW alive
+// Activate handler: self-heal if we're registered at the wrong scope, then claim.
+//
+// HISTORY: Previously this SW was registered with `{ scope: "/" }`, the same
+// scope as VitePWA's `sw.js`. Two SWs at the same scope made the browser
+// ping-pong the controller; combined with `clients.claim()` here AND VitePWA's
+// `registerType:'autoUpdate'`, every controllerchange triggered an automatic
+// `window.location.reload()` — producing the production reload loop.
+//
+// We now register at `{ scope: "/push/" }`, but any user who installed the old
+// version still has this SW sitting at scope `/`. The page-side cleanup may
+// never run if it's stuck in the loop. So we let the SW self-destruct here:
+// when we activate, if our scope is the origin root we unregister ourselves
+// instead of claiming clients. After that, `sw.js` is the sole controller and
+// the loop ends.
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      try {
+        const scopeUrl = new URL(self.registration.scope);
+        if (scopeUrl.pathname === "/") {
+          // Wrong scope — bail out and remove ourselves so we never become controller.
+          await self.registration.unregister();
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+      // Correct scope: take control of any /push/ clients (none in practice).
+      await self.clients.claim();
+    })()
+  );
 });
