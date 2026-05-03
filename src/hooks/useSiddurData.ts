@@ -25,11 +25,11 @@ const SIDDUR_CAT_FILES = import.meta.glob<{ default: SiddurCategory }>(
 );
 
 // Glob for legacy full-nusach files  (siddur_{nusach}.json) — fallback only
+// NOTE: import.meta.glob accepts a SINGLE pattern string — multiple args are invalid.
+// Using siddur_*.json matches both nusach files and split files, but loadLocalNusach
+// does exact key lookup so there is no collision.
 const SIDDUR_NUSACH_FILES = import.meta.glob<{ default: SiddurData }>(
-  "../data/siddur/siddur_ashkenaz.json",
-  "../data/siddur/siddur_sefard.json",
-  "../data/siddur/siddur_chabad.json",
-  "../data/siddur/siddur_edot_hamizrach.json"
+  "../data/siddur/siddur_*.json"
 );
 
 // Global caches
@@ -208,6 +208,46 @@ const CATEGORIES_ORDER = [
   "shabbat_kabbalat", "shabbat_arvit", "shabbat_shacharit",
   "shabbat_musaf", "shabbat_mincha", "brachot", "other",
 ];
+
+// Categories small enough to eagerly preload in the background (~10-130 KB each).
+// "other" (~1.2 MB) is intentionally excluded — load on demand only.
+const EAGER_PRELOAD_CATS = CATEGORIES_ORDER.filter(c => c !== "other");
+
+// Tracks which nusachim have already had background preloading kicked off.
+const preloadTriggered = new Set<string>();
+
+/**
+ * Fire-and-forget: load all small categories for a nusach in parallel so that
+ * switching tabs feels instant.  "other" is excluded (too large).
+ * Safe to call multiple times — runs only once per nusach.
+ */
+function backgroundPreloadCategories(nusach: string, availableCatIds: string[]) {
+  if (preloadTriggered.has(nusach)) return;
+  preloadTriggered.add(nusach);
+
+  const toLoad = availableCatIds.filter(id => EAGER_PRELOAD_CATS.includes(id));
+  const idle: (cb: () => void) => void =
+    typeof requestIdleCallback === "function"
+      ? cb => requestIdleCallback(cb)
+      : cb => setTimeout(cb, 50);
+
+  idle(() => {
+    // Load all small categories in parallel — results land in sectionsCache
+    // so the next useSiddurSections call returns immediately from cache.
+    Promise.all(
+      toLoad.map(async catId => {
+        const key = `${nusach}:${catId}`;
+        if (sectionsCache[key]) return; // already cached
+        const cat = await loadLocalCategory(nusach, catId);
+        if (cat && !sectionsCache[key]) {
+          sectionsCache[key] = cat.sections;
+          catNameCache[key]  = cat.name;
+        }
+      })
+    ).catch(() => { /* best-effort */ });
+  });
+}
+
 const catListCache: Record<string, { id: string; name: string }[]> = {};
 
 export function useSiddurCategories(nusach: string) {
@@ -233,6 +273,8 @@ export function useSiddurCategories(nusach: string) {
       catListCache[nusach] = cats;
       setCategories(cats);
       setLoading(false);
+      // Kick off background preloading of all small categories for this nusach
+      backgroundPreloadCategories(nusach, cats.map(c => c.id));
     };
 
     // ── Supabase ──────────────────────────────────────────────
