@@ -1012,6 +1012,7 @@ const Index = () => {
         <div data-layout="desktop-controls" data-layout-label="שורת כלים" className="hidden md:flex justify-between items-center gap-2">
           {/* Left side: toolbar buttons */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            <span data-layout="btn-text-settings-inline" data-layout-label="✏️ הגדרות טקסט (שורת כלים)"><TextDisplaySettings /></span>
             <span data-layout="btn-view-mode" data-layout-label="👁️ מצב תצוגה"><ViewModeToggle seferId={selectedSefer} /></span>
             <span data-layout="btn-user-content" data-layout-label="📂 התוכן שלי">
             <Button
