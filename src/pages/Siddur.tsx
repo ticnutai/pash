@@ -348,24 +348,28 @@ function lineHeightCSS(lh: string, custom?: number): string {
 }
 
 function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: boolean): React.CSSProperties {
-  // User-selected font is always first; Hebrew nikud-optimised fonts serve as fallbacks.
-  const fullFamily = `${fontFamily}, 'Noto Serif Hebrew', 'Noto Sans Hebrew', 'David Libre', serif`;
-  // IMPORTANT: apply the same OpenType features and rendering hints regardless
-  // of the nikud toggle. Otherwise toggling nikud causes the browser to switch
-  // glyph metrics (mark/mkmk + optimizeLegibility change effective glyph
-  // widths and selection), making the text *visually larger* even though the
-  // font-size CSS value didn't change. By keeping these stable the only thing
-  // that changes when toggling nikud is whether the marks are stripped from
-  // the source string — the layout stays identical.
+  // CRITICAL: do NOT mix multiple Hebrew fonts in the fallback chain.
+  // Browsers do per-glyph fallback: if the chosen font lacks (or weakly
+  // supports) a specific letter+nikud combination, the browser substitutes
+  // ONLY that single character from the next Hebrew font — and different
+  // Hebrew fonts have different em metrics (Noto Serif Hebrew is ~15-20%
+  // taller than David Libre at the same font-size). The result: with nikud
+  // ON, a few letters look noticeably larger than their neighbours.
+  //
+  // Fix: keep the user-selected font alone, then fall back ONLY to the
+  // generic family. The generic doesn't carry Hebrew glyphs, so the browser
+  // will render every Hebrew character from the chosen font — guaranteeing
+  // uniform metrics.
+  const isSans = /sans|arial|tahoma|frank ruhl|noto sans/i.test(fontFamily);
+  const generic = isSans ? 'sans-serif' : 'serif';
+  const fullFamily = `${fontFamily}, ${generic}`;
   return {
     fontFamily: fullFamily,
     lineHeight,
+    // Keep OpenType features stable so toggling nikud doesn't change glyph
+    // metrics within the same font.
     fontFeatureSettings: '"mark" 1, "mkmk" 1, "ccmp" 1',
     textRendering: 'optimizeLegibility',
-    // Use a constant font-size-adjust so x-height stays comparable across the
-    // serif/sans fallback chain — prevents the "bigger letters" effect when
-    // the browser substitutes a different font for a glyph that lacks marks.
-    fontSizeAdjust: '0.5' as unknown as React.CSSProperties['fontSizeAdjust'],
     // Avoid the parameter being flagged as unused while preserving the API.
     ...(showNikud ? {} : {}),
   };
