@@ -596,11 +596,10 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
         variant="ghost"
         size="icon"
         onClick={() => setOpen(v => !v)}
-        className={`h-8 w-8 rounded-xl transition-all border ${
-          open
-            ? "bg-accent text-accent-foreground border-accent shadow-md"
-            : "text-accent hover:text-accent hover:bg-accent/15 border-accent/30"
+        className={`h-8 w-8 rounded-lg transition-all border-0 bg-transparent hover:bg-transparent ${
+          open ? "text-accent opacity-100" : "text-accent hover:opacity-80"
         }`}
+        style={{ color: "#c8a04d" }}
         title="הגדרות תצוגת טקסט"
       >
         <Type className="h-5 w-5" strokeWidth={2.5} />

@@ -738,7 +738,7 @@ const ThemePicker = () => {
         onClick={() => setOpen(v => !v)}
         title="ערכת נושא"
         className="flex items-center justify-center h-8 w-8 rounded-lg transition-all hover:opacity-80"
-        style={{ background: open ? "#c8a04d22" : "transparent", border: "1px solid #c8a04d44" }}
+        style={{ background: "transparent", border: "none" }}
       >
         <Palette className="h-4 w-4" style={{ color: "#c8a04d" }} />
       </button>
@@ -2347,7 +2347,7 @@ export const Siddur = () => {
                       variant="ghost"
                       size="sm"
                       className="h-8 gap-1 px-2 text-xs font-medium rounded-lg"
-                      style={{ color: hAccent, background: `${hAccent}18`, border: `1px solid ${hAccent}44` }}
+                      style={{ color: hAccent, background: "transparent", border: "none" }}
                     >
                       <Layers className="h-3.5 w-3.5 flex-shrink-0" />
                       <span className="hidden md:inline max-w-[80px] truncate">{VIEW_MODES.find(m => m.id === viewMode)?.title ?? "תצוגה"}</span>
@@ -2382,8 +2382,8 @@ export const Siddur = () => {
               >
                 <button
                   onClick={() => navigate("/")}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-80"
-                  style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-100"
+                  style={{ color: hAccent, opacity: 0.65 }}
                   title="חומש"
                 >
                   <Book className="h-3.5 w-3.5 flex-shrink-0" />
@@ -2400,8 +2400,8 @@ export const Siddur = () => {
                 <span className="w-px h-3.5 opacity-25" style={{ background: hAccent }} />
                 <button
                   onClick={() => navigate('/omer')}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-80"
-                  style={{ color: "hsl(var(--sidebar-foreground)/0.55)" }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all hover:opacity-100"
+                  style={{ color: hAccent, opacity: 0.65 }}
                   title="ספירת העומר"
                 >
                   <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
