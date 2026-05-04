@@ -77,6 +77,9 @@ export const FloatingActionButton = ({
     }
   });
   const [isDragging, setIsDragging] = useState(false);
+  // isDraggingRef mirrors isDragging but as a ref so handlePointerUp always sees
+  // the latest value even if React hasn't committed the state update yet (stale closure fix).
+  const isDraggingRef = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
   const hasMoved = useRef(false);
 
@@ -110,6 +113,7 @@ export const FloatingActionButton = ({
       pointerType: e.pointerType,
       expanded,
     });
+    isDraggingRef.current = true;
     setIsDragging(true);
     hasMoved.current = false;
     dragStart.current = {
@@ -130,7 +134,7 @@ export const FloatingActionButton = ({
     const newX = Math.max(0, Math.min(window.innerWidth - 56, dragStart.current.startX + dx));
     const newY = Math.max(0, Math.min(window.innerHeight - 56 - getSafeAreaBottom(), dragStart.current.startY + dy));
     setPosition({ x: newX, y: newY });
-  }, [isDragging]);
+  }, [isDragging, position, expanded]);
 
   const handlePointerUp = useCallback(() => {
     logInteraction("FloatingActionButton", "pointer-up", {
@@ -140,7 +144,8 @@ export const FloatingActionButton = ({
       x: position.x,
       y: position.y,
     });
-    if (isDragging) {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
       setIsDragging(false);
       localStorage.setItem('fab_position', JSON.stringify(position));
       localStorage.setItem('fab_position_ts', String(Date.now()));
@@ -152,12 +157,8 @@ export const FloatingActionButton = ({
           fab_position_ts: ts,
         } }).catch(() => {});
       }
-      if (!hasMoved.current) {
-        logInteraction("FloatingActionButton", "toggle-expanded", { nextExpanded: !expanded });
-        setExpanded(prev => !prev);
-      }
     }
-  }, [isDragging, position, expanded]);
+  }, [position, expanded]);
 
   // Focus search input when expanded
   useEffect(() => {
@@ -358,6 +359,13 @@ export const FloatingActionButton = ({
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onClick={() => {
+            // Toggle only when not dragged; hasMoved is false for a plain click
+            if (!hasMoved.current) {
+              logInteraction("FloatingActionButton", "toggle-expanded", { nextExpanded: !expanded });
+              setExpanded(prev => !prev);
+            }
+          }}
         >
           {expanded ? (
             <X className={cn(isMobile ? "h-5 w-5" : "h-4 w-4")} />

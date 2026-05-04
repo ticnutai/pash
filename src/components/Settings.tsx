@@ -62,6 +62,7 @@ const DEBUG_RENDERS_KEY = "debug_renders";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
 const DEV_FLOATING_ENABLED_KEY = "dev-floating-buttons-enabled";
 const DEV_LAYOUT_EDITOR_ENABLED_KEY = "dev-layout-editor-enabled";
+const DEV_CHUMASH_TRACE_KEY = "debug_chumash_trace";
 const DEV_FEATURES_EVENT = "dev-features:changed";
 
 const getDevFeatureEnabled = (key: string, defaultValue: boolean): boolean => {
@@ -189,6 +190,7 @@ export const Settings = () => {
   };
   const [devScreenshotEnabled, setDevScreenshotEnabled] = useState(() => getDevFeatureEnabled(DEV_SCREENSHOT_ENABLED_KEY, true));
   const [devLayoutEditorEnabled, setDevLayoutEditorEnabled] = useState(() => getDevFeatureEnabled(DEV_LAYOUT_EDITOR_ENABLED_KEY, false));
+  const [devChumashTraceEnabled, setDevChumashTraceEnabled] = useState(() => getDevFeatureEnabled(DEV_CHUMASH_TRACE_KEY, false));
   const [apiKeys, setApiKeys] = useState<ApiKeys>(loadLocalApiKeys);
 
   // Load API keys from cloud on mount
@@ -389,6 +391,16 @@ export const Settings = () => {
       supabase.auth.updateUser({ data: { ...user.user_metadata, dev_layout_editor_enabled: checked, dev_layout_editor_enabled_ts: now } })
         .catch(() => {});
     }
+  };
+
+  const handleDevChumashTraceToggle = (checked: boolean) => {
+    setDevChumashTraceEnabled(checked);
+    try {
+      localStorage.setItem(DEV_CHUMASH_TRACE_KEY, String(checked));
+      (window as Window & { __CHUMASH_TRACE__?: boolean }).__CHUMASH_TRACE__ = checked;
+    } catch { /* ignore */ }
+    window.dispatchEvent(new CustomEvent(DEV_FEATURES_EVENT));
+    toast.success(checked ? "Trace חומש הופעל" : "Trace חומש כובה");
   };
 
   const renderApiService = (name: string, description: string, fields: { key: string; label: string; placeholder: string; type: string }[]) => {
@@ -1645,6 +1657,28 @@ export const Settings = () => {
                 </div>
                 <div className="ml-2 text-muted-foreground">
                   {devLayoutEditorEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                <Switch
+                  id="dev-chumash-trace-toggle"
+                  checked={devChumashTraceEnabled}
+                  onCheckedChange={handleDevChumashTraceToggle}
+                />
+                <div className="flex-1 text-right mr-3">
+                  <Label htmlFor="dev-chumash-trace-toggle" className="text-base font-semibold cursor-pointer">
+                    Trace חומש
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    מפעיל מעקב פנימי בתצוגת החומש (לוגים בקונסול)
+                  </p>
+                </div>
+                <div className="ml-2 text-primary">
+                  <Code className="h-5 w-5" />
+                </div>
+                <div className="ml-2 text-muted-foreground">
+                  {devChumashTraceEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </div>
               </div>
             </Card>

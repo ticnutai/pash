@@ -1,21 +1,10 @@
-import { memo, useMemo, useCallback, useState } from "react";
+import { memo, useMemo, useCallback } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { cn } from "@/lib/utils";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { TextHighlighter } from "@/components/TextHighlighter";
-
-const shouldTraceChumash = () => {
-  if (!import.meta.env.DEV) return false;
-  try {
-    const byStorage = localStorage.getItem("debug_chumash_trace") === "true";
-    const byWindow = (window as Window & { __CHUMASH_TRACE__?: boolean }).__CHUMASH_TRACE__ === true;
-    return byStorage || byWindow;
-  } catch {
-    return false;
-  }
-};
 
 interface ChumashViewProps {
   pesukim: FlatPasuk[];
@@ -32,7 +21,6 @@ const ChumashViewComponent = ({
 }: ChumashViewProps) => {
   const { settings } = useFontAndColorSettings();
   const displayStyles = useTextDisplayStyles();
-  const [traceEnabled, setTraceEnabled] = useState(() => shouldTraceChumash());
   
   // Memoized grouping for performance
   const groupedByPerek = useMemo(() => {
@@ -54,40 +42,8 @@ const ChumashViewComponent = ({
     onPasukSelect?.(pasukId, pasuk);
   }, [onPasukSelect]);
 
-  const handleToggleTrace = useCallback(() => {
-    const next = !traceEnabled;
-    try {
-      localStorage.setItem("debug_chumash_trace", String(next));
-      (window as Window & { __CHUMASH_TRACE__?: boolean }).__CHUMASH_TRACE__ = next;
-    } catch {
-      // ignore storage issues in debug helper
-    }
-    setTraceEnabled(next);
-    if (import.meta.env.DEV) {
-      console.info(`[ChumashTrace] ${next ? "enabled" : "disabled"}`);
-    }
-  }, [traceEnabled]);
-
   return (
     <div className="w-full max-w-4xl mx-auto animate-fade-in">
-      {import.meta.env.DEV && (
-        <div className="mb-3 flex justify-start">
-          <button
-            type="button"
-            data-chumash-trace-toggle="true"
-            onClick={handleToggleTrace}
-            className={cn(
-              "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-              traceEnabled
-                ? "border-emerald-600/50 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300"
-                : "border-muted-foreground/30 bg-background text-muted-foreground",
-            )}
-          >
-            Trace חומש: {traceEnabled ? "ON" : "OFF"}
-          </button>
-        </div>
-      )}
-
       {/* Beautiful Chumash-style continuous text */}
         <div 
           className="bg-gradient-to-b from-[hsl(40,40%,96%)] to-[hsl(40,35%,94%)] dark:from-[hsl(220,20%,12%)] dark:to-[hsl(220,25%,10%)] rounded-xl shadow-lg border border-border/50 p-6 md:p-10"

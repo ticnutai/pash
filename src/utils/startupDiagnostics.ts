@@ -44,6 +44,8 @@ const TRACE_STORAGE_KEY = "debug-startup-trace-last";
 const MAX_EVENTS = 2000;
 
 function shouldEnableTrace() {
+  // Disable in automated browser testing (Playwright/Selenium set navigator.webdriver = true)
+  if (navigator.webdriver) return false;
   try {
     const params = new URLSearchParams(window.location.search);
     if (params.get("traceFonts") === "1") return true;

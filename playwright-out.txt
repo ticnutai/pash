@@ -1,0 +1,22 @@
+
+Running 18 tests using 1 worker
+
+[1A[2K[1/18] [mobile-android] Γא║ e2e\04-fab.spec.ts:14:3 Γא║ FAB (Floating Action Button) on mobile Γא║ FAB is visible and positioned within viewport
+[1A[2K[2/18] [mobile-android] Γא║ e2e\04-fab.spec.ts:29:3 Γא║ FAB (Floating Action Button) on mobile Γא║ FAB expands and shows action buttons on click
+[1A[2K[3/18] [mobile-android] Γא║ e2e\04-fab.spec.ts:46:3 Γא║ FAB (Floating Action Button) on mobile Γא║ FAB search opens search dialog
+[1A[2K[4/18] [mobile-android] Γא║ e2e\04-fab.spec.ts:69:3 Γא║ FAB (Floating Action Button) on mobile Γא║ FAB doesn't overlap header or get cut off
+[1A[2K[5/18] [mobile-android] Γא║ e2e\05-dialogs.spec.ts:14:3 Γא║ Dialogs & overlays on mobile Γא║ search dialog opens, takes input, and can close
+[1A[2K[6/18] [mobile-android] Γא║ e2e\05-dialogs.spec.ts:30:3 Γא║ Dialogs & overlays on mobile Γא║ text display settings dialog is responsive on mobile
+[1A[2K[7/18] [mobile-android] Γא║ e2e\05-dialogs.spec.ts:46:3 Γא║ Dialogs & overlays on mobile Γא║ settings dialog opens from FAB and is scrollable
+[1A[2K[8/18] [mobile-android] Γא║ e2e\05-dialogs.spec.ts:74:3 Γא║ Dialogs & overlays on mobile Γא║ Omer dialog opens and is functional
+[1A[2K[9/18] [mobile-android] Γא║ e2e\05-dialogs.spec.ts:108:3 Γא║ Dialogs & overlays on mobile Γא║ no stacked/duplicate dialogs when opening multiple
+[1A[2K[10/18] [mobile-iphone] Γא║ e2e\04-fab.spec.ts:14:3 Γא║ FAB (Floating Action Button) on mobile Γא║ FAB is visible and positioned within viewport
+[1A[2K[11/18] [mobile-iphone] Γא║ e2e\04-fab.spec.ts:29:3 Γא║ FAB (Floating Action Button) on mobile Γא║ FAB expands and shows action buttons on click
+[1A[2K[12/18] [mobile-iphone] Γא║ e2e\04-fab.spec.ts:46:3 Γא║ FAB (Floating Action Button) on mobile Γא║ FAB search opens search dialog
+[1A[2K[13/18] [mobile-iphone] Γא║ e2e\04-fab.spec.ts:69:3 Γא║ FAB (Floating Action Button) on mobile Γא║ FAB doesn't overlap header or get cut off
+[1A[2K[14/18] [mobile-iphone] Γא║ e2e\05-dialogs.spec.ts:14:3 Γא║ Dialogs & overlays on mobile Γא║ search dialog opens, takes input, and can close
+[1A[2K[15/18] [mobile-iphone] Γא║ e2e\05-dialogs.spec.ts:30:3 Γא║ Dialogs & overlays on mobile Γא║ text display settings dialog is responsive on mobile
+[1A[2K[16/18] [mobile-iphone] Γא║ e2e\05-dialogs.spec.ts:46:3 Γא║ Dialogs & overlays on mobile Γא║ settings dialog opens from FAB and is scrollable
+[1A[2K[17/18] [mobile-iphone] Γא║ e2e\05-dialogs.spec.ts:74:3 Γא║ Dialogs & overlays on mobile Γא║ Omer dialog opens and is functional
+[1A[2K[18/18] [mobile-iphone] Γא║ e2e\05-dialogs.spec.ts:108:3 Γא║ Dialogs & overlays on mobile Γא║ no stacked/duplicate dialogs when opening multiple
+[1A[2K  18 passed (1.2m)

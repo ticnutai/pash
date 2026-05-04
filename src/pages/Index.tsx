@@ -1200,7 +1200,7 @@ const Index = () => {
               </div>
             )}
 
-            <div className="relative" ref={gridRef}>
+            <div className="relative mt-6 sm:mt-8" ref={gridRef}>
             <div
               className="grid gap-2 w-full max-w-full overflow-hidden items-start"
               style={

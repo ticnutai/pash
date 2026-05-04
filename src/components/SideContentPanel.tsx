@@ -314,13 +314,17 @@ const PasukContentView = ({
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-4 sm:p-5" dir="rtl">
+      <div className="p-4 sm:p-5 min-w-0 w-full" dir="rtl">
         {/* Selected pasuk header */}
-        <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+        <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border overflow-hidden">
           <div className="text-sm text-muted-foreground mb-2 font-medium">
             {pasuk.parsha_name} • פרק {toHebrewNumber(pasuk.perek)} • פסוק {toHebrewNumber(pasuk.pasuk_num)}
           </div>
-          <div className="text-lg font-['Frank_Ruhl_Libre'] leading-relaxed">
+          <div
+            className="text-lg font-['Frank_Ruhl_Libre'] leading-relaxed"
+            dir="rtl"
+            style={{ wordBreak: "break-word", overflowWrap: "anywhere", whiteSpace: "normal" }}
+          >
             {pasuk.text}
           </div>
         </div>
@@ -372,7 +376,7 @@ const PasukContentView = ({
                           lineHeight: "1.8",
                           wordBreak: "break-word",
                           overflowWrap: "anywhere",
-                          whiteSpace: "pre-wrap",
+                          whiteSpace: "normal",
                           textAlign: "right",
                           fontFamily: "'Frank Ruhl Libre', serif",
                         }}
@@ -635,22 +639,27 @@ const ResizableInGridPanel = ({
     e.preventDefault();
     dragRef.current = { startX: e.clientX, startW: width ?? 320 };
     setIsResizing(true);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, [width]);
 
-  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current) return;
-    // Panel is on the LEFT side visually (RTL grid — 3rd column renders on left).
-    // Dragging the handle LEFT (decreasing clientX) → panel should GROW.
-    const delta = dragRef.current.startX - e.clientX;
-    const newW = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragRef.current.startW + delta));
-    onWidthChange?.(Math.round(newW));
-  }, [onWidthChange]);
-
-  const onPointerUp = useCallback(() => {
-    dragRef.current = null;
-    setIsResizing(false);
-  }, []);
+  // Use window-level listeners so the drag keeps working even if mouse moves fast
+  useEffect(() => {
+    if (!isResizing) return;
+    const onMove = (e: PointerEvent) => {
+      if (!dragRef.current) return;
+      // Panel is on the LEFT side visually (RTL grid — 3rd column renders on left).
+      // Dragging LEFT → panel GROWS; dragging RIGHT → panel SHRINKS.
+      const delta = dragRef.current.startX - e.clientX;
+      const newW = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragRef.current.startW + delta));
+      onWidthChange?.(Math.round(newW));
+    };
+    const onUp = () => { dragRef.current = null; setIsResizing(false); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [isResizing, onWidthChange]);
 
   return (
     <div
@@ -658,7 +667,7 @@ const ResizableInGridPanel = ({
       data-layout-label="📋 פאנל תוכן צד"
       className="animate-fade-in sticky top-4 self-start"
       style={{
-        maxHeight: "calc(100vh - 100px)",
+        height: "calc(100vh - 100px)",
         userSelect: isResizing ? "none" : undefined,
       }}
     >
@@ -669,12 +678,10 @@ const ResizableInGridPanel = ({
         <div
           className={cn(
             "absolute right-0 top-0 bottom-0 z-10 flex items-center justify-center",
-            "w-3 cursor-col-resize group select-none",
-            isResizing && "bg-accent/10"
+            "w-4 cursor-col-resize group select-none",
+            isResizing ? "bg-accent/20" : "hover:bg-muted/60"
           )}
           onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
           title="גרור לשינוי רוחב הפאנל"
         >
           <div className={cn(
@@ -693,9 +700,8 @@ const ResizableInGridPanel = ({
       <Card
         dir="rtl"
         className={cn(
-          "flex flex-col overflow-hidden",
-          "h-[calc(100vh-100px)]",
-          onWidthChange ? "mr-3" : ""
+          "flex flex-col overflow-hidden h-full",
+          onWidthChange ? "mr-4" : ""
         )}
       >
         {children}

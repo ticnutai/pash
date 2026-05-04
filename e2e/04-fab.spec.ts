@@ -3,6 +3,10 @@ import { waitForAppReady } from "./helpers";
 
 test.describe("FAB (Floating Action Button) on mobile", () => {
   test.beforeEach(async ({ page }) => {
+    // Prevent dev diagnostic overlay from blocking clicks during tests
+    await page.addInitScript(() => {
+      (window as unknown as Record<string, unknown>).__pashTraceHandle = { stop: () => {}, log: () => {}, snapshot: () => ({}) };
+    });
     await page.goto("/");
     await waitForAppReady(page);
   });
