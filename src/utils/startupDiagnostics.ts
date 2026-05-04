@@ -311,7 +311,7 @@ export function installStartupDiagnostics() {
   const consoleKeys: Array<keyof typeof nativeConsole> = ["log", "info", "warn", "error", "debug"];
   for (const key of consoleKeys) {
     const original = nativeConsole[key];
-    (console as Record<string, (...args: unknown[]) => void>)[key] = (...args: unknown[]) => {
+    (console as unknown as Record<string, (...args: unknown[]) => void>)[key] = (...args: unknown[]) => {
       original(...args);
       if (typeof args[0] === "string" && args[0].includes("[startup-trace]")) return;
       pushEvent(key as TraceLevel, `console.${key}`, args.map(stringifySafe));
@@ -547,7 +547,7 @@ export function installStartupDiagnostics() {
     window.clearInterval(intervalId);
 
     for (const key of consoleKeys) {
-      (console as Record<string, (...args: unknown[]) => void>)[key] = nativeConsole[key];
+      (console as unknown as Record<string, (...args: unknown[]) => void>)[key] = nativeConsole[key];
     }
 
     window.fetch = originalFetch;
