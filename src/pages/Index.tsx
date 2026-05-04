@@ -1152,8 +1152,23 @@ const Index = () => {
           <>
             {/* Navigation bar moved above the grid */}
 
-            {/* Navigation buttons - parsha & pasuk - BELOW controls */}
-            {currentParshaName && parshaAllPesukim.length > 0 && (
+            {/* Mobile controls - ABOVE the grid */}
+            {isMobile && (
+              <div data-layout="mobile-controls" data-layout-label="בקרות מובייל" className="mt-3 flex items-center gap-1.5 flex-wrap">
+                <TextDisplaySettings />
+                <ViewModeToggle seferId={selectedSefer} />
+                {filteredPesukim.length > 0 && (
+                  <MinimizeButton
+                    variant="global"
+                    isMinimized={!globalExpandAll}
+                    onClick={() => setGlobalExpandAll(v => !v)}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Navigation buttons - parsha & pasuk - mobile only (desktop has it inside desktop-controls above) */}
+            {isMobile && currentParshaName && parshaAllPesukim.length > 0 && (
               <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="mt-3 flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
                 <Button
                   variant="ghost"

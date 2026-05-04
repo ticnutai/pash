@@ -39,13 +39,13 @@ const readDevFeatureFlag = (key: string, fallback: boolean) => {
   }
 };
 
-// Dev-only chat widget (lazy loaded, tree-shaken in production)
-const DevChatWidget = import.meta.env.DEV
+// Dev-only chat widget (lazy loaded, tree-shaken in production; disabled in automated tests)
+const DevChatWidget = import.meta.env.DEV && !navigator.webdriver
   ? lazy(() => import("@/components/DevChatWidget").then(m => ({ default: m.DevChatWidget })))
   : null;
 
-// Dev-only screenshot tool (lazy loaded, tree-shaken in production)
-const ScreenshotTool = import.meta.env.DEV
+// Dev-only screenshot tool (lazy loaded, tree-shaken in production; disabled in automated tests)
+const ScreenshotTool = import.meta.env.DEV && !navigator.webdriver
   ? lazy(() => import("@/components/ScreenshotTool").then(m => ({ default: m.ScreenshotTool })))
   : null;
 
