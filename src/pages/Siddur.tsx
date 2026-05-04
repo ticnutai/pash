@@ -253,17 +253,45 @@ function pairSelfClosingTags(html: string): string {
   return html;
 }
 
+/**
+ * Collapse nested identical tags: `<b><b>X</b></b>` → `<b>X</b>`,
+ * `<small>X<small>Y</small></small>` → `<small>XY</small>`.
+ *
+ * Without this, the lazy regex in `renderLineContent` (`<(b|small)>([\s\S]*?)</(b|small)>`)
+ * matches the OUTER opening tag against the FIRST inner closing tag, leaving
+ * the leftover inner opener and outer closer to be rendered as literal text
+ * (e.g. user sees `<b>title</b>` instead of bold). This nesting is produced
+ * naturally by source data like `<big><b>...</b></big>` after big→b conversion,
+ * or by intentionally nested `<small>...<small>(...)</small></small>` rubrics.
+ */
+function flattenNestedSameTags(html: string): string {
+  for (const tag of ["b", "small"]) {
+    const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "gi");
+    let prev: string;
+    do {
+      prev = html;
+      // Strip a same-tag opener/closer that appears *inside* an outer pair.
+      html = html.replace(re, (_, inner: string) =>
+        `<${tag}>${inner.replace(new RegExp(`</?${tag}>`, "gi"), "")}</${tag}>`
+      );
+    } while (html !== prev);
+  }
+  return html;
+}
+
 function sanitizeHebrewMarkup(html: string): string {
-  return pairSelfClosingTags(
-    html
-      .normalize("NFKC")
-      .replace(/<\s*big\s*>/gi, "<b>")
-      .replace(/<\s*\/\s*big\s*>/gi, "</b>")
-      .replace(/<\s*big\s*\/\s*>/gi, "")
-      .replace(/<\s*br\s*\/??\s*>/gi, "\n")
-  )
-    // Keep only supported inline tags to avoid raw tag names in the UI.
-    .replace(/<\/?(?!b\b|small\b)[a-z0-9:-]+[^>]*>/gi, "");
+  return flattenNestedSameTags(
+    pairSelfClosingTags(
+      html
+        .normalize("NFKC")
+        .replace(/<\s*big\s*>/gi, "<b>")
+        .replace(/<\s*\/\s*big\s*>/gi, "</b>")
+        .replace(/<\s*big\s*\/\s*>/gi, "")
+        .replace(/<\s*br\s*\/??\s*>/gi, "\n")
+    )
+      // Keep only supported inline tags to avoid raw tag names in the UI.
+      .replace(/<\/?(?!b\b|small\b)[a-z0-9:-]+[^>]*>/gi, "")
+  );
 }
 
 function cleanLine(html: string): string {
@@ -298,9 +326,10 @@ function stripText(text: string, showNikud: boolean, showTaamim: boolean): strin
 }
 
 function classifyLine(html: string): "heading" | "instruction" | "prayer" {
-  // Normalize self-closing pseudo-tags first so `<b/>title<b/>` is recognised
-  // as a heading just like the canonical `<b>title</b>` form.
-  const t = pairSelfClosingTags(html).trim();
+  // Run through the same sanitiser as rendering so wrappers like `<big>` and
+  // self-closing `<b/>...<b/>` are recognised as headings just like the
+  // canonical `<b>title</b>` form.
+  const t = sanitizeHebrewMarkup(html).trim();
   if (t.startsWith("<small>")) return "instruction";
   const m = t.match(/^<b>([^<]+)<\/b>$/);
   if (m && m[1].replace(NIKUD_RE, "").replace(/\s/g, "").length <= 20) return "heading";
