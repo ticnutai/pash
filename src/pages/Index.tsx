@@ -1038,8 +1038,53 @@ const Index = () => {
         </div>
 
         {/* Side Panel Buttons + Parsha/Pasuk Nav - Desktop only, SAME ROW */}
-        <div data-layout="desktop-controls" data-layout-label="שורת ניווט" className="hidden md:flex justify-center items-center gap-2">
-          {/* Parsha & Pasuk navigation only — toolbar buttons removed (already in header) */}
+        <div data-layout="desktop-controls" data-layout-label="שורת כלים" className="hidden md:flex justify-between items-center gap-2">
+          {/* Left side: toolbar buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span data-layout="btn-text-settings-inline" data-layout-label="✏️ הגדרות טקסט (שורת כלים)"><TextDisplaySettings /></span>
+            <span data-layout="btn-view-mode" data-layout-label="👁️ מצב תצוגה"><ViewModeToggle seferId={selectedSefer} /></span>
+            <span data-layout="btn-user-content" data-layout-label="📂 התוכן שלי">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setSidePanelMode("user");
+                setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "user");
+              }}
+                      className={cn("", sidePanelOpen && sidePanelMode === "user" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
+                      title="התוכן שלי"
+                    >
+                      <User className={cn("h-4 w-4", sidePanelOpen && sidePanelMode === "user" && "text-accent")} />
+            </Button>
+            </span>
+            {displayMode === "chumash" && (
+              <span data-layout="btn-commentary" data-layout-label="📖 פירושים">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setSidePanelMode("pasuk");
+                  setSidePanelOpen(!sidePanelOpen || sidePanelMode !== "pasuk");
+                }}
+                      className={cn("", sidePanelOpen && sidePanelMode === "pasuk" && "bg-accent/15 border-accent text-accent ring-1 ring-accent/30")}
+                      title="פירושים"
+                    >
+                      <BookOpen className={cn("h-4 w-4", sidePanelOpen && sidePanelMode === "pasuk" && "text-accent")} />
+              </Button>
+              </span>
+            )}
+            {filteredPesukim.length > 0 && (
+              <span data-layout="btn-minimize" data-layout-label="➖ מזער הכל">
+              <MinimizeButton
+                variant="global"
+                isMinimized={!globalExpandAll}
+                onClick={() => setGlobalExpandAll(v => !v)}
+              />
+              </span>
+            )}
+          </div>
+
+          {/* Right side (RTL center): Parsha & Pasuk navigation */}
           {currentParshaName && filteredPesukim.length > 0 && (
             <div data-layout="parsha-pasuk-nav" data-layout-label="ניווט פרשה ופסוקים" className="flex items-center justify-center gap-6 flex-1" dir="rtl">
               {/* Parsha navigation */}
