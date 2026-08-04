@@ -228,6 +228,26 @@ async function scheduleNativeNotifications(reminders: SingleReminder[]) {
 
 /* ─── Browser web notification check ─────────────────────── */
 
+/**
+ * Safe notification display: on mobile Chrome/Android the `Notification`
+ * constructor is illegal — must go through the service worker registration.
+ */
+async function showLocalNotification(title: string, options: NotificationOptions) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        await reg.showNotification(title, options);
+        return;
+      }
+    }
+    new Notification(title, options);
+  } catch (e) {
+    console.warn("[Notifications] failed to show notification:", e);
+  }
+}
+
 function maybeSendBrowserNotifications(reminders: SingleReminder[]) {
   if (Capacitor.isNativePlatform()) return;
   if (!("Notification" in window) || Notification.permission !== "granted") return;
