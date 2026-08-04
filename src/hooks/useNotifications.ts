@@ -247,6 +247,39 @@ function maybeSendBrowserNotifications(reminders: SingleReminder[]) {
     ).getTime();
 
     if (now.getTime() >= scheduledMs) {
+      void showLocalNotification("חמישה חומשי תורה עם פירושים", {
+        body: r.message,
+        icon: "/favicon.ico",
+        dir: "rtl",
+        lang: "he",
+        tag: r.id,
+      });
+      localStorage.setItem(todayKey, "1");
+
+      if (r.popup) triggerPopup(r);
+    }
+  }
+}
+
+function _unused_maybeSendBrowserNotifications(reminders: SingleReminder[]) {
+  if (Capacitor.isNativePlatform()) return;
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+
+  for (const r of reminders) {
+    if (!r.enabled) continue;
+    if (r.days.length > 0 && !r.days.includes(dayOfWeek)) continue;
+
+    const todayKey = `reminder_sent_${r.id}_${now.toDateString()}`;
+    if (localStorage.getItem(todayKey)) continue;
+
+    const scheduledMs = new Date(
+      now.getFullYear(), now.getMonth(), now.getDate(), r.hour, r.minute, 0
+    ).getTime();
+
+    if (now.getTime() >= scheduledMs) {
       new Notification("חמישה חומשי תורה עם פירושים", {
         body: r.message,
         icon: "/favicon.ico",
@@ -275,7 +308,7 @@ function maybeSendDailyNotification(settings: ReminderSettings) {
   if (localStorage.getItem(todayKey)) return;
   const scheduledMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), settings.hour, settings.minute, 0).getTime();
   if (now.getTime() >= scheduledMs) {
-    new Notification("חמישה חומשי תורה עם פירושים", {
+    void showLocalNotification("חמישה חומשי תורה עם פירושים", {
       body: settings.message, icon: "/favicon.ico", dir: "rtl", lang: "he",
     });
     localStorage.setItem(todayKey, "1");
