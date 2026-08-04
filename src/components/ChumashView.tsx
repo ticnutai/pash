@@ -25,13 +25,6 @@ const shouldTraceChumash = (): boolean => {
   }
 };
 
-interface UnusedChumashViewProps {
-  pesukim: FlatPasuk[];
-  seferId: number;
-  selectedPasukId?: number | null;
-  onPasukSelect?: (pasukId: number, pasuk: FlatPasuk) => void;
-}
-
 const ChumashViewComponent = ({ 
   pesukim, 
   seferId, 
