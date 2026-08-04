@@ -228,6 +228,26 @@ async function scheduleNativeNotifications(reminders: SingleReminder[]) {
 
 /* ─── Browser web notification check ─────────────────────── */
 
+/**
+ * Safe notification display: on mobile Chrome/Android the `Notification`
+ * constructor is illegal — must go through the service worker registration.
+ */
+async function showLocalNotification(title: string, options: NotificationOptions) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        await reg.showNotification(title, options);
+        return;
+      }
+    }
+    new Notification(title, options);
+  } catch (e) {
+    console.warn("[Notifications] failed to show notification:", e);
+  }
+}
+
 function maybeSendBrowserNotifications(reminders: SingleReminder[]) {
   if (Capacitor.isNativePlatform()) return;
   if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -247,7 +267,7 @@ function maybeSendBrowserNotifications(reminders: SingleReminder[]) {
     ).getTime();
 
     if (now.getTime() >= scheduledMs) {
-      new Notification("חמישה חומשי תורה עם פירושים", {
+      void showLocalNotification("חמישה חומשי תורה עם פירושים", {
         body: r.message,
         icon: "/favicon.ico",
         dir: "rtl",
@@ -275,7 +295,7 @@ function maybeSendDailyNotification(settings: ReminderSettings) {
   if (localStorage.getItem(todayKey)) return;
   const scheduledMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), settings.hour, settings.minute, 0).getTime();
   if (now.getTime() >= scheduledMs) {
-    new Notification("חמישה חומשי תורה עם פירושים", {
+    void showLocalNotification("חמישה חומשי תורה עם פירושים", {
       body: settings.message, icon: "/favicon.ico", dir: "rtl", lang: "he",
     });
     localStorage.setItem(todayKey, "1");
@@ -432,7 +452,7 @@ export function useNotifications() {
         }],
       });
     } else {
-      new Notification("חמישה חומשי תורה עם פירושים - בדיקה", {
+      void showLocalNotification("חמישה חומשי תורה עם פירושים - בדיקה", {
         body: settings.reminders[0]?.message || settings.message,
         icon: "/favicon.ico",
         dir: "rtl",
