@@ -13,6 +13,25 @@ interface ChumashViewProps {
   onPasukSelect?: (pasukId: number, pasuk: FlatPasuk) => void;
 }
 
+const shouldTraceChumash = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    return (
+      (window as Window & { __CHUMASH_TRACE__?: boolean }).__CHUMASH_TRACE__ === true ||
+      localStorage.getItem("debug_chumash_trace") === "true"
+    );
+  } catch {
+    return false;
+  }
+};
+
+interface UnusedChumashViewProps {
+  pesukim: FlatPasuk[];
+  seferId: number;
+  selectedPasukId?: number | null;
+  onPasukSelect?: (pasukId: number, pasuk: FlatPasuk) => void;
+}
+
 const ChumashViewComponent = ({ 
   pesukim, 
   seferId, 
