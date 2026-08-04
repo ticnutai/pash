@@ -127,23 +127,35 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           display_name: string | null
           id: string
+          requested_role: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          requested_role?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          requested_role?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -474,6 +486,8 @@ export type Database = {
           font_settings: Json | null
           font_settings_mobile: Json | null
           id: string
+          quiz_attempts: Json
+          quiz_plans: Json
           show_shared_content: boolean | null
           theme: string | null
           updated_at: string
@@ -487,6 +501,8 @@ export type Database = {
           font_settings?: Json | null
           font_settings_mobile?: Json | null
           id?: string
+          quiz_attempts?: Json
+          quiz_plans?: Json
           show_shared_content?: boolean | null
           theme?: string | null
           updated_at?: string
@@ -500,6 +516,8 @@ export type Database = {
           font_settings?: Json | null
           font_settings_mobile?: Json | null
           id?: string
+          quiz_attempts?: Json
+          quiz_plans?: Json
           show_shared_content?: boolean | null
           theme?: string | null
           updated_at?: string
@@ -542,6 +560,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_user: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       exec_sql: { Args: { query: string }; Returns: Json }
       has_role: {
         Args: {
@@ -560,6 +585,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      reject_user: { Args: { _user_id: string }; Returns: undefined }
       set_user_role: {
         Args: {
           _grant: boolean
