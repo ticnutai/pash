@@ -1275,7 +1275,12 @@ const Index = () => {
               className="grid gap-2 w-full max-w-full overflow-hidden items-start"
               style={
                 isMobile
-                  ? { gridTemplateColumns: "minmax(0, 1fr)" }
+                  ? {
+                      gridTemplateColumns: "minmax(0, 1fr)",
+                      width: "calc(100% + 1rem)",
+                      maxWidth: "none",
+                      marginInline: "-0.5rem",
+                    }
                   : sidePanelOpen
                   ? { gridTemplateColumns: `320px 1fr ${sidePanelWidth}px` }
                   : { gridTemplateColumns: "320px 1fr" }
