@@ -60,8 +60,9 @@ const SliderSection = ({ label, valueBadge, value, onChange, min, max, step, mar
     </div>
     <Slider value={[value]} onValueChange={([v]) => onChange(v)} min={min} max={max} step={step} className="w-full" />
     {marks && (
-      <div className="flex justify-between text-xs text-muted-foreground">
-        {marks.map((m, i) => <span key={i}>{m}</span>)}
+      // Sliders run right-to-left (max on the left), so render the marks reversed
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        {marks.slice().reverse().map((m, i) => <span key={i}>{m}</span>)}
       </div>
     )}
   </div>
