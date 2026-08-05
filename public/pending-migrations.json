@@ -1,0 +1,10 @@
+{
+  "migrations": [
+    {
+      "name": "20260805000000_siddur_public_themes",
+      "description": "Public Siddur themes with admin-only write access",
+      "file": "supabase/migrations/20260805000000_siddur_public_themes.sql",
+      "status": "pending"
+    }
+  ]
+}
