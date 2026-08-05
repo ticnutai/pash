@@ -15,6 +15,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme, Theme } from "@/contexts/ThemeContext";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+import { useDisplayMode } from "@/contexts/DisplayModeContext";
 import { DataManager } from "@/components/DataManager";
 import { MigrationManager } from "@/components/MigrationManager";
 import { Card } from "@/components/ui/card";
@@ -168,6 +169,7 @@ const fonts = [
 export const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { settings, updateSettings } = useFontAndColorSettings();
+  const { displaySettings, updateDisplaySettings } = useDisplayMode();
   const [isIsrael, setIsIsrael] = useState(getCalendarPreference());
   const { settings: notifSettings, updateSettings: updateNotif, addReminder, updateReminder, removeReminder, permission, requestPermission, sendTestNotification, supported: notifSupported } = useNotifications();
   const webPush = useWebPush();
@@ -1253,6 +1255,35 @@ export const Settings = () => {
           </TabsContent>
 
           <TabsContent value="display" className="space-y-6">
+            <div className="space-y-4 rounded-lg border bg-card p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-right">
+                  <h3 className="font-semibold text-lg">רוחב כרטיסי הפסוקים במובייל</h3>
+                  <p className="text-sm text-muted-foreground">
+                    הכרטיסים מתרחבים ומתקצרים באופן שווה מימין ומשמאל
+                  </p>
+                </div>
+                <span className="min-w-14 rounded-md bg-muted px-2 py-1 text-center text-sm font-semibold">
+                  {displaySettings.verseSideMargin}px
+                </span>
+              </div>
+              <Slider
+                value={[displaySettings.verseSideMargin]}
+                onValueChange={([value]) => updateDisplaySettings({ verseSideMargin: value })}
+                min={0}
+                max={32}
+                step={1}
+                aria-label="מרווח כרטיסי הפסוקים משני הצדדים"
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground" dir="rtl">
+                <span>עד הקצה</span>
+                <span>צר</span>
+              </div>
+            </div>
+
+            <Separator />
+
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">יישור טקסט</h3>
               <RadioGroup 

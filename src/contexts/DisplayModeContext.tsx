@@ -9,6 +9,8 @@ export interface DisplaySettings {
   mode: DisplayMode;
   pasukCount: number;
   loadMoreCount: number;
+  /** Symmetric outer margin for mobile verse cards, in pixels. */
+  verseSideMargin: number;
 }
 
 interface DisplayModeContextType {
@@ -21,6 +23,7 @@ const defaultSettings: DisplaySettings = {
   mode: "compact",
   pasukCount: 20,
   loadMoreCount: 10,
+  verseSideMargin: 0,
 };
 
 const normalizeDisplayMode = (mode: unknown): DisplayMode => {
@@ -71,6 +74,7 @@ export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
     mode: normalizeDisplayMode(displaySettings?.mode),
     pasukCount: displaySettings?.pasukCount || defaultSettings.pasukCount,
     loadMoreCount: displaySettings?.loadMoreCount || defaultSettings.loadMoreCount,
+    verseSideMargin: Math.min(32, Math.max(0, displaySettings?.verseSideMargin ?? defaultSettings.verseSideMargin)),
   }), [displaySettings]);
 
   const value = useMemo(() => ({ displaySettings: safeDisplaySettings, updateDisplaySettings, syncStatus: status }), [safeDisplaySettings, updateDisplaySettings, status]);

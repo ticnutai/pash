@@ -112,6 +112,7 @@ const Index = () => {
     }
   });
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
+  const mobileVerseSideMargin = displaySettings?.verseSideMargin ?? 0;
   const [seferData, setSeferData] = useState<Sefer | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -1277,9 +1278,9 @@ const Index = () => {
                 isMobile
                   ? {
                       gridTemplateColumns: "minmax(0, 1fr)",
-                      width: "calc(100% + 1.5rem)",
+                      width: `calc(100% + ${24 - (mobileVerseSideMargin * 2)}px)`,
                       maxWidth: "none",
-                      marginInline: "-0.75rem",
+                      marginInline: `${mobileVerseSideMargin - 12}px`,
                     }
                   : sidePanelOpen
                   ? { gridTemplateColumns: `320px 1fr ${sidePanelWidth}px` }
