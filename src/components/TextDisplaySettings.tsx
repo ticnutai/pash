@@ -616,13 +616,32 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
       {/* Floating panel rendered via portal so it's never blocked */}
       {open && pos !== null && createPortal(
+        <>
+        {isMobile && (
+          <div
+            className="fixed inset-0 bg-background/60 backdrop-blur-[2px]"
+            style={{ zIndex: 9998 }}
+            onClick={() => setOpen(false)}
+          />
+        )}
         <div
           dir="rtl"
-          style={{
+          style={isMobile ? {
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            maxHeight: "85dvh",
+            height: "85dvh",
+            zIndex: 9999,
+            overflow: "hidden",
+            paddingBottom: "env(safe-area-inset-bottom)",
+          } : {
             position: "fixed",
             left:  pos.x,
             top:   pos.y,
-            width:    isMobile ? "calc(100vw - 16px)" : 390,
+            width:    390,
             minWidth: 280,
             minHeight: 420,
             maxWidth:  "95vw",
@@ -631,14 +650,18 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
             resize: "both",
             overflow: "hidden",
           }}
-          className="rounded-xl border-2 border-accent bg-card text-foreground shadow-2xl flex flex-col"
+          className={`border-2 border-accent bg-card text-foreground shadow-2xl flex flex-col ${
+            isMobile ? "rounded-t-2xl border-b-0" : "rounded-xl"
+          }`}
           data-layout="dialog-text-display"
         >
           {/* ── Drag handle / title bar ── */}
           <div
             onMouseDown={startDrag}
             onTouchStart={startDrag}
-            className="flex items-center justify-between px-3 py-2.5 bg-accent/10 border-b border-accent/20 flex-shrink-0 rounded-t-xl cursor-grab active:cursor-grabbing select-none"
+            className={`flex items-center justify-between px-3 py-2.5 bg-accent/10 border-b border-accent/20 flex-shrink-0 select-none ${
+              isMobile ? "rounded-t-2xl" : "rounded-t-xl cursor-grab active:cursor-grabbing"
+            }`}
           >
             <button
               onClick={() => setOpen(false)}
