@@ -1277,9 +1277,9 @@ const Index = () => {
                 isMobile
                   ? {
                       gridTemplateColumns: "minmax(0, 1fr)",
-                      width: "calc(100% + 1rem)",
+                      width: "calc(100% + 1.5rem)",
                       maxWidth: "none",
-                      marginInline: "-0.5rem",
+                      marginInline: "-0.75rem",
                     }
                   : sidePanelOpen
                   ? { gridTemplateColumns: `320px 1fr ${sidePanelWidth}px` }
