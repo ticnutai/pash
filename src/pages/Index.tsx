@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles, Cog } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles, Cog, Check, LayoutPanelTop } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ import { useDisplayMode, DisplayMode } from "@/contexts/DisplayModeContext";
 import { useDevice } from "@/contexts/DeviceContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
@@ -58,6 +59,7 @@ const ComponentLoader = () => (
 
 type CorpusMode = "torah" | "neviim";
 type TextLanguage = "he" | "en";
+type MobileHeaderLayout = "single" | "stacked";
 
 const TORAH_SEFARIM = [
   { id: 1, name: "בראשית" },
@@ -100,6 +102,13 @@ const Index = () => {
       return saved === "en" ? "en" : "he";
     } catch {
       return "he";
+    }
+  });
+  const [mobileHeaderLayout, setMobileHeaderLayout] = useState<MobileHeaderLayout>(() => {
+    try {
+      return localStorage.getItem("mobileHeaderLayout") === "stacked" ? "stacked" : "single";
+    } catch {
+      return "single";
     }
   });
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
@@ -145,6 +154,12 @@ const Index = () => {
       toast.success(next === "he" ? "השפה הוחלפה לעברית" : "השפה הוחלפה לאנגלית");
       return next;
     });
+  }, []);
+
+  const saveMobileHeaderLayout = useCallback((layout: MobileHeaderLayout) => {
+    setMobileHeaderLayout(layout);
+    try { localStorage.setItem("mobileHeaderLayout", layout); } catch { /* storage may be unavailable */ }
+    toast.success(layout === "stacked" ? "הפריסה הדו־שורתית נשמרה" : "הפריסה הרגילה נשמרה");
   }, []);
 
   useEffect(() => {
@@ -841,9 +856,34 @@ const Index = () => {
             className="flex flex-col gap-1 md:hidden"
             style={{ paddingTop: 'max(var(--safe-area-inset-top, var(--sai-top, env(safe-area-inset-top, 0px))), 28px)' }}
           >
-            {/* Top row: Action buttons */}
-            <div className="flex items-center justify-end gap-1 px-1">
-              <div data-layout="header-actions-mobile" data-layout-label="כפתורי כותרת (מובייל)" className="flex items-center gap-0.5 flex-shrink-0">
+            {mobileHeaderLayout === "stacked" && (
+              <div className="flex items-center justify-center gap-1 pb-0.5" dir="rtl">
+                <button
+                  onClick={() => {
+                    setCorpusMode("torah");
+                    localStorage.setItem("corpusMode", "torah");
+                    setSelectedSefer(TORAH_SEFARIM[0].id);
+                    setSelectedParsha(null);
+                    setSelectedPerek(null);
+                    setSelectedPasuk(null);
+                  }}
+                  className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-accent/80 transition-colors hover:bg-accent/10 hover:text-accent"
+                >
+                  <Book className="h-3.5 w-3.5" />
+                  חומש
+                </button>
+                <button
+                  onClick={() => navigate('/siddur')}
+                  className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-accent/65 transition-colors hover:bg-accent/10 hover:text-accent"
+                >
+                  <BookMarked className="h-3.5 w-3.5" />
+                  סידור
+                </button>
+              </div>
+            )}
+            {/* Action row */}
+            <div className="flex w-full items-center px-1">
+              <div data-layout="header-actions-mobile" data-layout-label="כפתורי כותרת (מובייל)" className="flex w-full items-center justify-between gap-0.5">
                 <span data-layout="btn-lang" data-layout-label="🌐 שפה">
                 <Button
                   variant="ghost"
@@ -870,8 +910,8 @@ const Index = () => {
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
-                {/* Mode switcher: חומש / סידור / עומר */}
-                <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
+                {/* Mode switcher: in the regular layout all destinations stay on this row. */}
+                {mobileHeaderLayout === "single" && <span data-layout="btn-mode-switcher" data-layout-label="📚 מצב אפליקציה" className="flex items-center gap-0.5">
                   <span data-layout="btn-corpus">
                   <button
                     onClick={() => {
@@ -906,7 +946,37 @@ const Index = () => {
                   >
                     <Sparkles className="h-4 w-4" />
                   </button>
-                </span>
+                </span>}
+                {mobileHeaderLayout === "stacked" && (
+                  <button
+                    onClick={() => navigate('/omer')}
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-accent/50 transition-all hover:text-accent"
+                    title="ספירת העומר"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </button>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-accent/70 transition-colors hover:bg-accent/10 hover:text-accent"
+                      title="בחירת פריסת מובייל"
+                      aria-label="בחירת פריסת מובייל"
+                    >
+                      <LayoutPanelTop className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" dir="rtl" className="min-w-48">
+                    <DropdownMenuItem onSelect={() => saveMobileHeaderLayout("single")} className="justify-between gap-3">
+                      <span>פריסה רגילה</span>
+                      {mobileHeaderLayout === "single" && <Check className="h-4 w-4" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => saveMobileHeaderLayout("stacked")} className="justify-between gap-3">
+                      <span>חומש וסידור למעלה</span>
+                      {mobileHeaderLayout === "stacked" && <Check className="h-4 w-4" />}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu iconOnly /></span>
               </div>
             </div>
@@ -1204,7 +1274,9 @@ const Index = () => {
             <div
               className="grid gap-2 w-full max-w-full overflow-hidden items-start"
               style={
-                sidePanelOpen && !isMobile
+                isMobile
+                  ? { gridTemplateColumns: "minmax(0, 1fr)" }
+                  : sidePanelOpen
                   ? { gridTemplateColumns: `320px 1fr ${sidePanelWidth}px` }
                   : { gridTemplateColumns: "320px 1fr" }
               }
