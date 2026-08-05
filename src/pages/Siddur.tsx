@@ -254,29 +254,50 @@ function pairSelfClosingTags(html: string): string {
 }
 
 /**
- * Collapse nested identical tags: `<b><b>X</b></b>` → `<b>X</b>`,
- * `<small>X<small>Y</small></small>` → `<small>XY</small>`.
+ * Stack-based normaliser for the only two inline tags we support (`b`, `small`).
  *
- * Without this, the lazy regex in `renderLineContent` (`<(b|small)>([\s\S]*?)</(b|small)>`)
- * matches the OUTER opening tag against the FIRST inner closing tag, leaving
- * the leftover inner opener and outer closer to be rendered as literal text
- * (e.g. user sees `<b>title</b>` instead of bold). This nesting is produced
- * naturally by source data like `<big><b>...</b></big>` after big→b conversion,
- * or by intentionally nested `<small>...<small>(...)</small></small>` rubrics.
+ * Guarantees well-formed, non-redundant markup:
+ *  - `<big><b>X</b></big>` → (after big→b) `<b><b>X</b></b>` → `<b>X</b>`
+ *  - `<small>X<small>Y</small></small>` → `<small>XY</small>`
+ *  - drops closers with no matching opener and auto-closes unclosed openers,
+ *    so no stray `</b>` / `</small>` can ever reach the UI as literal text
+ *    (in RTL a stray `</b>` visually renders as `<b/>`).
  */
+type InlineTag = "b" | "small";
+
 function flattenNestedSameTags(html: string): string {
-  for (const tag of ["b", "small"]) {
-    const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "gi");
-    let prev: string;
-    do {
-      prev = html;
-      // Strip a same-tag opener/closer that appears *inside* an outer pair.
-      html = html.replace(re, (_, inner: string) =>
-        `<${tag}>${inner.replace(new RegExp(`</?${tag}>`, "gi"), "")}</${tag}>`
-      );
-    } while (html !== prev);
+  const re = /<\/?(b|small)>/gi;
+  const stack: InlineTag[] = [];
+  let out = "";
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    out += html.slice(last, m.index);
+    last = re.lastIndex;
+    const tag = m[1].toLowerCase() as InlineTag;
+    const isClose = m[0][1] === "/";
+    if (isClose) {
+      const idx = stack.lastIndexOf(tag);
+      if (idx === -1) continue;                    // stray closer → drop
+      if (idx !== stack.length - 1) continue;      // improperly nested → drop
+      // Only emit the closer for the outermost occurrence of this tag.
+      if (stack.indexOf(tag) === idx) out += `</${tag}>`;
+      stack.pop();
+    } else {
+      if (!stack.includes(tag)) out += `<${tag}>`; // skip redundant nesting
+      stack.push(tag);
+    }
   }
-  return html;
+  out += html.slice(last);
+  // Auto-close anything left open (outermost occurrence only).
+  const closed = new Set<InlineTag>();
+  for (let i = stack.length - 1; i >= 0; i--) {
+    const tag = stack[i];
+    if (closed.has(tag)) continue;
+    closed.add(tag);
+    out += `</${tag}>`;
+  }
+  return out;
 }
 
 function sanitizeHebrewMarkup(html: string): string {
