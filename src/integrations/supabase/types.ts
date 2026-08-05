@@ -453,6 +453,33 @@ export type Database = {
         }
         Relationships: []
       }
+      siddur_themes: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          theme: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name: string
+          theme: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          theme?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

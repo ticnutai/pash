@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, type LucideProps } from "lucide-react";
@@ -164,6 +165,8 @@ interface SiddurThemeCtx {
   previewTheme: (t: SiddurTheme) => void;
   customTheme: SiddurTheme;
   setCustomTheme: (t: SiddurTheme) => void;
+  publicThemes: SiddurTheme[];
+  publishTheme: (t: SiddurTheme) => Promise<SiddurTheme>;
 }
 const SiddurThemeContext = createContext<SiddurThemeCtx | null>(null);
 const useSiddurTheme = (): SiddurThemeCtx => {
@@ -174,6 +177,8 @@ const useSiddurTheme = (): SiddurThemeCtx => {
     previewTheme: () => {},
     customTheme: loadCustomTheme(),
     setCustomTheme: () => {},
+    publicThemes: [],
+    publishTheme: async t => t,
   };
   return ctx;
 };
@@ -682,13 +687,16 @@ const COLOR_FIELDS: { key: keyof SiddurTheme; label: string; group: string; colo
 ];
 
 const ThemePicker = () => {
-  const { theme, setTheme, customTheme, setCustomTheme, previewTheme } = useSiddurTheme();
+  const { theme, setTheme, customTheme, setCustomTheme, previewTheme, publicThemes, publishTheme } = useSiddurTheme();
+  const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"presets" | "custom">("presets");
   const [draft, setDraft] = useState<SiddurTheme>({ ...customTheme });
   const [hoverTheme, setHoverTheme] = useState<SiddurTheme | null>(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
   const dragOffset = useRef({ x: 0, y: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
   // Captures the saved theme at dialog-open time so we can revert on cancel
@@ -702,8 +710,8 @@ const ThemePicker = () => {
     if (open) {
       originalThemeRef.current = theme;
       setPos({
-        x: Math.max(8, window.innerWidth - 644),
-        y: 64,
+        x: window.innerWidth < 640 ? 8 : Math.max(8, window.innerWidth - 644),
+        y: window.innerWidth < 640 ? 8 : 64,
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -744,19 +752,32 @@ const ThemePicker = () => {
     setOpen(false);
   };
 
-  const allThemes = [...SIDDUR_PRESET_THEMES, { ...customTheme }];
+  const allThemes = [...SIDDUR_PRESET_THEMES, ...publicThemes];
 
   // Mini-preview panel still shows hovered / draft theme
   const previewedTheme: SiddurTheme = tab === "custom" ? draft : (hoverTheme ?? theme);
 
-  const applyCustom = () => {
+  const applyCustom = async () => {
+    if (!isAdmin) return;
     const t: SiddurTheme = { ...draft, id: "custom", emoji: "🎨", isCustom: true };
-    if (!t.name?.trim()) t.name = "מותאם אישית";
-    saveCustomTheme(t);
-    setCustomTheme(t);
-    setTheme(t);
-    originalThemeRef.current = t; // update anchor so closing won't revert
-    setOpen(false);
+    if (!t.name?.trim()) {
+      setPublishError("יש להזין שם לערכת הנושא");
+      return;
+    }
+    setPublishing(true);
+    setPublishError("");
+    try {
+      const published = await publishTheme(t);
+      saveCustomTheme(t);
+      setCustomTheme(t);
+      setTheme(published);
+      originalThemeRef.current = published;
+      setOpen(false);
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : "שמירת הערכה בענן נכשלה");
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const fieldVal = (key: keyof SiddurTheme): string =>
@@ -796,8 +817,8 @@ const ThemePicker = () => {
             background: panelBg,
             border: `1px solid ${theme.accentColor}44`,
             direction: "rtl",
-            maxHeight: "88vh",
-            width: "628px",
+            maxHeight: window.innerWidth < 640 ? "calc(100dvh - 16px)" : "88vh",
+            width: window.innerWidth < 640 ? "calc(100vw - 16px)" : "628px",
             maxWidth: "calc(100vw - 16px)",
             userSelect: isDragging ? "none" : "auto",
           }}
@@ -805,7 +826,7 @@ const ThemePicker = () => {
         >
           {/* ── Drag handle / header ── */}
           <div
-            className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b flex-shrink-0"
             style={{
               borderColor: `${theme.accentColor}22`,
               cursor: isDragging ? "grabbing" : "grab",
@@ -825,14 +846,14 @@ const ThemePicker = () => {
               </span>
             </div>
             {/* Tabs + close */}
-            <div className="flex gap-1 items-center">
-              <button
+            <div className="flex gap-1 items-center justify-between sm:justify-start">
+              {isAdmin && !rolesLoading && <button
                 onClick={() => { setTab("presets"); setHoverTheme(null); }}
                 className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
                 style={{ background: tab === "presets" ? theme.accentColor : `rgba(255,255,255,0.08)`, color: tab === "presets" ? "#1a1a1a" : theme.textColor }}
               >
                 ערכות מובנות
-              </button>
+              </button>}
               <button
                 onClick={() => { setTab("custom"); setHoverTheme(null); }}
                 className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
@@ -852,7 +873,7 @@ const ThemePicker = () => {
           </div>
 
           {/* ── Body: controls (flex-1) + mini preview (fixed 200px) ── */}
-          <div className="flex flex-row flex-1 min-h-0">
+          <div className="flex flex-col sm:flex-row flex-1 min-h-0">
 
             {/* Controls column */}
             <div className="overflow-y-auto flex-1 min-w-0">
@@ -950,6 +971,7 @@ const ThemePicker = () => {
                   ))}
 
                   {/* Action buttons */}
+                  {publishError && <p className="text-xs text-red-300 text-center">{publishError}</p>}
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={() => {
@@ -972,10 +994,11 @@ const ThemePicker = () => {
                     </button>
                     <button
                       onClick={applyCustom}
+                      disabled={publishing}
                       className="flex-1 py-1.5 rounded-lg text-sm font-bold transition-all hover:opacity-90"
                       style={{ background: theme.accentColor, color: "#1a1a1a" }}
                     >
-                      החל ושמור
+                      {publishing ? "שומר בענן..." : "פרסם לכל המשתמשים"}
                     </button>
                   </div>
                 </div>
@@ -984,7 +1007,7 @@ const ThemePicker = () => {
 
             {/* ── Mini preview column ── */}
             <div
-              className="flex flex-col border-r flex-shrink-0"
+              className="hidden sm:flex flex-col border-r flex-shrink-0"
               style={{
                 width: "200px",
                 borderColor: `${theme.accentColor}22`,
@@ -2193,6 +2216,49 @@ export const Siddur = () => {
     return SIDDUR_PRESET_THEMES[0];
   });
   const [customTheme, setCustomTheme] = useState<SiddurTheme>(loadCustomTheme);
+  const [publicThemes, setPublicThemes] = useState<SiddurTheme[]>([]);
+
+  const loadPublicThemes = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("siddur_themes")
+      .select("id,name,theme,updated_at")
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error("Failed to load public Siddur themes:", error);
+      return;
+    }
+    setPublicThemes((data ?? []).map(row => ({
+      ...(row.theme as unknown as SiddurTheme),
+      id: `public:${row.id}`,
+      name: row.name,
+      emoji: (row.theme as unknown as SiddurTheme)?.emoji || "🎨",
+      isCustom: true,
+    })));
+  }, []);
+
+  useEffect(() => { void loadPublicThemes(); }, [loadPublicThemes]);
+
+  const publishTheme = useCallback(async (draft: SiddurTheme): Promise<SiddurTheme> => {
+    if (!user) throw new Error("יש להתחבר כמנהל כדי לפרסם ערכת נושא");
+    const payload = { ...draft, id: "public", name: draft.name.trim(), isCustom: true };
+    const { data, error } = await supabase
+      .from("siddur_themes")
+      .insert({ name: payload.name, theme: payload as unknown as import("@/integrations/supabase/types").Json, created_by: user.id })
+      .select("id,name,theme")
+      .single();
+    if (error) throw new Error(error.message);
+    const published: SiddurTheme = { ...(data.theme as unknown as SiddurTheme), id: `public:${data.id}`, name: data.name, isCustom: true };
+    await loadPublicThemes();
+    return published;
+  }, [user, loadPublicThemes]);
+
+  // A public theme is loaded asynchronously; restore a locally/cloud-saved selection once available.
+  useEffect(() => {
+    const savedId = localStorage.getItem(ACTIVE_THEME_KEY);
+    if (!savedId?.startsWith("public:")) return;
+    const found = publicThemes.find(t => t.id === savedId);
+    if (found) setActiveTheme(found);
+  }, [publicThemes]);
 
   // Cloud sync helpers
   const cloudSaveActiveTheme = useCallback(async (t: SiddurTheme) => {
@@ -2328,6 +2394,8 @@ export const Siddur = () => {
         setCustomTheme(t);
         cloudSaveCustomTheme(t);
       },
+      publicThemes,
+      publishTheme,
     }}>
     <SiddurDisplayStyleContext.Provider value={{ displayStyle, setDisplayStyle }}>
     <div
