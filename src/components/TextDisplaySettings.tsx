@@ -772,13 +772,16 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
           </Tabs>
 
           {/* Resize hint corner */}
+          {!isMobile && (
           <div className="absolute bottom-1 left-1 pointer-events-none opacity-25 select-none">
             <svg viewBox="0 0 10 10" className="w-3 h-3 text-muted-foreground">
               <line x1="2" y1="10" x2="10" y2="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               <line x1="6" y1="10" x2="10" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
-        </div>,
+          )}
+        </div>
+        </>,
         document.body
       )}
     </>
