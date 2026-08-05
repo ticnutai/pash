@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useCallback, ReactNode } from "react";
+import { createContext, useContext, useMemo, useCallback, useState, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { useDevice } from "@/contexts/DeviceContext";
@@ -128,6 +128,7 @@ export interface FontAndColorSettings {
 interface FontAndColorSettingsContextType {
   settings: FontAndColorSettings;
   updateSettings: (settings: Partial<FontAndColorSettings>) => void;
+  setPreviewSettings: (settings: FontAndColorSettings | null) => void;
   syncStatus: 'synced' | 'syncing' | 'offline' | 'error';
 }
 
@@ -279,14 +280,26 @@ export const FontAndColorSettingsProvider = ({ children, scopeKey }: { children:
     syncToCloud: !scopeKey && !!userId,
     defaultValue: defaultSettings,
   });
+  const [previewSettings, setPreviewSettingsState] = useState<FontAndColorSettings | null>(null);
 
   const normalizedSettings = useMemo(() => normalizeSettings(settings), [settings]);
+  const effectiveSettings = useMemo(
+    () => previewSettings ? normalizeSettings(previewSettings) : normalizedSettings,
+    [previewSettings, normalizedSettings],
+  );
 
   const updateSettings = useCallback((newSettings: Partial<FontAndColorSettings>) => {
     setSettingsData((prev) => normalizeSettings({ ...prev, ...newSettings }));
   }, [setSettingsData]);
 
-  const value = useMemo(() => ({ settings: normalizedSettings, updateSettings, syncStatus: status }), [normalizedSettings, updateSettings, status]);
+  const setPreviewSettings = useCallback((nextSettings: FontAndColorSettings | null) => {
+    setPreviewSettingsState(nextSettings ? normalizeSettings(nextSettings) : null);
+  }, []);
+
+  const value = useMemo(
+    () => ({ settings: effectiveSettings, updateSettings, setPreviewSettings, syncStatus: status }),
+    [effectiveSettings, updateSettings, setPreviewSettings, status],
+  );
 
   return (
     <FontAndColorSettingsContext.Provider value={value}>

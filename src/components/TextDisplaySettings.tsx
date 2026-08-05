@@ -147,22 +147,22 @@ const SettingsControls = ({
 
   return (
     <div className="space-y-4 py-1" dir="rtl">
+      <SliderSection
+        label={sizeLabel} valueBadge={`${Math.round(fromUi(sizeUi, 8, 36))}px`}
+        value={sizeUi} onChange={(ui) => onSizeChange(Math.round(fromUi(ui, 8, 36)))}
+        min={0} max={100} step={5}
+        marks={["8px", "22px", "36px"]}
+        icon={<Type className="h-3.5 w-3.5" />}
+      />
+
+      <Separator className="bg-accent/20" />
+
       <FontSelector label={fontLabel} value={fontValue} onChange={onFontChange} />
 
       <div className="flex items-center justify-between">
         <Switch checked={boldValue} onCheckedChange={onBoldChange} />
         <Label className="text-sm font-semibold">טקסט מודגש</Label>
       </div>
-
-      <Separator className="bg-accent/20" />
-
-      <SliderSection
-        label={sizeLabel} valueBadge={`${Math.round(fromUi(sizeUi, 8, 36))}px`}
-        value={sizeUi} onChange={(ui) => onSizeChange(Math.round(fromUi(ui, 8, 36)))}
-        min={0} max={100} step={5}
-        marks={["36px", "22px", "8px"]}
-        icon={<Type className="h-3.5 w-3.5" />}
-      />
 
       <Separator className="bg-accent/20" />
 
@@ -396,11 +396,55 @@ const TAB_PREVIEW_TEXT: Record<TextSettingsTab, string> = {
 
 /* ─── Main component ─────────────────────────────────────── */
 export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: TextSettingsTab }) => {
-  const { settings, updateSettings } = useFontAndColorSettings();
+  const {
+    settings: contextSettings,
+    updateSettings: commitSettings,
+    setPreviewSettings,
+  } = useFontAndColorSettings();
   const { isMobile } = useDevice();
   const [open, setOpen]           = useState(false);
   const [activeTab, setActiveTab] = useState<TextSettingsTab>(initialTab);
   const [pos, setPos]             = useState<{ x: number; y: number } | null>(null);
+  const [draftSettings, setDraftSettings] = useState<FontAndColorSettings | null>(null);
+  const [baselineSettings, setBaselineSettings] = useState<FontAndColorSettings | null>(null);
+
+  // All controls and previews use this temporary copy. The persisted context is
+  // updated only when the user explicitly presses Save.
+  const settings = draftSettings ?? baselineSettings ?? contextSettings;
+  const updateSettings = useCallback((patch: Partial<FontAndColorSettings>) => {
+    setDraftSettings((current) => {
+      const next = { ...(current ?? baselineSettings ?? contextSettings), ...patch };
+      setPreviewSettings(next);
+      return next;
+    });
+  }, [baselineSettings, contextSettings, setPreviewSettings]);
+
+  const openEditor = useCallback(() => {
+    const baseline = { ...contextSettings };
+    setBaselineSettings(baseline);
+    setDraftSettings(baseline);
+    setPreviewSettings(baseline);
+    setOpen(true);
+  }, [contextSettings, setPreviewSettings]);
+
+  const cancelEditor = useCallback(() => {
+    setPreviewSettings(null);
+    setDraftSettings(null);
+    setBaselineSettings(null);
+    setOpen(false);
+  }, [setPreviewSettings]);
+
+  const saveEditor = useCallback(() => {
+    if (draftSettings) commitSettings(draftSettings);
+    setPreviewSettings(null);
+    setDraftSettings(null);
+    setBaselineSettings(null);
+    setOpen(false);
+  }, [commitSettings, draftSettings, setPreviewSettings]);
+
+  const hasChanges = draftSettings !== null
+    && baselineSettings !== null
+    && JSON.stringify(draftSettings) !== JSON.stringify(baselineSettings);
 
   // Scoped settings helpers — map per-tab fields onto the generic keys that SettingsControls reads
   const scopedForTab = (tab: TextSettingsTab): ReturnType<typeof useFontAndColorSettings>["settings"] => {
@@ -535,7 +579,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
   useEffect(() => {
     if (open) {
       setActiveTab(initialTab);
-      if (pos === null) {
+      if (isMobile || pos === null) {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         if (isMobile) {
@@ -559,11 +603,11 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") cancelEditor();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [open, cancelEditor]);
 
   // Drag logic
   const startDrag = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -605,7 +649,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => open ? cancelEditor() : openEditor()}
         className={`h-8 w-8 rounded-lg transition-all border-0 bg-transparent hover:bg-transparent ${
           open ? "text-accent opacity-100" : "text-accent hover:opacity-80"
         }`}
@@ -618,13 +662,6 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
       {/* Floating panel rendered via portal so it's never blocked */}
       {open && pos !== null && createPortal(
         <>
-        {isMobile && (
-          <div
-            className="fixed inset-0 bg-background/60 backdrop-blur-[2px]"
-            style={{ zIndex: 9998 }}
-            onClick={() => setOpen(false)}
-          />
-        )}
         <div
           dir="rtl"
           style={isMobile ? {
@@ -633,8 +670,8 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
             right: 0,
             bottom: 0,
             width: "100%",
-            maxHeight: "85dvh",
-            height: "85dvh",
+            maxHeight: "30dvh",
+            height: "30dvh",
             zIndex: 9999,
             overflow: "hidden",
             paddingBottom: "env(safe-area-inset-bottom)",
@@ -665,7 +702,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
             }`}
           >
             <button
-              onClick={() => setOpen(false)}
+              onClick={cancelEditor}
               className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors"
               onMouseDown={e => e.stopPropagation()}
               onTouchStart={e => e.stopPropagation()}
@@ -688,7 +725,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
           >
             {/* Tab list */}
             <div className="px-2 pt-2 flex-shrink-0">
-              <TabsList className="w-full grid grid-cols-3 h-auto gap-0.5 bg-muted/50 p-1 rounded-xl border border-border/30">
+              <TabsList className={`w-full grid ${isMobile ? "grid-cols-6" : "grid-cols-3"} h-auto gap-0.5 bg-muted/50 p-1 rounded-xl border border-border/30`}>
                 <TabsTrigger value="pasuk"      className={tabTriggerClass}>פסוקים</TabsTrigger>
                 <TabsTrigger value="titles"     className={tabTriggerClass}>כותרות</TabsTrigger>
                 <TabsTrigger value="questions"  className={tabTriggerClass}>שאלות</TabsTrigger>
@@ -700,7 +737,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
             {/* ── Live preview — always visible, updates instantly ── */}
             <div className="pt-2 flex-shrink-0">
-              {activeTab === "siddur" ? (
+              {isMobile ? null : activeTab === "siddur" ? (
                 <SiddurThemedPreview
                   font={settings.siddurFont}
                   size={settings.siddurSize}
@@ -774,6 +811,26 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
               </TabsContent>
             </div>
           </Tabs>
+
+          {/* Changes remain temporary until the user explicitly saves them. */}
+          <div className="flex items-center gap-2 px-3 py-2.5 border-t border-accent/20 bg-card/95 flex-shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={cancelEditor}
+              className="flex-1"
+            >
+              ביטול
+            </Button>
+            <Button
+              type="button"
+              onClick={saveEditor}
+              disabled={!hasChanges}
+              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              שמור
+            </Button>
+          </div>
 
           {/* Resize hint corner */}
           {!isMobile && (
