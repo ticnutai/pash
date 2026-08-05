@@ -538,13 +538,21 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         if (isMobile) {
-          setPos({ x: 8, y: Math.max(60, vh - 560) });
+          setPos({ x: 0, y: 0 }); // mobile uses a bottom sheet — position is ignored
         } else {
           setPos({ x: vw - 420, y: 70 });
         }
       }
     }
   }, [open, initialTab]);
+
+  // Lock background scroll while the mobile sheet is open
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open, isMobile]);
 
   // Close on Escape key
   useEffect(() => {
@@ -558,6 +566,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
   // Drag logic
   const startDrag = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (isMobile) return; // bottom sheet on mobile — no dragging
     if ((e.target as HTMLElement).closest("button,select,input,[role='slider']")) return;
     e.preventDefault();
     const cx0 = "touches" in e ? e.touches[0].clientX : e.clientX;
@@ -583,7 +592,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
     window.addEventListener("mouseup",   onUp);
     window.addEventListener("touchmove", onMove, { passive: false });
     window.addEventListener("touchend",  onUp);
-  }, [pos]);
+  }, [pos, isMobile]);
 
   const preview = getPreviewProps();
 
