@@ -19,6 +19,7 @@ MIGRATION_ADMIN_PASSWORD=סיסמת-המנהל
 
 ```powershell
 node scripts/direct-run.mjs pending
+node scripts/direct-run.mjs history
 node scripts/direct-run.mjs file "supabase/migrations/20260805000000_siddur_public_themes.sql"
 node scripts/direct-run.mjs sql "SELECT to_regclass('public.siddur_themes') AS table_name" "verify_siddur_themes"
 ```
