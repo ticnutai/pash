@@ -714,7 +714,10 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
             </div>
 
             {/* ── Scrollable settings area ── */}
-            <div className="flex-1 overflow-y-auto">
+            <div
+              className="flex-1 min-h-0 overflow-y-auto"
+              style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y" }}
+            >
               <TabsContent value="pasuk" className="mt-0 px-3 pb-4">
                 <SettingsControls
                   sizeValue={settings.pasukSize}     onSizeChange={(v) => updateSettings({ pasukSize: v })}     sizeLabel="גודל פסוקים"
