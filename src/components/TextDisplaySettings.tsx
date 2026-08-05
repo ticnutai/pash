@@ -60,8 +60,9 @@ const SliderSection = ({ label, valueBadge, value, onChange, min, max, step, mar
     </div>
     <Slider value={[value]} onValueChange={([v]) => onChange(v)} min={min} max={max} step={step} className="w-full" />
     {marks && (
-      <div className="flex justify-between text-xs text-muted-foreground">
-        {marks.map((m, i) => <span key={i}>{m}</span>)}
+      // Sliders run right-to-left (max on the left), so render the marks reversed
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        {marks.slice().reverse().map((m, i) => <span key={i}>{m}</span>)}
       </div>
     )}
   </div>
@@ -538,13 +539,21 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         if (isMobile) {
-          setPos({ x: 8, y: Math.max(60, vh - 560) });
+          setPos({ x: 0, y: 0 }); // mobile uses a bottom sheet — position is ignored
         } else {
           setPos({ x: vw - 420, y: 70 });
         }
       }
     }
   }, [open, initialTab]);
+
+  // Lock background scroll while the mobile sheet is open
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open, isMobile]);
 
   // Close on Escape key
   useEffect(() => {
@@ -558,6 +567,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
   // Drag logic
   const startDrag = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (isMobile) return; // bottom sheet on mobile — no dragging
     if ((e.target as HTMLElement).closest("button,select,input,[role='slider']")) return;
     e.preventDefault();
     const cx0 = "touches" in e ? e.touches[0].clientX : e.clientX;
@@ -583,7 +593,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
     window.addEventListener("mouseup",   onUp);
     window.addEventListener("touchmove", onMove, { passive: false });
     window.addEventListener("touchend",  onUp);
-  }, [pos]);
+  }, [pos, isMobile]);
 
   const preview = getPreviewProps();
 
@@ -607,13 +617,32 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
       {/* Floating panel rendered via portal so it's never blocked */}
       {open && pos !== null && createPortal(
+        <>
+        {isMobile && (
+          <div
+            className="fixed inset-0 bg-background/60 backdrop-blur-[2px]"
+            style={{ zIndex: 9998 }}
+            onClick={() => setOpen(false)}
+          />
+        )}
         <div
           dir="rtl"
-          style={{
+          style={isMobile ? {
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            maxHeight: "85dvh",
+            height: "85dvh",
+            zIndex: 9999,
+            overflow: "hidden",
+            paddingBottom: "env(safe-area-inset-bottom)",
+          } : {
             position: "fixed",
             left:  pos.x,
             top:   pos.y,
-            width:    isMobile ? "calc(100vw - 16px)" : 390,
+            width:    390,
             minWidth: 280,
             minHeight: 420,
             maxWidth:  "95vw",
@@ -622,14 +651,18 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
             resize: "both",
             overflow: "hidden",
           }}
-          className="rounded-xl border-2 border-accent bg-card text-foreground shadow-2xl flex flex-col"
+          className={`border-2 border-accent bg-card text-foreground shadow-2xl flex flex-col ${
+            isMobile ? "rounded-t-2xl border-b-0" : "rounded-xl"
+          }`}
           data-layout="dialog-text-display"
         >
           {/* ── Drag handle / title bar ── */}
           <div
             onMouseDown={startDrag}
             onTouchStart={startDrag}
-            className="flex items-center justify-between px-3 py-2.5 bg-accent/10 border-b border-accent/20 flex-shrink-0 rounded-t-xl cursor-grab active:cursor-grabbing select-none"
+            className={`flex items-center justify-between px-3 py-2.5 bg-accent/10 border-b border-accent/20 flex-shrink-0 select-none ${
+              isMobile ? "rounded-t-2xl" : "rounded-t-xl cursor-grab active:cursor-grabbing"
+            }`}
           >
             <button
               onClick={() => setOpen(false)}
@@ -682,7 +715,10 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
             </div>
 
             {/* ── Scrollable settings area ── */}
-            <div className="flex-1 overflow-y-auto">
+            <div
+              className="flex-1 min-h-0 overflow-y-auto"
+              style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y" }}
+            >
               <TabsContent value="pasuk" className="mt-0 px-3 pb-4">
                 <SettingsControls
                   sizeValue={settings.pasukSize}     onSizeChange={(v) => updateSettings({ pasukSize: v })}     sizeLabel="גודל פסוקים"
@@ -740,13 +776,16 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
           </Tabs>
 
           {/* Resize hint corner */}
+          {!isMobile && (
           <div className="absolute bottom-1 left-1 pointer-events-none opacity-25 select-none">
             <svg viewBox="0 0 10 10" className="w-3 h-3 text-muted-foreground">
               <line x1="2" y1="10" x2="10" y2="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               <line x1="6" y1="10" x2="10" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
-        </div>,
+          )}
+        </div>
+        </>,
         document.body
       )}
     </>
