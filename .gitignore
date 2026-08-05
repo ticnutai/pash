@@ -1,6 +1,8 @@
 # Environment / secrets
 .env
 .env.*
+!.env.example
+.env.migrations.local
 
 # Logs
 logs

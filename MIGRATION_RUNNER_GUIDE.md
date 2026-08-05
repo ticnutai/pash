@@ -1,17 +1,17 @@
 # מדריך הרצת מיגרציות — pash
 
-המנגנון הזה מריץ SQL ישירות מול פרויקט Supabase של `pash` באמצעות Supabase Management API. הוא אינו שומר סיסמה, מפתח שירות או access token בקוד.
+המנגנון מתחבר למשתמש המנהל דרך Supabase Auth ומריץ SQL באמצעות `execute_safe_migration`. אין צורך ב־Supabase CLI או ב־Access Token.
 
 ## הכנה חד־פעמית
 
-1. יוצרים Personal Access Token ב־Supabase Dashboard: Account → Access Tokens.
-2. מגדירים אותו רק בחלון הטרמינל הנוכחי:
+מגדירים פעם אחת בקובץ מקומי `.env.migrations.local` שאינו נכנס ל־Git:
 
-```powershell
-$env:SUPABASE_ACCESS_TOKEN = "הטוקן-שלך"
+```dotenv
+MIGRATION_ADMIN_EMAIL=כתובת-המנהל
+MIGRATION_ADMIN_PASSWORD=סיסמת-המנהל
 ```
 
-מזהה הפרויקט נקרא אוטומטית מ־`VITE_SUPABASE_PROJECT_ID` בקובץ `.env`. אין להדפיס או להכניס את הטוקן ל־Git.
+ה־URL, ה־anon key ומזהה הפרויקט נקראים אוטומטית מ־`.env`. אין להכניס את קובץ פרטי המנהל ל־Git.
 
 ## פקודות
 

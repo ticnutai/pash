@@ -15,13 +15,22 @@ function readEnvFile(file) {
     }));
 }
 
-const env = { ...readEnvFile(path.join(root, ".env")), ...process.env };
+const env = {
+  ...readEnvFile(path.join(root, ".env")),
+  ...readEnvFile(path.join(root, ".env.migrations.local")),
+  ...process.env,
+};
 const projectRef = env.VITE_SUPABASE_PROJECT_ID;
-const accessToken = env.SUPABASE_ACCESS_TOKEN;
+const supabaseUrl = env.VITE_SUPABASE_URL;
+const anonKey = env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const adminEmail = env.MIGRATION_ADMIN_EMAIL;
+const adminPassword = env.MIGRATION_ADMIN_PASSWORD;
 
 function requireConfig() {
-  if (!projectRef) throw new Error("VITE_SUPABASE_PROJECT_ID is missing from .env");
-  if (!accessToken) throw new Error("SUPABASE_ACCESS_TOKEN is not set in this terminal");
+  if (!projectRef || !supabaseUrl || !anonKey) throw new Error("Supabase project settings are missing from .env");
+  if (!adminEmail || !adminPassword) {
+    throw new Error("MIGRATION_ADMIN_EMAIL and MIGRATION_ADMIN_PASSWORD are not configured");
+  }
 }
 
 function isDestructive(sql) {
@@ -31,17 +40,27 @@ function isDestructive(sql) {
 async function execute(name, sql) {
   requireConfig();
   console.log(`Target project: ${projectRef}`);
-  console.log(`Running migration: ${name}`);
-  const response = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
+  const loginResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ query: sql }),
+    headers: { apikey: anonKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  const login = await loginResponse.json().catch(() => ({}));
+  if (!loginResponse.ok || !login.access_token) {
+    throw new Error(login.msg || login.error_description || "Admin login failed");
+  }
+  console.log(`Running migration: ${name}`);
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/execute_safe_migration`, {
+    method: "POST",
+    headers: { apikey: anonKey, Authorization: `Bearer ${login.access_token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_migration_name: name, p_migration_sql: sql }),
     signal: AbortSignal.timeout(120_000),
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.message || body.error || `Supabase returned HTTP ${response.status}`);
+  if (!body.success) throw new Error(body.error || "Migration RPC returned failure");
   console.log("Migration completed successfully");
-  if (/^\s*(SELECT|WITH)\b/i.test(sql)) console.log(JSON.stringify(body, null, 2));
   return body;
 }
 
