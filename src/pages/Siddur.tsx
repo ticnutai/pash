@@ -366,24 +366,46 @@ function renderLineContent(html: string): React.ReactNode {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/\{[פסנ]\}/g, "");
-  const parts: React.ReactNode[] = [];
-  const re = /<(b|small)>([\s\S]*?)<\/(b|small)>/g;
-  let last = 0, key = 0;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(h)) !== null) {
-    if (match.index > last) parts.push(h.slice(last, match.index));
-    if (match[1] === "b") {
-      parts.push(<strong key={key++} style={{ fontWeight: 700 }}>{match[2]}</strong>);
-    } else {
+  // Recursive descent over the (already well-formed) <b>/<small> markup so
+  // mixed nesting like <b>x<small>y</small></b> renders correctly instead of
+  // leaking literal tags into the text.
+  const re = /<(\/?)(b|small)>/g;
+  let key = 0;
+  let pos = 0;
+
+  const parse = (stopTag: InlineTag | null): React.ReactNode[] => {
+    const parts: React.ReactNode[] = [];
+    let m: RegExpExecArray | null;
+    re.lastIndex = pos;
+    while ((m = re.exec(h)) !== null) {
+      if (m.index > pos) parts.push(h.slice(pos, m.index));
+      pos = re.lastIndex;
+      const tag = m[2].toLowerCase() as InlineTag;
+      if (m[1]) {
+        if (tag === stopTag) return parts;
+        re.lastIndex = pos;
+        continue;
+      }
+      const children = parse(tag);
       parts.push(
-        <span key={key++} style={{ fontSize: "0.77em", opacity: 0.65, fontStyle: "italic" }}>
-          {match[2]}
-        </span>
+        tag === "b" ? (
+          <strong key={key++} style={{ fontWeight: 700 }}>{children}</strong>
+        ) : (
+          <span key={key++} style={{ fontSize: "0.77em", opacity: 0.65, fontStyle: "italic" }}>
+            {children}
+          </span>
+        )
       );
+      re.lastIndex = pos;
     }
-    last = re.lastIndex;
-  }
-  if (last < h.length) parts.push(h.slice(last));
+    if (pos < h.length) {
+      parts.push(h.slice(pos));
+      pos = h.length;
+    }
+    return parts;
+  };
+
+  const parts = parse(null);
   return parts.length === 0 ? "" : parts.length === 1 && typeof parts[0] === "string" ? parts[0] : <>{parts}</>;
 }
 
