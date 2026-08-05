@@ -39,6 +39,40 @@ export const useTextDisplayStyles = (target: TextStyleTarget = "pasuk") => {
               : target === "tehillim" ? settings.tehillimWordSpacing
               : settings.pasukWordSpacing) ?? settings.wordSpacing ?? 0;
 
+    // Per-tab line height / content spacing / content width (fallback to global)
+    const lhKey = (target === "title" ? settings.titleLineHeight
+                : target === "question" ? settings.questionLineHeight
+                : target === "commentary" ? settings.commentaryLineHeight
+                : target === "siddur" ? settings.siddurLineHeight
+                : target === "tehillim" ? settings.tehillimLineHeight
+                : settings.pasukLineHeight) || settings.lineHeight;
+    const lhCustom = (target === "title" ? settings.titleLineHeightCustom
+                : target === "question" ? settings.questionLineHeightCustom
+                : target === "commentary" ? settings.commentaryLineHeightCustom
+                : target === "siddur" ? settings.siddurLineHeightCustom
+                : target === "tehillim" ? settings.tehillimLineHeightCustom
+                : settings.pasukLineHeightCustom) ?? settings.lineHeightCustom ?? 1.5;
+
+    const csKey = (target === "title" ? settings.titleContentSpacing
+                : target === "question" ? settings.questionContentSpacing
+                : target === "commentary" ? settings.commentaryContentSpacing
+                : target === "siddur" ? settings.siddurContentSpacing
+                : target === "tehillim" ? settings.tehillimContentSpacing
+                : settings.pasukContentSpacing) || settings.contentSpacing;
+    const csCustom = (target === "title" ? settings.titleContentSpacingCustom
+                : target === "question" ? settings.questionContentSpacingCustom
+                : target === "commentary" ? settings.commentaryContentSpacingCustom
+                : target === "siddur" ? settings.siddurContentSpacingCustom
+                : target === "tehillim" ? settings.tehillimContentSpacingCustom
+                : settings.pasukContentSpacingCustom) ?? settings.contentSpacingCustom ?? 1;
+
+    const cw = (target === "title" ? settings.titleContentWidth
+              : target === "question" ? settings.questionContentWidth
+              : target === "commentary" ? settings.commentaryContentWidth
+              : target === "siddur" ? settings.siddurContentWidth
+              : target === "tehillim" ? settings.tehillimContentWidth
+              : settings.pasukContentWidth) || settings.contentWidth;
+
     // Spacing values - responsive (supports custom)
     const spacingMap: Record<string, string> = {
       compact: isMobile ? "0.25rem" : "0.5rem",
@@ -46,9 +80,9 @@ export const useTextDisplayStyles = (target: TextStyleTarget = "pasuk") => {
       comfortable: isMobile ? "0.75rem" : "1.5rem",
       spacious: isMobile ? "1rem" : "2rem",
     };
-    const gap = settings.contentSpacing === "custom"
-      ? `${settings.contentSpacingCustom ?? 1}rem`
-      : spacingMap[settings.contentSpacing] || spacingMap.normal;
+    const gap = csKey === "custom"
+      ? `${csCustom}rem`
+      : spacingMap[csKey] || spacingMap.normal;
 
     // Line height values (supports custom)
     const lineHeightMap: Record<string, string> = {
@@ -57,9 +91,9 @@ export const useTextDisplayStyles = (target: TextStyleTarget = "pasuk") => {
       relaxed: "1.7",
       loose: "2.0",
     };
-    const lineHeight = settings.lineHeight === "custom"
-      ? String(settings.lineHeightCustom ?? 1.5)
-      : lineHeightMap[settings.lineHeight] || lineHeightMap.normal;
+    const lineHeight = lhKey === "custom"
+      ? String(lhCustom)
+      : lineHeightMap[lhKey] || lineHeightMap.normal;
 
     // Letter spacing values (supports custom)
     const letterSpacingMap: Record<string, string> = {
@@ -74,9 +108,18 @@ export const useTextDisplayStyles = (target: TextStyleTarget = "pasuk") => {
 
     // Content width values - responsive with max constraints
     const getMaxWidth = () => {
-      if (isMobile) return "100%";
-      
-      switch (settings.contentWidth) {
+      if (isMobile) {
+        // On mobile the "width" setting narrows the reading column
+        switch (cw) {
+          case "narrow": return "78%";
+          case "normal": return "90%";
+          case "wide": return "97%";
+          case "full": return "100%";
+          default: return "100%";
+        }
+      }
+
+      switch (cw) {
         case "narrow": return "min(600px, 95vw)";
         case "normal": return "min(800px, 95vw)";
         case "wide": return "min(1000px, 95vw)";
@@ -103,7 +146,7 @@ export const useTextDisplayStyles = (target: TextStyleTarget = "pasuk") => {
       letterSpacing,
       wordSpacing: `${ws}em`,
       maxWidth: getMaxWidth(),
-      margin: ta === "center" ? "0 auto" : "0",
+      margin: "0 auto",
       padding,
       fontScale,
       isMobile,
