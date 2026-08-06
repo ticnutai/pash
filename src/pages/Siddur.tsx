@@ -308,8 +308,7 @@ function flattenNestedSameTags(html: string): string {
 function sanitizeHebrewMarkup(html: string): string {
   return flattenNestedSameTags(
     pairSelfClosingTags(
-      html
-        .normalize("NFKC")
+      normalizeHebrewText(html)
         .replace(/<\s*big\s*>/gi, "<b>")
         .replace(/<\s*\/\s*big\s*>/gi, "</b>")
         .replace(/<\s*big\s*\/\s*>/gi, "")
