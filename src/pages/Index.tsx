@@ -967,7 +967,7 @@ const Index = () => {
                       <LayoutPanelTop className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" dir="rtl" className="min-w-48">
+                  <DropdownMenuContent align="start" className="min-w-48" style={{ direction: "rtl" }}>
                     <DropdownMenuItem onSelect={() => saveMobileHeaderLayout("single")} className="justify-between gap-3">
                       <span>פריסה רגילה</span>
                       {mobileHeaderLayout === "single" && <Check className="h-4 w-4" />}
