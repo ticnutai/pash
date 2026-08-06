@@ -53,6 +53,36 @@ export type Database = {
         }
         Relationships: []
       }
+      migration_logs: {
+        Row: {
+          error: string | null
+          executed_at: string
+          executed_by: string | null
+          id: string
+          name: string
+          sql_content: string | null
+          success: boolean
+        }
+        Insert: {
+          error?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          name: string
+          sql_content?: string | null
+          success?: boolean
+        }
+        Update: {
+          error?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          name?: string
+          sql_content?: string | null
+          success?: boolean
+        }
+        Relationships: []
+      }
       omer_email_reminders: {
         Row: {
           created_at: string
@@ -191,6 +221,33 @@ export type Database = {
           reminders?: Json | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      siddur_themes: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          theme: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name: string
+          theme: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          theme?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -453,33 +510,6 @@ export type Database = {
         }
         Relationships: []
       }
-      siddur_themes: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          name: string
-          theme: Json
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          name: string
-          theme: Json
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          name?: string
-          theme?: Json
-          updated_at?: string
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           created_at: string
@@ -595,6 +625,20 @@ export type Database = {
         Returns: undefined
       }
       exec_sql: { Args: { query: string }; Returns: Json }
+      execute_safe_migration: {
+        Args: { p_migration_name: string; p_migration_sql: string }
+        Returns: Json
+      }
+      get_migration_history: {
+        Args: never
+        Returns: {
+          error: string
+          executed_at: string
+          id: string
+          name: string
+          success: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
