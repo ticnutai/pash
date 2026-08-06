@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { normalizeHebrewText } from "@/utils/textUtils";
 import { useSiddurCategories, useSiddurSections, useTehillimData, preloadSiddurNusach } from "@/hooks/useSiddurData";
 import { getWeekdayLeyning, getCalendarPreference, type WeekdayLeyning } from "@/utils/parshaUtils";
 
