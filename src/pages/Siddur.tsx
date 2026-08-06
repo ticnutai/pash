@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { normalizeHebrewText } from "@/utils/textUtils";
 import { useSiddurCategories, useSiddurSections, useTehillimData, preloadSiddurNusach } from "@/hooks/useSiddurData";
 import { getWeekdayLeyning, getCalendarPreference, type WeekdayLeyning } from "@/utils/parshaUtils";
 
@@ -308,8 +309,7 @@ function flattenNestedSameTags(html: string): string {
 function sanitizeHebrewMarkup(html: string): string {
   return flattenNestedSameTags(
     pairSelfClosingTags(
-      html
-        .normalize("NFKC")
+      normalizeHebrewText(html)
         .replace(/<\s*big\s*>/gi, "<b>")
         .replace(/<\s*\/\s*big\s*>/gi, "</b>")
         .replace(/<\s*big\s*\/\s*>/gi, "")
@@ -345,9 +345,12 @@ const NIKUD_STRIP = /[\u05B0-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/g;
 function stripText(text: string, showNikud: boolean, showTaamim: boolean): string {
   // Normalize Hebrew presentation forms (e.g. שׁ) to standard letters + marks.
   // This keeps glyph metrics consistent across words in the same font.
-  let t = text.normalize("NFKC");
+  let t = normalizeHebrewText(text);
   if (!showTaamim) t = t.replace(TAAMIM_RE, "");
   if (!showNikud)  t = t.replace(NIKUD_STRIP, "");
+  // Drop combining marks left without a base letter (they render on a dotted
+  // circle and push the line out of alignment).
+  t = t.replace(/(^|[\s>])[\u0591-\u05C7]+/g, "$1");
   return t;
 }
 
