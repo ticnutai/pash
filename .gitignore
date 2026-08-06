@@ -36,6 +36,7 @@ dist-omer
 signing.properties
 keystore.properties
 google-play-service-account.json
+android-upload-certificate.pem
 torah-app-debug.apk
 torah-app-release.apk
 torah-app-release.aab
