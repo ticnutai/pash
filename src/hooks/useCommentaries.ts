@@ -92,6 +92,17 @@ const LOCAL_FILES: Record<string, Record<number, string>> = {
 const commentaryKey = (seferId: number, perek: number, pasuk: number) =>
   `${seferId}-${perek}-${pasuk}`;
 
+/** Preserve Sefaria's semantic dibbur-hamatchil bold markers while removing
+ * every other HTML tag. The UI renders these tokens as React <strong> nodes. */
+function cleanCommentaryText(raw: string): string {
+  return raw
+    .replace(/<b\b[^>]*>/gi, "[[B]]")
+    .replace(/<\/b>/gi, "[[/B]]")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // Per-commentator in-memory cache: commentatorId → (chapterKey → CommentaryMap)
 const globalCommentaryCache = new Map<string, Map<string, CommentaryMap>>();
 const MAX_CHAPTER_ENTRIES = 50;
@@ -128,9 +139,7 @@ async function loadChapterFromLocal(
     const result = new Map<string, string>();
     for (let i = 0; i < perekArr.length; i++) {
       const raw = perekArr[i];
-      const text = (Array.isArray(raw) ? raw.join(" ") : raw ?? "")
-        .replace(/<[^>]+>/g, " ")
-        .trim();
+      const text = cleanCommentaryText(Array.isArray(raw) ? raw.join(" ") : raw ?? "");
       if (!text) continue;
       result.set(commentaryKey(seferId, perek, i + 1), text);
     }
@@ -163,7 +172,7 @@ async function fetchChapter(
     if (!error && data && data.length > 0) {
       const result = new Map<string, string>();
       for (const row of data) {
-        result.set(commentaryKey(seferId, perek, row.pasuk), row.text);
+        result.set(commentaryKey(seferId, perek, row.pasuk), cleanCommentaryText(row.text ?? ""));
       }
       setCachedChapter(commentatorId, ck, result);
       return result;

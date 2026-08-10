@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, type LucideProps } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, Save, CloudUpload, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -739,6 +739,7 @@ const ThemePicker = () => {
   }, [isDragging]);
 
   const startDrag = (e: React.MouseEvent) => {
+    if (window.innerWidth < 640) return;
     // Don't start drag when clicking interactive elements inside the handle
     if ((e.target as HTMLElement).closest("button, input")) return;
     e.preventDefault();
@@ -760,10 +761,39 @@ const ThemePicker = () => {
   // Mini-preview panel still shows hovered / draft theme
   const previewedTheme: SiddurTheme = tab === "custom" ? draft : (hoverTheme ?? theme);
 
+  const buildCustomTheme = (): SiddurTheme => ({
+    ...draft,
+    name: draft.name.trim(),
+    id: "custom",
+    emoji: "🎨",
+    isCustom: true,
+  });
+
+  const saveCustom = () => {
+    const t = buildCustomTheme();
+    if (!t.name) {
+      setPublishError("יש להזין שם לערכת הנושא");
+      return;
+    }
+    setPublishError("");
+    saveCustomTheme(t);
+    setCustomTheme(t);
+    setTheme(t);
+    originalThemeRef.current = t;
+    setOpen(false);
+  };
+
   const applyCustom = async () => {
-    if (!isAdmin) return;
-    const t: SiddurTheme = { ...draft, id: "custom", emoji: "🎨", isCustom: true };
-    if (!t.name?.trim()) {
+    if (rolesLoading) {
+      setPublishError("בודק הרשאת מנהל, נסה שוב בעוד רגע");
+      return;
+    }
+    if (!isAdmin) {
+      setPublishError("רק מנהל יכול לפרסם ערכת נושא לכל המשתמשים");
+      return;
+    }
+    const t = buildCustomTheme();
+    if (!t.name) {
       setPublishError("יש להזין שם לערכת הנושא");
       return;
     }
@@ -777,7 +807,8 @@ const ThemePicker = () => {
       originalThemeRef.current = published;
       setOpen(false);
     } catch (error) {
-      setPublishError(error instanceof Error ? error.message : "שמירת הערכה בענן נכשלה");
+      const message = error instanceof Error ? error.message : "שגיאה לא ידועה";
+      setPublishError(`הפרסום נכשל: ${message}`);
     } finally {
       setPublishing(false);
     }
@@ -795,9 +826,18 @@ const ThemePicker = () => {
 
   const groups = Array.from(new Set(COLOR_FIELDS.map(f => f.group)));
 
-  const panelBg = theme.headerBg.includes("gradient") || theme.headerBg.includes("linear")
-    ? "#1a1a2e"
-    : theme.headerBg;
+  // The editor chrome deliberately uses fixed, accessible colours. The draft theme
+  // is applied only to the page/preview, so an experimental palette cannot hide controls.
+  const editor = {
+    bg: "#101b35",
+    surface: "#172544",
+    surfaceSoft: "rgba(255,255,255,0.07)",
+    text: "#f8fafc",
+    muted: "#cbd5e1",
+    accent: "#d5aa45",
+    border: "rgba(213,170,69,0.28)",
+  };
+  const mobileViewport = typeof window !== "undefined" && window.innerWidth < 640;
 
   return (
     <div className="relative">
@@ -813,16 +853,20 @@ const ThemePicker = () => {
       {open && (
         <div
           ref={panelRef}
-          className="fixed z-[999] rounded-xl shadow-2xl flex flex-col overflow-hidden"
+          className="fixed z-[999] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden"
           style={{
-            left: pos.x,
-            top: pos.y,
-            background: panelBg,
-            border: `1px solid ${theme.accentColor}44`,
+            left: mobileViewport ? 0 : pos.x,
+            right: mobileViewport ? 0 : "auto",
+            top: mobileViewport ? "auto" : pos.y,
+            bottom: mobileViewport ? 0 : "auto",
+            background: editor.bg,
+            color: editor.text,
+            border: `1px solid ${editor.border}`,
             direction: "rtl",
-            maxHeight: window.innerWidth < 640 ? "calc(100dvh - 16px)" : "88vh",
-            width: window.innerWidth < 640 ? "calc(100vw - 16px)" : "628px",
-            maxWidth: "calc(100vw - 16px)",
+            height: mobileViewport ? "50dvh" : "auto",
+            maxHeight: mobileViewport ? "50dvh" : "88vh",
+            width: mobileViewport ? "100vw" : "628px",
+            maxWidth: "100vw",
             userSelect: isDragging ? "none" : "auto",
           }}
           onClick={e => e.stopPropagation()}
@@ -831,19 +875,19 @@ const ThemePicker = () => {
           <div
             className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b flex-shrink-0"
             style={{
-              borderColor: `${theme.accentColor}22`,
-              cursor: isDragging ? "grabbing" : "grab",
+              borderColor: editor.border,
+              cursor: mobileViewport ? "default" : (isDragging ? "grabbing" : "grab"),
             }}
             onMouseDown={startDrag}
           >
             {/* Title + live-preview badge */}
             <div className="flex items-center gap-2 pointer-events-none">
-              <span className="text-sm font-bold" style={{ color: theme.accentColor, fontFamily: "'Noto Serif Hebrew', serif" }}>
+              <span className="text-sm font-bold" style={{ color: editor.accent, fontFamily: "'Noto Serif Hebrew', serif" }}>
                 ✦ ערכת נושא
               </span>
               <span
                 className="text-[9px] px-1.5 py-0.5 rounded-full"
-                style={{ background: `${theme.accentColor}25`, color: theme.accentColor }}
+                style={{ background: "rgba(213,170,69,0.16)", color: editor.accent }}
               >
                 תצוגה חיה בדף
               </span>
@@ -853,21 +897,21 @@ const ThemePicker = () => {
               {isAdmin && !rolesLoading && <button
                 onClick={() => { setTab("presets"); setHoverTheme(null); }}
                 className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
-                style={{ background: tab === "presets" ? theme.accentColor : `rgba(255,255,255,0.08)`, color: tab === "presets" ? "#1a1a1a" : theme.textColor }}
+                style={{ background: tab === "presets" ? editor.accent : editor.surfaceSoft, color: tab === "presets" ? "#101827" : editor.text }}
               >
                 ערכות מובנות
               </button>}
               <button
                 onClick={() => { setTab("custom"); setHoverTheme(null); }}
                 className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
-                style={{ background: tab === "custom" ? theme.accentColor : `rgba(255,255,255,0.08)`, color: tab === "custom" ? "#1a1a1a" : theme.textColor }}
+                style={{ background: tab === "custom" ? editor.accent : editor.surfaceSoft, color: tab === "custom" ? "#101827" : editor.text }}
               >
                 עריכה מותאמת
               </button>
               <button
                 onClick={handleClose}
                 className="mr-1 h-6 w-6 flex items-center justify-center rounded-full text-sm transition-all hover:opacity-80"
-                style={{ background: "rgba(255,255,255,0.1)", color: theme.textColor }}
+                style={{ background: editor.surfaceSoft, color: editor.text }}
                 title="סגור"
               >
                 ✕
@@ -894,8 +938,8 @@ const ThemePicker = () => {
                       onMouseLeave={() => { setHoverTheme(null); previewTheme(originalThemeRef.current); }}
                       className="flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all hover:scale-105 active:scale-95"
                       style={{
-                        background: theme.id === t.id ? `${theme.accentColor}22` : "rgba(255,255,255,0.05)",
-                        border: `1.5px solid ${(hoverTheme?.id ?? theme.id) === t.id ? theme.accentColor : "transparent"}`,
+                        background: theme.id === t.id ? "rgba(213,170,69,0.16)" : editor.surfaceSoft,
+                        border: `1.5px solid ${(hoverTheme?.id ?? theme.id) === t.id ? editor.accent : "transparent"}`,
                       }}
                     >
                       <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0" style={{ border: `1px solid ${t.accentColor}55` }}>
@@ -907,7 +951,7 @@ const ThemePicker = () => {
                           <span style={{ fontSize: "6px", color: t.accentColor }}>❧</span>
                         </div>
                       </div>
-                      <span className="text-[9px] text-center leading-tight font-medium" style={{ color: theme.textColor }}>{t.emoji} {t.name}</span>
+                      <span className="text-[9px] text-center leading-tight font-medium" style={{ color: editor.text }}>{t.emoji} {t.name}</span>
                     </button>
                   ))}
                 </div>
@@ -917,13 +961,13 @@ const ThemePicker = () => {
                 <div className="p-3 space-y-4" dir="rtl">
                   {/* Theme name */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold w-24 flex-shrink-0" style={{ color: theme.accentColor }}>שם ערכה</span>
+                    <span className="text-xs font-semibold w-24 flex-shrink-0" style={{ color: editor.accent }}>שם ערכה</span>
                     <input
                       type="text"
                       value={draft.name}
                       onChange={e => setDraft(prev => ({ ...prev, name: e.target.value }))}
                       className="flex-1 rounded px-2 py-1 text-xs"
-                      style={{ background: "rgba(255,255,255,0.1)", border: `1px solid ${theme.accentColor}44`, color: theme.textColor }}
+                      style={{ background: editor.surface, border: `1px solid ${editor.border}`, color: editor.text }}
                       dir="rtl"
                       placeholder="שם ערכת הנושא"
                     />
@@ -933,8 +977,8 @@ const ThemePicker = () => {
                   {groups.map(group => (
                     <div key={group}>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: theme.accentColor }}>{group}</span>
-                        <div className="flex-1 h-px" style={{ background: `${theme.accentColor}33` }} />
+                        <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: editor.accent }}>{group}</span>
+                        <div className="flex-1 h-px" style={{ background: editor.border }} />
                       </div>
                       <div className="space-y-2">
                         {COLOR_FIELDS.filter(f => f.group === group).map(({ key, label, colorOnly }) => {
@@ -942,14 +986,14 @@ const ThemePicker = () => {
                           const isHex = val.startsWith("#");
                           return (
                             <div key={key} className="flex items-center gap-2">
-                              <span className="text-xs flex-shrink-0 w-28" style={{ color: theme.textColor }}>{label}</span>
+                              <span className="text-xs flex-shrink-0 w-28" style={{ color: editor.text }}>{label}</span>
                               <div className="flex items-center gap-1.5 flex-1">
                                 <input
                                   type="color"
                                   value={isHex ? val : "#c8a04d"}
                                   onChange={e => updateDraft(key, e.target.value)}
                                   className="h-7 w-9 rounded cursor-pointer flex-shrink-0"
-                                  style={{ background: "transparent", border: `1px solid ${theme.accentColor}44`, padding: "1px" }}
+                                  style={{ background: "transparent", border: `1px solid ${editor.border}`, padding: "1px" }}
                                 />
                                 {!colorOnly && (
                                   <input
@@ -957,13 +1001,13 @@ const ThemePicker = () => {
                                     value={val}
                                     onChange={e => updateDraft(key, e.target.value)}
                                     className="flex-1 rounded px-2 py-1 text-[10px] font-mono min-w-0"
-                                    style={{ background: "rgba(255,255,255,0.08)", border: `1px solid ${theme.accentColor}22`, color: theme.textColor }}
+                                    style={{ background: editor.surface, border: `1px solid ${editor.border}`, color: editor.text }}
                                     dir="ltr"
                                     placeholder="#hex / rgba(...) / linear-gradient(...)"
                                   />
                                 )}
                                 {colorOnly && isHex && (
-                                  <span className="text-[10px] font-mono" style={{ color: theme.textColor, opacity: 0.6 }}>{val}</span>
+                                  <span className="text-[10px] font-mono" style={{ color: editor.muted }}>{val}</span>
                                 )}
                               </div>
                             </div>
@@ -975,7 +1019,7 @@ const ThemePicker = () => {
 
                   {/* Action buttons */}
                   {publishError && <p className="text-xs text-red-300 text-center">{publishError}</p>}
-                  <div className="flex gap-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2 pt-1">
                     <button
                       onClick={() => {
                         const base = SIDDUR_PRESET_THEMES[0];
@@ -984,24 +1028,35 @@ const ThemePicker = () => {
                         previewTheme(reset);
                       }}
                       className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-                      style={{ background: "rgba(255,255,255,0.08)", color: theme.textColor, border: `1px solid ${theme.accentColor}22` }}
+                      style={{ background: editor.surfaceSoft, color: editor.text, border: `1px solid ${editor.border}` }}
                     >
                       אפס
                     </button>
                     <button
                       onClick={handleClose}
                       className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-                      style={{ background: "rgba(255,255,255,0.08)", color: theme.textColor, border: `1px solid ${theme.accentColor}22` }}
+                      style={{ background: editor.surfaceSoft, color: editor.text, border: `1px solid ${editor.border}` }}
                     >
                       ביטול
                     </button>
                     <button
+                      onClick={saveCustom}
+                      className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                      style={{ background: editor.accent, color: "#101827" }}
+                      title="שמור והחל במכשיר ובחשבון המחובר"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      שמור והחל
+                    </button>
+                    <button
                       onClick={applyCustom}
                       disabled={publishing}
-                      className="flex-1 py-1.5 rounded-lg text-sm font-bold transition-all hover:opacity-90"
-                      style={{ background: theme.accentColor, color: "#1a1a1a" }}
+                      className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ background: "#2563eb", color: "#ffffff" }}
+                      title="פרסם את הערכה לכל המשתמשים"
                     >
-                      {publishing ? "שומר בענן..." : "פרסם לכל המשתמשים"}
+                      {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudUpload className="h-3.5 w-3.5" />}
+                      {publishing ? "מפרסם..." : "פרסם לכולם"}
                     </button>
                   </div>
                 </div>
@@ -1013,12 +1068,12 @@ const ThemePicker = () => {
               className="hidden sm:flex flex-col border-r flex-shrink-0"
               style={{
                 width: "200px",
-                borderColor: `${theme.accentColor}22`,
+                borderColor: editor.border,
                 background: "rgba(0,0,0,0.15)",
               }}
             >
-              <div className="px-3 py-2 text-center flex-shrink-0" style={{ borderBottom: `1px solid ${theme.accentColor}22` }}>
-                <span style={{ color: theme.accentColor, fontSize: "10px", fontFamily: "'Noto Serif Hebrew', serif", opacity: 0.8 }}>
+              <div className="px-3 py-2 text-center flex-shrink-0" style={{ borderBottom: `1px solid ${editor.border}` }}>
+                <span style={{ color: editor.accent, fontSize: "10px", fontFamily: "'Noto Serif Hebrew', serif", opacity: 0.9 }}>
                   {tab === "custom" ? "⟳ תצוגה מקדימה" : "עבר עם העכבר לתצוגה"}
                 </span>
               </div>
@@ -1028,7 +1083,7 @@ const ThemePicker = () => {
                   label={previewedTheme.name || "תצוגה מקדימה"}
                 />
               </div>
-              <div className="px-3 py-1.5 text-center flex-shrink-0" style={{ borderTop: `1px solid ${theme.accentColor}22` }}>
+              <div className="px-3 py-1.5 text-center flex-shrink-0" style={{ borderTop: `1px solid ${editor.border}` }}>
                 <span style={{ color: previewedTheme.accentColor, fontSize: "9px", fontFamily: "'Noto Serif Hebrew', serif" }}>
                   {previewedTheme.emoji} {previewedTheme.name}
                 </span>

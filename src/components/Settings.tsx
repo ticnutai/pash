@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX, Activity } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX, Activity, Save } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -167,7 +167,11 @@ const fonts = [
 ];
 
 export const Settings = () => {
-  const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("calendar");
+  const { theme, setTheme, customTheme, saveCustomTheme } = useTheme();
+  const [customThemeDraft, setCustomThemeDraft] = useState(customTheme);
+  const [savingCustomTheme, setSavingCustomTheme] = useState(false);
   const { settings, updateSettings } = useFontAndColorSettings();
   const { displaySettings, updateDisplaySettings } = useDisplayMode();
   const [isIsrael, setIsIsrael] = useState(getCalendarPreference());
@@ -194,6 +198,35 @@ export const Settings = () => {
   const [devLayoutEditorEnabled, setDevLayoutEditorEnabled] = useState(() => getDevFeatureEnabled(DEV_LAYOUT_EDITOR_ENABLED_KEY, false));
   const [devChumashTraceEnabled, setDevChumashTraceEnabled] = useState(() => getDevFeatureEnabled(DEV_CHUMASH_TRACE_KEY, false));
   const [apiKeys, setApiKeys] = useState<ApiKeys>(loadLocalApiKeys);
+
+  useEffect(() => {
+    const openSettings = (event: Event) => {
+      const requestedTab = (event as CustomEvent<{ tab?: string }>).detail?.tab;
+      setActiveTab(requestedTab || "calendar");
+      setOpen(true);
+    };
+    window.addEventListener("open-app-settings", openSettings);
+    return () => window.removeEventListener("open-app-settings", openSettings);
+  }, []);
+
+  useEffect(() => setCustomThemeDraft(customTheme), [customTheme]);
+
+  const handleSaveCustomTheme = async () => {
+    if (!customThemeDraft.name.trim()) {
+      toast.error("יש להזין שם לערכת הנושא");
+      return;
+    }
+    setSavingCustomTheme(true);
+    try {
+      await saveCustomTheme({ ...customThemeDraft, name: customThemeDraft.name.trim() });
+      setTheme("custom");
+      toast.success(user ? "ערכת הנושא נשמרה במכשיר ובענן" : "ערכת הנושא נשמרה במכשיר");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "שמירת ערכת הנושא נכשלה");
+    } finally {
+      setSavingCustomTheme(false);
+    }
+  };
 
   // Load API keys from cloud on mount
   useEffect(() => {
@@ -437,13 +470,13 @@ export const Settings = () => {
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
           data-settings-trigger
           data-layout="floating-settings" data-layout-label="⚙️ הגדרות צפות"
           size="icon"
-          className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-40 bg-primary hover:bg-primary/90"
+          className="fixed bottom-4 right-4 z-40 hidden h-14 w-14 rounded-full bg-primary shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl md:inline-flex sm:bottom-6 sm:right-6"
           style={{ bottom: 'max(calc(1rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px)))), 4rem)' }}
         >
           <SettingsIcon className="h-5 w-5" />
@@ -460,7 +493,7 @@ export const Settings = () => {
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="calendar" className="w-full" dir="rtl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
           <TabsList className="flex flex-wrap justify-center h-auto mb-4 sm:mb-6 gap-0.5 sm:gap-1 p-1">
             <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
               <span className="truncate">לוח</span>
@@ -899,6 +932,51 @@ export const Settings = () => {
                 </Card>
               ))}
             </RadioGroup>
+            <Card className="overflow-hidden border-slate-600 bg-slate-950 text-slate-50" dir="rtl">
+              <div className="space-y-4 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Palette className="h-5 w-5 text-amber-400" />
+                  <div className="flex-1 text-right">
+                    <h3 className="font-bold text-white">ערכת נושא מותאמת אישית</h3>
+                    <p className="text-xs text-slate-300">חלה על שאלות ומפרשים וגם על חומש ומפרשים</p>
+                  </div>
+                </div>
+                <Input
+                  value={customThemeDraft.name}
+                  onChange={e => setCustomThemeDraft(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="שם הערכה"
+                  className="border-slate-600 bg-slate-900 text-white placeholder:text-slate-400"
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    ["background", "רקע"], ["foreground", "טקסט"], ["card", "כרטיסים"],
+                    ["primary", "צבע ראשי"], ["accent", "הדגשה"], ["sidebar", "כותרת עליונה"],
+                    ["sidebarForeground", "טקסט בכותרת"],
+                  ] as const).map(([key, label]) => (
+                    <label key={key} className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-900 p-2 text-xs text-slate-100">
+                      <span>{label}</span>
+                      <input
+                        type="color"
+                        value={customThemeDraft[key]}
+                        onChange={e => setCustomThemeDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="h-8 w-10 cursor-pointer rounded border border-slate-600 bg-transparent p-0.5"
+                        aria-label={label}
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="rounded-xl border border-slate-600 p-3" style={{ background: customThemeDraft.background, color: customThemeDraft.foreground }}>
+                  <div className="mb-2 rounded-lg p-2 text-center font-bold" style={{ background: customThemeDraft.sidebar, color: customThemeDraft.sidebarForeground }}>תצוגה מקדימה</div>
+                  <div className="rounded-lg border p-3 text-right" style={{ background: customThemeDraft.card, borderColor: customThemeDraft.accent }}>
+                    בראשית ברא אלהים את השמים ואת הארץ
+                  </div>
+                </div>
+                <Button onClick={handleSaveCustomTheme} disabled={savingCustomTheme} className="w-full gap-2 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
+                  {savingCustomTheme ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {savingCustomTheme ? "שומר..." : "שמור והחל בשתי התצוגות"}
+                </Button>
+              </div>
+            </Card>
           </TabsContent>
 
           <TabsContent value="fonts" className="space-y-6">

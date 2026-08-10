@@ -30,38 +30,39 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
   // Tracks cards the user manually closed while in expand-all mode
   const [closedIds, setClosedIds] = useState<Set<number>>(new Set());
   const [editorPasukId, setEditorPasukId] = useState<string | null>(null);
-  const [displayedCount, setDisplayedCount] = useState(10);
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { displaySettings } = useDisplayMode();
+  const batchSize = Math.max(1, displaySettings.pasukCount || 10);
+  const [displayedCount, setDisplayedCount] = useState(batchSize);
   const { selectionMode, isSelected, toggleSelect, enableSelectionMode } = useSelection();
   const navigate = useNavigate();
 
-  const firstNewPasukRef = useRef<HTMLDivElement>(null);
-  const prevDisplayedCountRef = useRef(displayedCount);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const displayedPesukim = useMemo(() => pesukim.slice(0, displayedCount), [pesukim, displayedCount]);
   const hasMore = displayedCount < pesukim.length;
-  const loadMoreAmount = displaySettings.loadMoreCount || 10;
+  const loadMoreAmount = batchSize;
 
   const loadMore = useCallback(() => {
     setDisplayedCount(prev => Math.min(prev + loadMoreAmount, pesukim.length));
   }, [loadMoreAmount, pesukim.length]);
 
-  // Auto-scroll to newly loaded pesukim
   useEffect(() => {
-    if (displayedCount > prevDisplayedCountRef.current && firstNewPasukRef.current) {
-      setTimeout(() => {
-        firstNewPasukRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start',
-          inline: 'nearest'
-        });
-      }, 100);
-    }
-    prevDisplayedCountRef.current = displayedCount;
-  }, [displayedCount]);
+    setDisplayedCount(Math.min(batchSize, pesukim.length));
+  }, [batchSize, pesukim]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!hasMore || !target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => entry.isIntersecting && loadMore(),
+      { rootMargin: "300px 0px", threshold: 0.01 }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   // When expandAll changes, reset tracking state
   useEffect(() => {
@@ -109,9 +110,8 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
       className="flex flex-col animate-fade-in"
       style={{ gap: displayStyles.gap }}
     >
-      {displayedPesukim.map((pasuk, index) => {
+      {displayedPesukim.map((pasuk) => {
         const isExpanded = expandAll ? !closedIds.has(pasuk.id) : expandedPasukId === pasuk.id;
-        const isFirstNew = index === prevDisplayedCountRef.current;
         const selected = isSelected(pasuk.id);
 
         // Long press handlers for this card
@@ -128,7 +128,6 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
         return (
           <Card 
             key={pasuk.id}
-            ref={isFirstNew ? firstNewPasukRef : null}
             className={cn(
               "overflow-hidden w-full transition-all duration-300 cursor-pointer border-0",
               selected
@@ -273,7 +272,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
       )}
 
       {hasMore && (
-        <div className="flex justify-center py-6 animate-fade-in">
+        <div ref={loadMoreRef} className="flex justify-center py-6 animate-fade-in">
           <Button
             variant="outline"
             size="lg"

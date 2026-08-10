@@ -119,6 +119,13 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+
+  // A change from the global expand/minimize control must take precedence over
+  // an old per-pasuk choice. Otherwise a pasuk minimized earlier can remain
+  // closed after pressing "expand all".
+  useEffect(() => {
+    setIsMinimized(false);
+  }, [forceMinimized]);
   const [expandedInMinimizedMode, setExpandedInMinimizedMode] = useState(false);
   const [editorContext, setEditorContext] = useState<{
     type: "title" | "question" | "answer";

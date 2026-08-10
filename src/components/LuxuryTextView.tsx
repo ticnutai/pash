@@ -136,11 +136,37 @@ const CommentaryBlock = ({
   label,
   text,
   fontSize,
+  sourceText,
 }: {
   label: string;
   text: string;
   fontSize: number;
-}) => (
+  sourceText: string;
+}) => {
+  const stripHebrewMarks = (value: string) => value
+    .normalize("NFD")
+    .replace(/[\u0591-\u05C7]/g, "")
+    .replace(/[^\u05D0-\u05EA]/g, "");
+
+  // A dibbur hamatchil is normally a quotation from the verse. Reuse the
+  // authoritative pointed words already bundled with that verse; never guess.
+  const pointFromVerse = (heading: string) => {
+    if (/[\u0591-\u05C7]/.test(heading)) return heading;
+    const headingWords = heading.split(/\s+/).filter(Boolean);
+    const verseWords = sourceText.split(/\s+/).filter(Boolean);
+    const wanted = headingWords.map(stripHebrewMarks).filter(Boolean);
+    if (!wanted.length) return heading;
+    const versePlain = verseWords.map(stripHebrewMarks);
+    for (let start = 0; start <= versePlain.length - wanted.length; start++) {
+      if (wanted.every((word, offset) => versePlain[start + offset] === word)) {
+        const punctuation = heading.match(/[.:,;!?]+\s*$/)?.[0] ?? "";
+        return `${verseWords.slice(start, start + wanted.length).join(" ")}${punctuation}`;
+      }
+    }
+    return heading;
+  };
+  const parts = text.split(/(\[\[B\]\][\s\S]*?\[\[\/B\]\])/g).filter(Boolean);
+  return (
   <div
     dir="rtl"
     className="mt-3 mb-1 border-r-2 border-[#c8a04d]/60 pr-3 animate-fade-in"
@@ -152,9 +178,19 @@ const CommentaryBlock = ({
     >
       {label}:
     </span>
-    <span className="text-foreground/80">{text}</span>
+    <span className="text-foreground/80">
+      {parts.map((part, index) => {
+        const bold = part.startsWith("[[B]]") && part.endsWith("[[/B]]");
+        const rawContent = bold ? part.slice(5, -6).trim() : part;
+        const content = bold ? pointFromVerse(rawContent) : rawContent;
+        return bold
+          ? <strong key={index} className="font-bold text-foreground">{content} </strong>
+          : <span key={index}>{content}</span>;
+      })}
+    </span>
   </div>
-);
+  );
+};
 
 interface CommentaryEntry {
   id: string;
@@ -388,6 +424,7 @@ const PasukRow = ({
             label={c.hebrewName}
             text={c.text}
             fontSize={fontSize}
+            sourceText={pasuk.text}
           />
         );
       })}
@@ -489,9 +526,10 @@ const SettingsPanel = ({
 
 interface LuxuryTextViewProps {
   pesukim: FlatPasuk[];
+  expandAll?: boolean;
 }
 
-export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
+export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProps) => {
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
   const { isMobile } = useDevice();
@@ -565,6 +603,10 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
   const effectiveSize = Math.round(rawSize);
   const effectiveLineHeight = lineHeightOverride ?? parseFloat(template.lineHeight);
 
+  // In the continuous Chumash view, minimizing keeps a compact chapter index
+  // visible; expanding restores the complete text and commentaries.
+  const visiblePesukim = expandAll ? displayedPesukim : [];
+
   // Group only visible verses to keep this mode lightweight on mobile.
   useEffect(() => {
     setDisplayedCount(Math.min(10, pesukim.length));
@@ -592,7 +634,7 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
     return () => observer.disconnect();
   }, [hasMore, loadMore, displayedCount]);
   const perekGroups: { perek: number; pesukim: FlatPasuk[] }[] = [];
-  for (const pasuk of displayedPesukim) {
+  for (const pasuk of visiblePesukim) {
     const last = perekGroups[perekGroups.length - 1];
     if (last && last.perek === pasuk.perek) {
       last.pesukim.push(pasuk);
@@ -708,6 +750,13 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
       )}
 
       {/* Content */}
+      {!expandAll && (
+        <div className="rounded-xl border border-accent/30 bg-card/95 px-4 py-5 text-center text-sm font-semibold text-muted-foreground shadow-sm">
+          התצוגה ממוזערת — לחץ על כפתור ההרחבה כדי להציג את כל הפסוקים והמפרשים
+        </div>
+      )}
+      {expandAll && (
+      <>
       {isFragmentMode ? (
         <div className="space-y-4">
           {perekGroups.map((group) => (
@@ -820,7 +869,10 @@ export const LuxuryTextView = ({ pesukim }: LuxuryTextViewProps) => {
         </div>
       )}
 
-      {hasMore && (
+      </>
+      )}
+
+      {expandAll && hasMore && (
         <div ref={loadMoreRef} className="flex justify-center mt-5">
           <Button
             variant="outline"

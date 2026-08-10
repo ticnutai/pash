@@ -405,6 +405,27 @@ All colors MUST be HSL.
     background: transparent;
   }
 
+  /* Keep a subtle, always discoverable scrollbar inside text settings. */
+  .text-settings-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--accent) / 0.65) hsl(var(--muted) / 0.35);
+  }
+
+  .text-settings-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .text-settings-scroll::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.35);
+    border-radius: 9999px;
+  }
+
+  .text-settings-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--accent) / 0.7);
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--card));
+  }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }

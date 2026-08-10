@@ -1,4 +1,4 @@
-import { Minimize2, Maximize2 } from "lucide-react";
+import { Expand, Shrink } from "lucide-react";
 import { useTextDisplayStyles } from "@/hooks/useTextDisplayStyles";
 import { Button } from "./ui/button";
 
@@ -21,6 +21,7 @@ export const MinimizeButton = ({
     global: isMinimized ? "הרחב את כל הפסוקים" : "מזער את כל הפסוקים",
     individual: isMinimized ? "הרחב פסוק" : "מזער פסוק"
   };
+  const isGlobal = variant === "global";
 
   return (
     <Button
@@ -28,21 +29,23 @@ export const MinimizeButton = ({
       size="icon"
       onClick={onClick}
       className={`
-        h-7 w-7 p-0 shrink-0
+        ${isGlobal ? 'h-10 w-10 rounded-xl shadow-sm' : 'h-7 w-7 rounded-md'} p-0 shrink-0
         ${variant === "individual" && !isMobile ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'} 
-        transition-opacity duration-200
-        bg-background/80 hover:bg-accent/20
-        border border-border
-        rounded-md
+        transition-all duration-200
+        ${isGlobal && !isMinimized
+          ? 'border-primary/60 bg-primary/10 text-primary ring-2 ring-primary/15 hover:bg-primary/20'
+          : 'border-border bg-background/90 text-primary hover:border-primary/40 hover:bg-accent/20'}
+        border
         ${className}
       `}
       title={tooltips[variant]}
       aria-label={tooltips[variant]}
+      aria-pressed={!isMinimized}
     >
       {isMinimized ? (
-        <Maximize2 className="h-4 w-4 text-primary" />
+        <Expand className={isGlobal ? "h-5 w-5" : "h-4 w-4"} strokeWidth={2.4} />
       ) : (
-        <Minimize2 className="h-4 w-4 text-primary" />
+        <Shrink className={isGlobal ? "h-5 w-5" : "h-4 w-4"} strokeWidth={2.4} />
       )}
     </Button>
   );

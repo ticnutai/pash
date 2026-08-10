@@ -1,17 +1,5 @@
-import { Eye, EyeOff, Layers, Hash, BookText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useDisplayMode, DisplayMode } from "@/contexts/DisplayModeContext";
-import { useState } from "react";
+import { useDisplayMode } from "@/contexts/DisplayModeContext";
 
 interface ViewModeToggleProps {
   seferId: number;
@@ -19,88 +7,45 @@ interface ViewModeToggleProps {
 
 export const ViewModeToggle = ({ seferId: _seferId }: ViewModeToggleProps) => {
   const { displaySettings, updateDisplaySettings } = useDisplayMode();
-  const safeSettings = displaySettings || { mode: 'full' as const, pasukCount: 20 };
-  const [customCount, setCustomCount] = useState((safeSettings.pasukCount || 20).toString());
-
-  const modes: { value: DisplayMode; label: string; icon: React.ReactNode }[] = [
-    { value: "full", label: "הצג הכל", icon: <Eye className="h-4 w-4 ml-2" /> },
-    { value: "compact", label: "תצוגה רצופה", icon: <Layers className="h-4 w-4 ml-2" /> },
-    { value: "chumash", label: "תצוגת חומש", icon: <BookText className="h-4 w-4 ml-2" /> },
-    { value: "luxury", label: "תצוגה שמו\"ת", icon: <Layers className="h-4 w-4 ml-2" /> },
-    { value: "minimized", label: "מזער הכל", icon: <EyeOff className="h-4 w-4 ml-2" /> },
-  ];
-
-  const counts = [10, 20, 30];
-
-  const handleCustomCount = () => {
-    const num = parseInt(customCount);
-    if (num > 0) {
-      updateDisplaySettings({ pasukCount: num });
-    }
-  };
+  const safeSettings = displaySettings || { mode: 'compact' as const, pasukCount: 10 };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Layers className="h-4 w-4" />
-          <span>מצב תצוגה</span>
+    <div className="inline-flex items-center" dir="rtl">
+      <div className="inline-flex items-center gap-2 rounded-2xl border border-accent/35 bg-card/95 p-1.5 shadow-sm">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => updateDisplaySettings({ mode: "compact" })}
+          aria-label="שאלות ומפרשים"
+          aria-pressed={safeSettings.mode === "compact"}
+          title="שאלות ומפרשים"
+          className={`h-9 whitespace-nowrap rounded-xl border px-2.5 text-[11px] font-bold leading-none shadow-sm transition-all sm:px-3.5 sm:text-xs ${
+            safeSettings.mode === "compact"
+              ? "border-accent bg-accent text-accent-foreground shadow-md hover:bg-accent/90"
+              : "border-border/70 bg-background/80 text-primary hover:border-accent/50 hover:bg-accent/10"
+          }`}
+        >
+          שאלות ומפרשים
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="text-right">בחר מצב תצוגה</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {modes.map((mode) => (
-          <DropdownMenuItem
-            key={mode.value}
-            onClick={() => updateDisplaySettings({ mode: mode.value })}
-            className={`justify-end ${safeSettings.mode === mode.value ? "bg-accent/20 text-accent font-semibold" : ""}`}
-          >
-            <span className="flex items-center">
-              {safeSettings.mode === mode.value && <span className="ml-2">✓</span>}
-              {mode.label}
-              {mode.icon}
-            </span>
-          </DropdownMenuItem>
-        ))}
-        
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-right flex items-center gap-2">
-          <Hash className="h-4 w-4" />
-          <span>כמות פסוקים</span>
-        </DropdownMenuLabel>
-        
-        <div className="px-2 py-1 space-y-2">
-          <div className="flex gap-2">
-        {counts.map((count) => (
-          <Button
-            key={count}
-            variant={safeSettings.pasukCount === count ? "default" : "outline"}
-            size="sm"
-            onClick={() => updateDisplaySettings({ pasukCount: count })}
-            className="flex-1"
-          >
-                {count}
-              </Button>
-            ))}
-          </div>
-          
-          <div className="flex gap-2 items-center">
-            <Button onClick={handleCustomCount} size="sm" variant="secondary">
-              אישר
-            </Button>
-            <Input
-              type="number"
-              value={customCount}
-              onChange={(e) => setCustomCount(e.target.value)}
-              placeholder="אישי"
-              className="flex-1 h-8"
-              min="1"
-            />
-            <Label className="text-xs text-muted-foreground">אישי:</Label>
-          </div>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => updateDisplaySettings({ mode: "luxury" })}
+          aria-label="חומש ומפרשים"
+          aria-pressed={safeSettings.mode === "luxury"}
+          title="חומש ומפרשים"
+          className={`h-9 whitespace-nowrap rounded-xl border px-2.5 text-[11px] font-bold leading-none shadow-sm transition-all sm:px-3.5 sm:text-xs ${
+            safeSettings.mode === "luxury"
+              ? "border-accent bg-accent text-accent-foreground shadow-md hover:bg-accent/90"
+              : "border-border/70 bg-background/80 text-primary hover:border-accent/50 hover:bg-accent/10"
+          }`}
+        >
+          חומש ומפרשים
+        </Button>
+      </div>
+
+    </div>
   );
 };
