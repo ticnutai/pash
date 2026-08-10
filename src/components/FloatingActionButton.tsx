@@ -265,7 +265,7 @@ export const FloatingActionButton = ({
   // Determine menu expansion direction based on position
   const isNearBottom = position.y > window.innerHeight / 2;
 
-  const mainSize = isMobile ? "h-14 w-14" : "h-11 w-11";
+  const mainSize = "h-11 w-11";
 
   return (
     <>
@@ -280,7 +280,7 @@ export const FloatingActionButton = ({
           <div 
             className="absolute animate-fade-in"
             style={{
-              [isNearBottom ? 'bottom' : 'top']: isMobile ? '60px' : '48px',
+              [isNearBottom ? 'bottom' : 'top']: '50px',
               // Keep menu inside viewport: if FAB is near left edge, open to the right; otherwise open to the left
               ...(position.x < 230 ? { left: 0 } : { right: 0 }),
             }}
@@ -349,9 +349,9 @@ export const FloatingActionButton = ({
         <div
           data-layout="fab-toggle"
           className={cn(
-            "rounded-full shadow-xl cursor-grab active:cursor-grabbing select-none",
-            "bg-accent text-accent-foreground border-2 border-accent flex items-center justify-center",
-            "transition-transform duration-150",
+            "rounded-full cursor-grab select-none shadow-lg active:cursor-grabbing",
+            "flex items-center justify-center border border-accent/80 bg-accent text-accent-foreground",
+            "transition-[transform,box-shadow] duration-150 hover:shadow-xl",
             isDragging && "scale-110 opacity-80",
             mainSize
           )}
@@ -368,9 +368,9 @@ export const FloatingActionButton = ({
           }}
         >
           {expanded ? (
-            <X className={cn(isMobile ? "h-5 w-5" : "h-4 w-4")} />
+            <X className="h-[18px] w-[18px]" strokeWidth={2.25} />
           ) : (
-            <Search className={cn(isMobile ? "h-5 w-5" : "h-4 w-4")} />
+            <Search className="h-[18px] w-[18px]" strokeWidth={2.25} />
           )}
         </div>
       </div>

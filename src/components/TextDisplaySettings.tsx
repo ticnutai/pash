@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { AlignRight, AlignCenter, AlignLeft, AlignJustify, Type, X, GripHorizontal } from "lucide-react";
+import { AlignRight, AlignCenter, AlignLeft, AlignJustify, Type, X, GripHorizontal, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useFontAndColorSettings, type FontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useDevice } from "@/contexts/DeviceContext";
+import { useDisplayMode } from "@/contexts/DisplayModeContext";
 
 export type TextSettingsTab = "pasuk" | "titles" | "questions" | "commentary" | "siddur" | "tehillim";
 
@@ -402,11 +403,14 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
     setPreviewSettings,
   } = useFontAndColorSettings();
   const { isMobile } = useDevice();
+  const { displaySettings, updateDisplaySettings } = useDisplayMode();
   const [open, setOpen]           = useState(false);
   const [activeTab, setActiveTab] = useState<TextSettingsTab>(initialTab);
   const [pos, setPos]             = useState<{ x: number; y: number } | null>(null);
   const [draftSettings, setDraftSettings] = useState<FontAndColorSettings | null>(null);
   const [baselineSettings, setBaselineSettings] = useState<FontAndColorSettings | null>(null);
+  const [draftPasukCount, setDraftPasukCount] = useState(displaySettings.pasukCount || 10);
+  const [baselinePasukCount, setBaselinePasukCount] = useState(displaySettings.pasukCount || 10);
 
   // All controls and previews use this temporary copy. The persisted context is
   // updated only when the user explicitly presses Save.
@@ -423,9 +427,11 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
     const baseline = { ...contextSettings };
     setBaselineSettings(baseline);
     setDraftSettings(baseline);
+    setBaselinePasukCount(displaySettings.pasukCount || 10);
+    setDraftPasukCount(displaySettings.pasukCount || 10);
     setPreviewSettings(baseline);
     setOpen(true);
-  }, [contextSettings, setPreviewSettings]);
+  }, [contextSettings, displaySettings.pasukCount, setPreviewSettings]);
 
   const cancelEditor = useCallback(() => {
     setPreviewSettings(null);
@@ -436,15 +442,17 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
   const saveEditor = useCallback(() => {
     if (draftSettings) commitSettings(draftSettings);
+    if (draftPasukCount !== baselinePasukCount) updateDisplaySettings({ pasukCount: draftPasukCount });
     setPreviewSettings(null);
     setDraftSettings(null);
     setBaselineSettings(null);
     setOpen(false);
-  }, [commitSettings, draftSettings, setPreviewSettings]);
+  }, [baselinePasukCount, commitSettings, draftPasukCount, draftSettings, setPreviewSettings, updateDisplaySettings]);
 
   const hasChanges = draftSettings !== null
     && baselineSettings !== null
-    && JSON.stringify(draftSettings) !== JSON.stringify(baselineSettings);
+    && (JSON.stringify(draftSettings) !== JSON.stringify(baselineSettings)
+      || draftPasukCount !== baselinePasukCount);
 
   // Scoped settings helpers — map per-tab fields onto the generic keys that SettingsControls reads
   const scopedForTab = (tab: TextSettingsTab): ReturnType<typeof useFontAndColorSettings>["settings"] => {
@@ -670,11 +678,11 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
             right: 0,
             bottom: 0,
             width: "100%",
-            maxHeight: "30dvh",
-            height: "30dvh",
+            height: "50dvh",
+            maxHeight: "calc(100dvh - 12px - env(safe-area-inset-top, 0px))",
             zIndex: 9999,
             overflow: "hidden",
-            paddingBottom: "env(safe-area-inset-bottom)",
+            paddingBottom: "max(var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px))), 48px)",
           } : {
             position: "fixed",
             left:  pos.x,
@@ -753,10 +761,33 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
             {/* ── Scrollable settings area ── */}
             <div
-              className="flex-1 min-h-0 overflow-y-auto"
+              className="text-settings-scroll flex-1 min-h-0 overflow-y-auto"
               style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y" }}
             >
               <TabsContent value="pasuk" className="mt-0 px-3 pb-4">
+                <div className="mb-4 rounded-xl border border-accent/25 bg-accent/5 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 font-bold">
+                      <Hash className="h-4 w-4 text-accent" />
+                      מספר פסוקים בכל טעינה
+                    </div>
+                    <span className="rounded-md bg-accent/15 px-2 py-1 text-sm font-bold text-accent">{draftPasukCount}</span>
+                  </div>
+                  <p className="mb-3 text-xs text-muted-foreground">ברירת המחדל היא 10. פסוקים נוספים נטענים אוטומטית בזמן הגלילה.</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[5, 10, 20, 30].map((count) => (
+                      <Button
+                        key={count}
+                        type="button"
+                        size="sm"
+                        variant={draftPasukCount === count ? "default" : "outline"}
+                        onClick={() => setDraftPasukCount(count)}
+                      >
+                        {count}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
                 <SettingsControls
                   sizeValue={settings.pasukSize}     onSizeChange={(v) => updateSettings({ pasukSize: v })}     sizeLabel="גודל פסוקים"
                   fontValue={settings.pasukFont}     onFontChange={(f) => updateSettings({ pasukFont: f })}     fontLabel="גופן פסוקים"
@@ -813,7 +844,10 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
           </Tabs>
 
           {/* Changes remain temporary until the user explicitly saves them. */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-t border-accent/20 bg-card/95 flex-shrink-0">
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 border-t border-accent/20 bg-card/95 flex-shrink-0"
+            data-layout="dialog-text-display-actions"
+          >
             <Button
               type="button"
               variant="outline"

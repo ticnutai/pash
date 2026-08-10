@@ -47,6 +47,22 @@ test.describe("Header button functionality on mobile", () => {
     await expect(dialog).toBeVisible({ timeout: 5_000 });
   });
 
+  test("view mode presents the compact named options", async ({ page }) => {
+    const viewMode = page.locator('[data-layout="btn-view-mode"]').first();
+    const questionsMode = viewMode.getByRole("button", { name: "שאלות ומפרשים" });
+    const chumashMode = viewMode.getByRole("button", { name: "חומש ומפרשים" });
+    await expect(questionsMode).toBeVisible();
+    await expect(chumashMode).toBeVisible();
+    await questionsMode.click();
+    await expect(questionsMode).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("תצוגת חומש", { exact: true })).toHaveCount(0);
+    await expect(page.getByText('תצוגה שמו"ת', { exact: true })).toHaveCount(0);
+
+    await chumashMode.click();
+    await expect(chumashMode).toHaveAttribute("aria-pressed", "true");
+    await expect(questionsMode).toHaveAttribute("aria-pressed", "false");
+  });
+
   test("siddur button navigates to siddur page", async ({ page }) => {
     const siddurSpan = page.locator('[data-layout="btn-siddur"]').first();
     await expect(siddurSpan).toBeVisible();

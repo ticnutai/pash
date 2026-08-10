@@ -37,6 +37,31 @@ test.describe("Dialogs & overlays on mobile", () => {
     const dialogBox = await dialog.boundingBox();
     const viewport = page.viewportSize()!;
     expect(dialogBox!.width).toBeLessThanOrEqual(viewport.width + 5);
+    expect(dialogBox!.height).toBeGreaterThanOrEqual(viewport.height * 0.48);
+    expect(dialogBox!.height).toBeLessThanOrEqual(viewport.height * 0.52);
+
+    // The controls, rather than the whole sheet, own the available scroll area.
+    const settingsScroller = dialog.locator(".overflow-y-auto").first();
+    await expect(settingsScroller).toHaveClass(/text-settings-scroll/);
+    const scrollMetrics = await settingsScroller.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+      overflowY: getComputedStyle(element).overflowY,
+    }));
+    expect(scrollMetrics.clientHeight).toBeGreaterThan(viewport.height * 0.25);
+    expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
+    expect(scrollMetrics.overflowY).toBe("auto");
+
+    await settingsScroller.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect.poll(() => settingsScroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+
+    // Android WebView can report a zero env(safe-area-inset-bottom). The sheet
+    // keeps a navigation-bar fallback below its action buttons.
+    const actions = dialog.locator('[data-layout="dialog-text-display-actions"]');
+    const actionsBox = await actions.boundingBox();
+    expect(dialogBox!.y + dialogBox!.height - (actionsBox!.y + actionsBox!.height)).toBeGreaterThanOrEqual(47);
 
     // Close
     await page.keyboard.press("Escape");

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles, Cog, Check, LayoutPanelTop } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles, Cog, Check, LayoutPanelTop, Palette } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
@@ -33,14 +33,14 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { SidePanelTrigger } from "@/components/SidePanelTrigger";
 import { LayoutOverlay } from "@/components/LayoutOverlay";
 import { logInteraction } from "@/utils/interactionDebug";
+import { CompactPasukView } from "@/components/CompactPasukView";
+import { LuxuryTextView } from "@/components/LuxuryTextView";
 
 import { useReadingPositionSync } from "@/hooks/useReadingPositionSync";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
-const CompactPasukView = lazy(() => import("@/components/CompactPasukView").then(m => ({ default: m.CompactPasukView })));
 const PaginatedPasukList = lazy(() => import("@/components/PaginatedPasukList").then(m => ({ default: m.PaginatedPasukList })));
-const LuxuryTextView = lazy(() => import("@/components/LuxuryTextView").then(m => ({ default: m.LuxuryTextView })));
 const ChumashView = lazy(() => import("@/components/ChumashView").then(m => ({ default: m.ChumashView })));
 const SideContentPanel = lazy(() => import("@/components/SideContentPanel").then(m => ({ default: m.SideContentPanel })));
 
@@ -84,7 +84,7 @@ const getCorpusModeForSefer = (seferId: number): CorpusMode => {
 };
 
 const Index = () => {
-  const { displaySettings } = useDisplayMode();
+  const { displaySettings, updateDisplaySettings } = useDisplayMode();
   const { isMobile } = useDevice();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -104,13 +104,7 @@ const Index = () => {
       return "he";
     }
   });
-  const [mobileHeaderLayout, setMobileHeaderLayout] = useState<MobileHeaderLayout>(() => {
-    try {
-      return localStorage.getItem("mobileHeaderLayout") === "stacked" ? "stacked" : "single";
-    } catch {
-      return "single";
-    }
-  });
+  const mobileHeaderLayout: MobileHeaderLayout = displaySettings?.headerLayout === "single" ? "single" : "stacked";
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
   const mobileVerseSideMargin = displaySettings?.verseSideMargin ?? 0;
   const [seferData, setSeferData] = useState<Sefer | null>(null);
@@ -158,10 +152,9 @@ const Index = () => {
   }, []);
 
   const saveMobileHeaderLayout = useCallback((layout: MobileHeaderLayout) => {
-    setMobileHeaderLayout(layout);
-    try { localStorage.setItem("mobileHeaderLayout", layout); } catch { /* storage may be unavailable */ }
+    updateDisplaySettings({ headerLayout: layout });
     toast.success(layout === "stacked" ? "הפריסה הדו־שורתית נשמרה" : "הפריסה הרגילה נשמרה");
-  }, []);
+  }, [updateDisplaySettings]);
 
   useEffect(() => {
     if (!currentSeferOptions.some(s => s.id === selectedSefer)) {
@@ -623,21 +616,20 @@ const Index = () => {
       return [filteredPesukim[currentPasukIndex]];
     }
     
-    // In compact mode, show up to pasukCount starting from selectedPasuk (if any)
+    // The compact view receives the remaining list and loads it in batches while scrolling.
     if (displayMode === "compact") {
-      const count = displaySettings?.pasukCount || 20;
       if (selectedPasuk !== null) {
         const startIndex = filteredPesukim.findIndex(p => p.pasuk_num === selectedPasuk);
         if (startIndex >= 0) {
-          return filteredPesukim.slice(startIndex, startIndex + count);
+          return filteredPesukim.slice(startIndex);
         }
       }
-      return filteredPesukim.slice(0, count);
+      return filteredPesukim;
     }
     
     // Default: show all
     return filteredPesukim;
-  }, [filteredPesukim, singlePasukMode, currentPasukIndex, displayMode, displaySettings?.pasukCount, selectedPasuk]);
+  }, [filteredPesukim, singlePasukMode, currentPasukIndex, displayMode, selectedPasuk]);
 
   const localizedDisplayedPesukim = useMemo(() => {
     if (textLanguage === "he") return displayedPesukim;
@@ -857,8 +849,25 @@ const Index = () => {
             className="flex flex-col gap-1 md:hidden"
             style={{ paddingTop: 'max(var(--safe-area-inset-top, var(--sai-top, env(safe-area-inset-top, 0px))), 28px)' }}
           >
-            {mobileHeaderLayout === "stacked" && (
-              <div className="flex items-center justify-center gap-1 pb-0.5" dir="rtl">
+            <div className="relative flex min-h-7 items-center justify-center pb-0.5" dir="rtl">
+              <div
+                data-layout="btn-user"
+                data-layout-label="🎨 ערכת נושא וחשבון"
+                className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5"
+              >
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-app-settings", { detail: { tab: "themes" } }))}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-accent transition-colors hover:bg-accent/10"
+                  title="ערכות נושא"
+                  aria-label="פתח ערכות נושא"
+                >
+                  <Palette className="h-4 w-4" />
+                </button>
+                <UserMenu iconOnly />
+              </div>
+              {mobileHeaderLayout === "stacked" && (
+                <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => {
                     setCorpusMode("torah");
@@ -880,8 +889,9 @@ const Index = () => {
                   <BookMarked className="h-3.5 w-3.5" />
                   סידור
                 </button>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
             {/* Action row */}
             <div className="flex w-full items-center px-1">
               <div data-layout="header-actions-mobile" data-layout-label="כפתורי כותרת (מובייל)" className="flex w-full items-center justify-between gap-0.5">
@@ -978,7 +988,18 @@ const Index = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <span data-layout="btn-user" data-layout-label="👤 משתמש"><UserMenu iconOnly /></span>
+                <span data-layout="btn-settings" data-layout-label="⚙️ הגדרות">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => (document.querySelector('[data-settings-trigger]') as HTMLElement)?.click()}
+                    className="h-8 w-8 text-accent hover:bg-accent/10 hover:text-accent"
+                    title="הגדרות"
+                    aria-label="הגדרות"
+                  >
+                    <Cog className="h-4 w-4" />
+                  </Button>
+                </span>
               </div>
             </div>
           </div>
@@ -1337,7 +1358,7 @@ const Index = () => {
                       key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
                     >
                       {displayMode === "luxury" ? (
-                        <LuxuryTextView pesukim={localizedDisplayedPesukim} />
+                        <LuxuryTextView pesukim={localizedDisplayedPesukim} expandAll={globalExpandAll} />
                       ) : displayMode === "chumash" ? (
                         <ChumashView 
                           pesukim={localizedDisplayedPesukim} 

@@ -40,8 +40,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "v1.8.0 - עיצוב"},
-                {"language": "en-US", "text": "v1.8.0 - sidur"},
+                {"language": "he-IL", "text": "גרסה 1.8.4 - שיפורי תצוגה, גלילת פסוקים ותיקוני ממשק"},
+                {"language": "en-US", "text": "Version 1.8.4 - display, verse scrolling, and interface improvements"},
             ]
         }]
     }
