@@ -146,7 +146,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }
     setPublicThemes((data ?? []).map(row => ({
       ...defaultCustomTheme,
-      ...(row.theme as CustomAppTheme),
+      ...(row.theme as unknown as CustomAppTheme),
       id: `public:${row.id}`,
       name: row.name,
       updatedAt: row.updated_at,
@@ -204,7 +204,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw error;
     const published: SavedAppTheme = {
       ...defaultCustomTheme,
-      ...(data.theme as CustomAppTheme),
+      ...(data.theme as unknown as CustomAppTheme),
       id: `public:${data.id}`,
       name: data.name,
       updatedAt: data.updated_at,

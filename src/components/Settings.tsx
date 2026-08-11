@@ -171,6 +171,8 @@ const fonts = [
 export const Settings = () => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("calendar");
+  const [themesOnly, setThemesOnly] = useState(false);
+  const [autoWeeklyParsha, setAutoWeeklyParsha] = useState(() => localStorage.getItem("autoWeeklyParsha") !== "false");
   const { theme, setTheme, customTheme, customThemes, publicThemes, saveCustomTheme, selectCustomTheme, publishCustomTheme } = useTheme();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [customThemeDraft, setCustomThemeDraft] = useState(customTheme);
@@ -206,11 +208,21 @@ export const Settings = () => {
   useEffect(() => {
     const openSettings = (event: Event) => {
       const requestedTab = (event as CustomEvent<{ tab?: string }>).detail?.tab;
+      setThemesOnly(requestedTab === "themes");
       setActiveTab(requestedTab || "calendar");
       setOpen(true);
     };
+    const openThemes = () => {
+      setThemesOnly(true);
+      setActiveTab("themes");
+      setOpen(true);
+    };
     window.addEventListener("open-app-settings", openSettings);
-    return () => window.removeEventListener("open-app-settings", openSettings);
+    window.addEventListener("open-app-themes", openThemes);
+    return () => {
+      window.removeEventListener("open-app-settings", openSettings);
+      window.removeEventListener("open-app-themes", openThemes);
+    };
   }, []);
 
   useEffect(() => setCustomThemeDraft(customTheme), [customTheme]);
@@ -546,6 +558,7 @@ export const Settings = () => {
           data-settings-trigger
           data-layout="floating-settings" data-layout-label="⚙️ הגדרות צפות"
           size="icon"
+          onClick={() => { setThemesOnly(false); setActiveTab("calendar"); }}
           className="fixed bottom-4 right-4 z-40 hidden h-14 w-14 rounded-full bg-primary shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl md:inline-flex sm:bottom-6 sm:right-6"
           style={{ bottom: 'max(calc(1rem + var(--safe-area-inset-bottom, var(--sai-bottom, env(safe-area-inset-bottom, 0px)))), 4rem)' }}
         >
@@ -557,14 +570,14 @@ export const Settings = () => {
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-xs text-[#C8A44D] font-mono">v{__APP_VERSION__}</span>
             <DialogTitle className="text-right text-xl sm:text-2xl flex items-center justify-end gap-2">
-              <span>הגדרות</span>
-              <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span>{themesOnly ? "ערכות נושא" : "הגדרות"}</span>
+              {themesOnly ? <Palette className="h-5 w-5 sm:h-6 sm:w-6" /> : <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
             </DialogTitle>
           </div>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
-          <TabsList className="flex flex-wrap justify-center h-auto mb-4 sm:mb-6 gap-0.5 sm:gap-1 p-1">
+          {!themesOnly && <TabsList className="flex flex-wrap justify-center h-auto mb-4 sm:mb-6 gap-0.5 sm:gap-1 p-1">
             <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
               <span className="truncate">לוח</span>
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -572,10 +585,6 @@ export const Settings = () => {
             <TabsTrigger value="notifications" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
               <span className="truncate">תזכורות</span>
               <Bell className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-            </TabsTrigger>
-            <TabsTrigger value="themes" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
-              <span className="truncate">נושא</span>
-              <Palette className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
             <TabsTrigger value="fonts" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
               <span className="truncate">גופן</span>
@@ -601,7 +610,7 @@ export const Settings = () => {
               <span className="truncate">פיתוח</span>
               <Code className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
             </TabsTrigger>
-          </TabsList>
+          </TabsList>}
 
           <TabsContent value="calendar" className="space-y-4">
             <Card className="p-6">
@@ -631,6 +640,27 @@ export const Settings = () => {
                       id="calendar-toggle"
                       checked={isIsrael}
                       onCheckedChange={handleCalendarChange}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                    <div className="flex-1 text-right">
+                      <Label htmlFor="auto-weekly-parsha" className="text-base font-semibold cursor-pointer">
+                        פרשת השבוע אוטומטית
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        טוען אוטומטית את פרשת השבוע בפתיחת האפליקציה
+                      </p>
+                    </div>
+                    <Switch
+                      id="auto-weekly-parsha"
+                      checked={autoWeeklyParsha}
+                      onCheckedChange={(checked) => {
+                        setAutoWeeklyParsha(checked);
+                        localStorage.setItem("autoWeeklyParsha", String(checked));
+                        window.dispatchEvent(new CustomEvent("auto-weekly-parsha-changed", { detail: { enabled: checked } }));
+                        toast.success(checked ? "פרשת השבוע תיטען אוטומטית" : "פרשת השבוע לא תיטען אוטומטית");
+                      }}
                     />
                   </div>
 

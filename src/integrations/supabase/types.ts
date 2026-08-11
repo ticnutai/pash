@@ -17,7 +17,7 @@ export type Database = {
       app_themes: {
         Row: {
           created_at: string
-          created_by: string | null
+          created_by: string
           id: string
           name: string
           theme: Json
@@ -25,7 +25,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           id?: string
           name: string
           theme: Json
@@ -33,7 +33,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           id?: string
           name?: string
           theme?: Json
@@ -248,6 +248,42 @@ export type Database = {
           reminders?: Json | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      siddur: {
+        Row: {
+          cat_name: string
+          category: string
+          created_at: string
+          id: string
+          lines: Json
+          nusach: string
+          section_idx: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cat_name: string
+          category: string
+          created_at?: string
+          id?: string
+          lines: Json
+          nusach: string
+          section_idx: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cat_name?: string
+          category?: string
+          created_at?: string
+          id?: string
+          lines?: Json
+          nusach?: string
+          section_idx?: number
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -572,8 +608,8 @@ export type Database = {
           id: string
           quiz_attempts: Json
           quiz_plans: Json
-          siddur_display_settings: Json | null
           show_shared_content: boolean | null
+          siddur_display_settings: Json | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -588,8 +624,8 @@ export type Database = {
           id?: string
           quiz_attempts?: Json
           quiz_plans?: Json
-          siddur_display_settings?: Json | null
           show_shared_content?: boolean | null
+          siddur_display_settings?: Json | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -604,8 +640,8 @@ export type Database = {
           id?: string
           quiz_attempts?: Json
           quiz_plans?: Json
-          siddur_display_settings?: Json | null
           show_shared_content?: boolean | null
+          siddur_display_settings?: Json | null
           theme?: string | null
           updated_at?: string
           user_id?: string

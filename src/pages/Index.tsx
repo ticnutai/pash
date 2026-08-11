@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, CalendarCheck, CalendarOff, BookMarked, Sparkles, Cog, Check, LayoutPanelTop, Palette } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen, ScrollText, Languages, BookMarked, Sparkles, Cog, Check, LayoutPanelTop, Palette } from "lucide-react";
 
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { cn } from "@/lib/utils";
@@ -139,6 +139,15 @@ const Index = () => {
       return saved === null ? true : saved === 'true';
     } catch { return true; }
   });
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const enabled = (event as CustomEvent<{ enabled?: boolean }>).detail?.enabled;
+      if (typeof enabled === "boolean") setAutoWeeklyParsha(enabled);
+    };
+    window.addEventListener("auto-weekly-parsha-changed", handler);
+    return () => window.removeEventListener("auto-weekly-parsha-changed", handler);
+  }, []);
   
   // Side content panel state (for Chumash view)
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
@@ -776,15 +785,6 @@ const Index = () => {
     setSidePanelOpen(true);
   }, [chumashSelectedPasukId, sidePanelMode, sidePanelOpen]);
 
-  const toggleAutoWeeklyParsha = useCallback(() => {
-    setAutoWeeklyParsha(prev => {
-      const next = !prev;
-      localStorage.setItem('autoWeeklyParsha', String(next));
-      toast(next ? "פרשת השבוע תיטען אוטומטית" : "פרשת השבוע לא תיטען אוטומטית", { duration: 3000 });
-      return next;
-    });
-  }, []);
-
   const toggleCorpusMode = useCallback(() => {
     setCorpusMode(prev => {
       const next: CorpusMode = prev === "torah" ? "neviim" : "torah";
@@ -863,18 +863,9 @@ const Index = () => {
             <div className="relative flex min-h-7 items-center justify-center pb-0.5" dir="rtl">
               <div
                 data-layout="btn-user"
-                data-layout-label="🎨 ערכת נושא וחשבון"
+                data-layout-label="👤 חשבון"
                 className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5"
               >
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-app-settings", { detail: { tab: "themes" } }))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-accent transition-colors hover:bg-accent/10"
-                  title="ערכות נושא"
-                  aria-label="פתח ערכות נושא"
-                >
-                  <Palette className="h-4 w-4" />
-                </button>
                 <UserMenu iconOnly />
               </div>
               {mobileHeaderLayout === "stacked" && (
@@ -917,15 +908,16 @@ const Index = () => {
                   <Languages className="h-4 w-4" />
                 </Button>
                 </span>
-                <span data-layout="btn-calendar" data-layout-label="📅 לוח שנה">
+                <span data-layout="btn-themes" data-layout-label="🎨 ערכות נושא">
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={toggleAutoWeeklyParsha}
-                  className={cn("h-8 w-8 hover:bg-accent/10", autoWeeklyParsha ? "text-accent" : "text-accent/40")}
-                  title={autoWeeklyParsha ? "פרשת השבוע אוטומטית: פעיל" : "פרשת השבוע אוטומטית: כבוי"}
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-app-themes"))}
+                  className="h-8 w-8 text-accent hover:bg-accent/10 hover:text-accent"
+                  title="ערכות נושא"
+                  aria-label="פתח ערכות נושא"
                 >
-                  {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
+                  <Palette className="h-4 w-4" />
                 </Button>
                 </span>
 
@@ -1092,6 +1084,18 @@ const Index = () => {
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+                <span data-layout="btn-themes" data-layout-label="🎨 ערכות נושא">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.dispatchEvent(new CustomEvent("open-app-themes"))}
+                    className="h-8 w-8 text-accent hover:text-accent hover:bg-accent/10"
+                    title="ערכות נושא"
+                    aria-label="פתח ערכות נושא"
+                  >
+                    <Palette className="h-4 w-4" />
+                  </Button>
+                </span>
                 <span data-layout="btn-settings" data-layout-label="⚙️ הגדרות">
                   <Button
                     variant="ghost"
