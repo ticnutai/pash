@@ -785,15 +785,6 @@ const Index = () => {
     setSidePanelOpen(true);
   }, [chumashSelectedPasukId, sidePanelMode, sidePanelOpen]);
 
-  const toggleAutoWeeklyParsha = useCallback(() => {
-    setAutoWeeklyParsha(prev => {
-      const next = !prev;
-      localStorage.setItem('autoWeeklyParsha', String(next));
-      toast(next ? "פרשת השבוע תיטען אוטומטית" : "פרשת השבוע לא תיטען אוטומטית", { duration: 3000 });
-      return next;
-    });
-  }, []);
-
   const toggleCorpusMode = useCallback(() => {
     setCorpusMode(prev => {
       const next: CorpusMode = prev === "torah" ? "neviim" : "torah";
