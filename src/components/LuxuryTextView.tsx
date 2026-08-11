@@ -132,16 +132,20 @@ const PerekHeader = ({ perek, style }: { perek: number; style: Template["perekSt
 
 // ─── Pasuk Row ────────────────────────────────────────────────────────────────
 
+type CommentaryLabelPosition = "side" | "above";
+
 const CommentaryBlock = ({
   label,
   text,
   fontSize,
   sourceText,
+  labelPosition,
 }: {
   label: string;
   text: string;
   fontSize: number;
   sourceText: string;
+  labelPosition: CommentaryLabelPosition;
 }) => {
   const stripHebrewMarks = (value: string) => value
     .normalize("NFD")
@@ -169,16 +173,27 @@ const CommentaryBlock = ({
   return (
   <div
     dir="rtl"
-    className="mt-3 mb-1 border-r-2 border-[#c8a04d]/60 pr-3 animate-fade-in"
+    className={cn(
+      "relative mt-3 mb-1 border-r-2 border-[#c8a04d]/60 pr-3 animate-fade-in",
+      labelPosition === "side" && "sm:-mr-[1.1rem] sm:pr-4",
+    )}
     style={{ fontSize: `${Math.max(fontSize - 4, 13)}px`, lineHeight: 1.8 }}
   >
-    <span
-      className="inline-block text-[10px] font-bold tracking-widest text-[#c8a04d] mb-1 ml-2"
-      style={{ fontFamily: "serif" }}
+    <div className={cn(
+      "mb-1.5 flex w-full justify-start",
+      labelPosition === "side" && "sm:absolute sm:right-0 sm:top-0 sm:mb-0 sm:w-auto sm:translate-x-[calc(100%+0.45rem)]",
+    )}>
+      <span
+        className="inline-flex whitespace-nowrap rounded-md border border-[#c8a04d]/35 bg-background/95 px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-[#c8a04d] shadow-sm"
+        style={{ fontFamily: "serif" }}
+      >
+        {label}:
+      </span>
+    </div>
+    <div
+      className="w-full text-foreground/80"
+      style={{ textAlign: "justify", textAlignLast: "right" }}
     >
-      {label}:
-    </span>
-    <span className="text-foreground/80">
       {parts.map((part, index) => {
         const bold = part.startsWith("[[B]]") && part.endsWith("[[/B]]");
         const rawContent = bold ? part.slice(5, -6).trim() : part;
@@ -187,7 +202,7 @@ const CommentaryBlock = ({
           ? <strong key={index} className="font-bold text-foreground">{content} </strong>
           : <span key={index}>{content}</span>;
       })}
-    </span>
+    </div>
   </div>
   );
 };
@@ -209,6 +224,7 @@ const PasukRow = ({
   templateId,
   commentaries,
   isMobile,
+  commentaryLabelPosition,
 }: {
   pasuk: FlatPasuk;
   numColor: string;
@@ -219,6 +235,7 @@ const PasukRow = ({
   templateId: TemplateId;
   commentaries: CommentaryEntry[];
   isMobile: boolean;
+  commentaryLabelPosition: CommentaryLabelPosition;
 }) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [openCommentaries, setOpenCommentaries] = useState<Set<string>>(new Set());
@@ -426,6 +443,7 @@ const PasukRow = ({
             text={c.text}
             fontSize={fontSize}
             sourceText={pasuk.text}
+            labelPosition={commentaryLabelPosition}
           />
         );
       })}
@@ -442,6 +460,8 @@ interface SettingsPanelProps {
   onFontSizeChange: (v: number) => void;
   lineHeightOverride: number;
   onLineHeightChange: (v: number) => void;
+  commentaryLabelPosition: CommentaryLabelPosition;
+  onCommentaryLabelPositionChange: (position: CommentaryLabelPosition) => void;
   onClose: () => void;
 }
 
@@ -452,6 +472,8 @@ const SettingsPanel = ({
   onFontSizeChange,
   lineHeightOverride,
   onLineHeightChange,
+  commentaryLabelPosition,
+  onCommentaryLabelPositionChange,
   onClose,
 }: SettingsPanelProps) => (
   <div
@@ -485,6 +507,32 @@ const SettingsPanel = ({
           </button>
         ))}
       </div>
+    </div>
+
+    <div className="mb-5">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">מיקום שם המפרש</p>
+      <div className="grid grid-cols-2 gap-2">
+        {([[
+          "side", "שם בצד",
+        ], [
+          "above", "שם מעל",
+        ]] as const).map(([position, label]) => (
+          <button
+            key={position}
+            type="button"
+            onClick={() => onCommentaryLabelPositionChange(position)}
+            className={cn(
+              "rounded-lg border px-3 py-2 text-sm font-semibold transition-colors",
+              commentaryLabelPosition === position
+                ? "border-accent bg-accent/15 text-accent"
+                : "border-border bg-background text-foreground hover:border-accent/50",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">במסך צר השם מוצג מעל הטקסט כדי שלא ייחתך.</p>
     </div>
 
     {/* Font size */}
@@ -541,6 +589,14 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
   const [fontSizeOverride, setFontSizeOverride] = useState<number | null>(null);
   const [lineHeightOverride, setLineHeightOverride] = useState<number | null>(null);
   const [showCommentaryPicker, setShowCommentaryPicker] = useState(false);
+  const [commentaryLabelPosition, setCommentaryLabelPosition] = useState<CommentaryLabelPosition>(() =>
+    localStorage.getItem("commentary-label-position") === "above" ? "above" : "side"
+  );
+
+  const updateCommentaryLabelPosition = useCallback((position: CommentaryLabelPosition) => {
+    setCommentaryLabelPosition(position);
+    localStorage.setItem("commentary-label-position", position);
+  }, []);
 
   /** Commentator configs — persisted in localStorage */
   const [commentaryConfigs, setCommentaryConfigs] = useState<CommentatorConfig[]>(() => {
@@ -737,6 +793,8 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
           onFontSizeChange={setFontSizeOverride}
           lineHeightOverride={effectiveLineHeight}
           onLineHeightChange={setLineHeightOverride}
+          commentaryLabelPosition={commentaryLabelPosition}
+          onCommentaryLabelPositionChange={updateCommentaryLabelPosition}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -803,6 +861,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
                           }))
                           .filter((c) => c.text !== "")}
                         isMobile={isMobile}
+                        commentaryLabelPosition={commentaryLabelPosition}
                       />
                     );
                   })}
@@ -852,6 +911,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
                           }))
                           .filter((c) => c.text !== "")}
                         isMobile={isMobile}
+                        commentaryLabelPosition={commentaryLabelPosition}
                       />
                     );
                   })}
