@@ -172,6 +172,7 @@ export const Settings = () => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("calendar");
   const [themesOnly, setThemesOnly] = useState(false);
+  const [autoWeeklyParsha, setAutoWeeklyParsha] = useState(() => localStorage.getItem("autoWeeklyParsha") !== "false");
   const { theme, setTheme, customTheme, customThemes, publicThemes, saveCustomTheme, selectCustomTheme, publishCustomTheme } = useTheme();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [customThemeDraft, setCustomThemeDraft] = useState(customTheme);
