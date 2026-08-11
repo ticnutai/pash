@@ -171,6 +171,7 @@ const fonts = [
 export const Settings = () => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("calendar");
+  const [themesOnly, setThemesOnly] = useState(false);
   const { theme, setTheme, customTheme, customThemes, publicThemes, saveCustomTheme, selectCustomTheme, publishCustomTheme } = useTheme();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [customThemeDraft, setCustomThemeDraft] = useState(customTheme);
@@ -206,11 +207,21 @@ export const Settings = () => {
   useEffect(() => {
     const openSettings = (event: Event) => {
       const requestedTab = (event as CustomEvent<{ tab?: string }>).detail?.tab;
+      setThemesOnly(requestedTab === "themes");
       setActiveTab(requestedTab || "calendar");
       setOpen(true);
     };
+    const openThemes = () => {
+      setThemesOnly(true);
+      setActiveTab("themes");
+      setOpen(true);
+    };
     window.addEventListener("open-app-settings", openSettings);
-    return () => window.removeEventListener("open-app-settings", openSettings);
+    window.addEventListener("open-app-themes", openThemes);
+    return () => {
+      window.removeEventListener("open-app-settings", openSettings);
+      window.removeEventListener("open-app-themes", openThemes);
+    };
   }, []);
 
   useEffect(() => setCustomThemeDraft(customTheme), [customTheme]);
