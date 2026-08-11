@@ -10,10 +10,10 @@ Read it before changing `versionCode`, building an AAB, or uploading to Google P
 - Google Play app ID: `4973641710236493710`
 - Developer account ID: `7704462559572865167`
 - Testing track: `internal`
-- Current internal-testing release: `1.8.5`, version code `29`
+- Current internal-testing release: `1.8.6`, version code `30`
 - Current production release: `1.8.2`, version code `26`
 - Upload-key reset requested on 2026-08-06 and approved by Google. The new key was confirmed by a successful upload on 2026-08-11.
-- Internal testing is active. Release `1.8.5` is available to the selected tester email lists.
+- Internal testing is active. Release `1.8.6` is available to the selected tester email lists.
 - Tester opt-in URL: `https://play.google.com/apps/internaltest/4701562293919669655`
 
 ### Certificate fingerprints
