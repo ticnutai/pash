@@ -863,18 +863,9 @@ const Index = () => {
             <div className="relative flex min-h-7 items-center justify-center pb-0.5" dir="rtl">
               <div
                 data-layout="btn-user"
-                data-layout-label="🎨 ערכת נושא וחשבון"
+                data-layout-label="👤 חשבון"
                 className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5"
               >
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-app-settings", { detail: { tab: "themes" } }))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-accent transition-colors hover:bg-accent/10"
-                  title="ערכות נושא"
-                  aria-label="פתח ערכות נושא"
-                >
-                  <Palette className="h-4 w-4" />
-                </button>
                 <UserMenu iconOnly />
               </div>
               {mobileHeaderLayout === "stacked" && (
@@ -917,15 +908,16 @@ const Index = () => {
                   <Languages className="h-4 w-4" />
                 </Button>
                 </span>
-                <span data-layout="btn-calendar" data-layout-label="📅 לוח שנה">
+                <span data-layout="btn-themes" data-layout-label="🎨 ערכות נושא">
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={toggleAutoWeeklyParsha}
-                  className={cn("h-8 w-8 hover:bg-accent/10", autoWeeklyParsha ? "text-accent" : "text-accent/40")}
-                  title={autoWeeklyParsha ? "פרשת השבוע אוטומטית: פעיל" : "פרשת השבוע אוטומטית: כבוי"}
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-app-themes"))}
+                  className="h-8 w-8 text-accent hover:bg-accent/10 hover:text-accent"
+                  title="ערכות נושא"
+                  aria-label="פתח ערכות נושא"
                 >
-                  {autoWeeklyParsha ? <CalendarCheck className="h-4 w-4" /> : <CalendarOff className="h-4 w-4" />}
+                  <Palette className="h-4 w-4" />
                 </Button>
                 </span>
 
