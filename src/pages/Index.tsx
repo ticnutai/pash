@@ -1084,6 +1084,18 @@ const Index = () => {
                 <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
+                <span data-layout="btn-themes" data-layout-label="🎨 ערכות נושא">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.dispatchEvent(new CustomEvent("open-app-themes"))}
+                    className="h-8 w-8 text-accent hover:text-accent hover:bg-accent/10"
+                    title="ערכות נושא"
+                    aria-label="פתח ערכות נושא"
+                  >
+                    <Palette className="h-4 w-4" />
+                  </Button>
+                </span>
                 <span data-layout="btn-settings" data-layout-label="⚙️ הגדרות">
                   <Button
                     variant="ghost"
