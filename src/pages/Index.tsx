@@ -139,6 +139,15 @@ const Index = () => {
       return saved === null ? true : saved === 'true';
     } catch { return true; }
   });
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const enabled = (event as CustomEvent<{ enabled?: boolean }>).detail?.enabled;
+      if (typeof enabled === "boolean") setAutoWeeklyParsha(enabled);
+    };
+    window.addEventListener("auto-weekly-parsha-changed", handler);
+    return () => window.removeEventListener("auto-weekly-parsha-changed", handler);
+  }, []);
   
   // Side content panel state (for Chumash view)
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
