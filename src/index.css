@@ -514,6 +514,35 @@ All colors MUST be HSL.
   font-display: block;
 }
 
+/* Custom Chumash themes: shape/depth controls are deliberately scoped to
+   reading surfaces so the theme editor and system dialogs remain usable. */
+html.custom [data-theme-card] {
+  border-radius: var(--theme-card-radius, var(--radius)) !important;
+  border-width: var(--theme-border-width, 1px) !important;
+  box-shadow: var(--theme-card-shadow, none) !important;
+}
+
+html.custom [data-theme-header] {
+  box-shadow: var(--theme-header-shadow, none) !important;
+}
+
+html.custom button.rounded-lg,
+html.custom button.rounded-md {
+  border-radius: var(--theme-button-radius, var(--radius)) !important;
+}
+
+.siddur-themed-root [data-siddur-card] {
+  border-radius: var(--siddur-card-radius, 12px) !important;
+  border-width: var(--siddur-border-width, 1px) !important;
+  box-shadow: var(--siddur-card-shadow, none) !important;
+}
+
+.siddur-themed-root button.rounded-lg,
+.siddur-themed-root button.rounded-md,
+.siddur-themed-root button.rounded-full {
+  border-radius: var(--siddur-button-radius, 10px) !important;
+}
+
 @font-face {
   font-family: "Noto Serif Hebrew";
   src: url("./assets/fonts/NotoSerifHebrew-Bold.ttf") format("truetype");

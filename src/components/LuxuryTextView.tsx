@@ -245,6 +245,7 @@ const PasukRow = ({
 
   return (
     <div
+      data-theme-card={!isMinimal ? "true" : undefined}
       className={cn(
         "relative group transition-all",
         !isMinimal && "rounded-xl px-3 py-2",
@@ -751,7 +752,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
 
       {/* Content */}
       {!expandAll && (
-        <div className="rounded-xl border border-accent/30 bg-card/95 px-4 py-5 text-center text-sm font-semibold text-muted-foreground shadow-sm">
+        <div data-theme-card className="rounded-xl border border-accent/30 bg-card/95 px-4 py-5 text-center text-sm font-semibold text-muted-foreground shadow-sm">
           התצוגה ממוזערת — לחץ על כפתור ההרחבה כדי להציג את כל הפסוקים והמפרשים
         </div>
       )}
@@ -762,6 +763,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
           {perekGroups.map((group) => (
             <div
               key={group.perek}
+              data-theme-card
               className="rounded-xl border border-border/60 shadow-md overflow-hidden"
               style={{ background: template.background }}
             >

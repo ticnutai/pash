@@ -2,10 +2,11 @@ import { createContext, useContext, useState, useEffect, useMemo, useCallback, R
 import { useAuth } from "@/contexts/AuthContext";
 import { useSyncedState } from "@/hooks/useSyncedState";
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_THEME_APPEARANCE, THEME_SHADOWS, type ThemeAppearanceSettings } from "@/components/ThemeAppearanceControls";
 
 export type Theme = "classic" | "royal-gold" | "elegant-night" | "ancient-scroll" | "light" | "gold-silver" | "custom";
 
-export interface CustomAppTheme {
+export interface CustomAppTheme extends ThemeAppearanceSettings {
   name: string;
   background: string;
   foreground: string;
@@ -26,15 +27,29 @@ const CUSTOM_THEMES_KEY = "torah-custom-themes-v1";
 const defaultCustomTheme: CustomAppTheme = {
   name: "הערכה שלי", background: "#f8f6f1", foreground: "#17233d", card: "#ffffff",
   primary: "#173665", accent: "#e9b51f", sidebar: "#142c55", sidebarForeground: "#fff8e6",
+  ...DEFAULT_THEME_APPEARANCE,
 };
+
+const normalizeAppTheme = (theme?: Partial<CustomAppTheme> | null): CustomAppTheme => ({
+  ...defaultCustomTheme,
+  ...(theme ?? {}),
+});
+
+const normalizeSavedAppTheme = (theme: SavedAppTheme): SavedAppTheme => ({
+  ...normalizeAppTheme(theme),
+  id: theme.id,
+  updatedAt: theme.updatedAt,
+});
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   customTheme: CustomAppTheme;
   customThemes: SavedAppTheme[];
+  publicThemes: SavedAppTheme[];
   saveCustomTheme: (theme: CustomAppTheme, options?: { id?: string; duplicate?: boolean }) => Promise<SavedAppTheme>;
   selectCustomTheme: (id: string) => Promise<void>;
+  publishCustomTheme: (theme: CustomAppTheme) => Promise<SavedAppTheme>;
   syncStatus: 'synced' | 'syncing' | 'offline' | 'error';
 }
 
@@ -44,13 +59,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [customTheme, setCustomTheme] = useState<CustomAppTheme>(() => {
-    try { return { ...defaultCustomTheme, ...JSON.parse(localStorage.getItem(CUSTOM_THEME_KEY) || "{}") }; }
+    try { return normalizeAppTheme(JSON.parse(localStorage.getItem(CUSTOM_THEME_KEY) || "{}")); }
     catch { return defaultCustomTheme; }
   });
   const [customThemes, setCustomThemes] = useState<SavedAppTheme[]>(() => {
-    try { return JSON.parse(localStorage.getItem(CUSTOM_THEMES_KEY) || "[]"); }
+    try { return (JSON.parse(localStorage.getItem(CUSTOM_THEMES_KEY) || "[]") as SavedAppTheme[]).map(normalizeSavedAppTheme); }
     catch { return []; }
   });
+  const [publicThemes, setPublicThemes] = useState<SavedAppTheme[]>([]);
 
   const { data: theme, setData: setThemeData, status } = useSyncedState<Theme>({
     localStorageKey: "torah-theme",
@@ -90,7 +106,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       "--sidebar-border": customTheme.primary, "--sidebar-ring": customTheme.accent,
     };
     Object.entries(vars).forEach(([key, value]) => root.style.setProperty(key, hexToHsl(value)));
-    return () => Object.keys(vars).forEach(key => root.style.removeProperty(key));
+    const appearanceVars: Record<string, string> = {
+      "--radius": `${customTheme.cornerRadius}px`,
+      "--theme-card-radius": `${customTheme.cornerRadius}px`,
+      "--theme-button-radius": `${customTheme.buttonRadius}px`,
+      "--theme-border-width": `${customTheme.borderWidth}px`,
+      "--theme-card-shadow": THEME_SHADOWS[customTheme.shadow],
+      "--theme-header-shadow": customTheme.headerShadow ? THEME_SHADOWS[customTheme.shadow] : "none",
+    };
+    Object.entries(appearanceVars).forEach(([key, value]) => root.style.setProperty(key, value));
+    return () => [...Object.keys(vars), ...Object.keys(appearanceVars)].forEach(key => root.style.removeProperty(key));
   }, [theme, customTheme]);
 
   useEffect(() => {
@@ -98,15 +123,37 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     const cloud = user.user_metadata?.custom_app_theme;
     const cloudThemes = user.user_metadata?.custom_app_themes;
     if (Array.isArray(cloudThemes)) {
-      setCustomThemes(cloudThemes as SavedAppTheme[]);
-      localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(cloudThemes));
+      const normalizedThemes = (cloudThemes as SavedAppTheme[]).map(normalizeSavedAppTheme);
+      setCustomThemes(normalizedThemes);
+      localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(normalizedThemes));
     }
     if (cloud && typeof cloud === "object") {
-      const next = { ...defaultCustomTheme, ...cloud } as CustomAppTheme;
+      const next = normalizeAppTheme(cloud as Partial<CustomAppTheme>);
       setCustomTheme(next);
       localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(next));
     }
   }, [user?.id]);
+
+  const loadPublicThemes = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("app_themes")
+      .select("id,name,theme,updated_at")
+      .order("created_at", { ascending: true });
+    if (error) {
+      // The migration may not have been applied yet; keep the local theme system usable.
+      console.error("Failed to load public app themes:", error);
+      return;
+    }
+    setPublicThemes((data ?? []).map(row => ({
+      ...defaultCustomTheme,
+      ...(row.theme as CustomAppTheme),
+      id: `public:${row.id}`,
+      name: row.name,
+      updatedAt: row.updated_at,
+    })));
+  }, []);
+
+  useEffect(() => { void loadPublicThemes(); }, [loadPublicThemes]);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeData(newTheme);
@@ -124,27 +171,54 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const saveCustomTheme = useCallback(async (next: CustomAppTheme, options?: { id?: string; duplicate?: boolean }) => {
     const now = new Date().toISOString();
     const existingId = !options?.duplicate ? options?.id : undefined;
-    const saved: SavedAppTheme = { ...next, id: existingId || crypto.randomUUID(), updatedAt: now };
+    const normalized = normalizeAppTheme(next);
+    const saved: SavedAppTheme = { ...normalized, id: existingId || crypto.randomUUID(), updatedAt: now };
     const items = existingId && customThemes.some(item => item.id === existingId)
       ? customThemes.map(item => item.id === existingId ? saved : item)
       : [...customThemes, saved];
-    setCustomTheme(next);
-    localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(next));
-    await persistCustomThemes(items, next);
+    setCustomTheme(normalized);
+    localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(normalized));
+    await persistCustomThemes(items, normalized);
     return saved;
   }, [customThemes, persistCustomThemes]);
 
   const selectCustomTheme = useCallback(async (id: string) => {
-    const selected = customThemes.find(item => item.id === id);
+    const selected = [...customThemes, ...publicThemes].find(item => item.id === id);
     if (!selected) return;
-    const { id: _id, updatedAt: _updatedAt, ...active } = selected;
+    const { id: _id, updatedAt: _updatedAt, ...rawActive } = selected;
+    const active = normalizeAppTheme(rawActive);
     setCustomTheme(active);
     localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(active));
     setThemeData("custom");
     await persistCustomThemes(customThemes, active);
-  }, [customThemes, persistCustomThemes, setThemeData]);
+  }, [customThemes, publicThemes, persistCustomThemes, setThemeData]);
 
-  const value = useMemo(() => ({ theme, setTheme, customTheme, customThemes, saveCustomTheme, selectCustomTheme, syncStatus: status }), [theme, setTheme, customTheme, customThemes, saveCustomTheme, selectCustomTheme, status]);
+  const publishCustomTheme = useCallback(async (next: CustomAppTheme): Promise<SavedAppTheme> => {
+    if (!user) throw new Error("יש להתחבר כמנהל כדי לפרסם ערכת נושא");
+    const payload = { ...defaultCustomTheme, ...next, name: next.name.trim() };
+    const { data, error } = await supabase
+      .from("app_themes")
+      .insert({ name: payload.name, theme: payload, created_by: user.id })
+      .select("id,name,theme,updated_at")
+      .single();
+    if (error) throw error;
+    const published: SavedAppTheme = {
+      ...defaultCustomTheme,
+      ...(data.theme as CustomAppTheme),
+      id: `public:${data.id}`,
+      name: data.name,
+      updatedAt: data.updated_at,
+    };
+    await loadPublicThemes();
+    const { id: _id, updatedAt: _updatedAt, ...active } = published;
+    setCustomTheme(active);
+    localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(active));
+    setThemeData("custom");
+    await persistCustomThemes(customThemes, active);
+    return published;
+  }, [customThemes, loadPublicThemes, persistCustomThemes, setThemeData, user]);
+
+  const value = useMemo(() => ({ theme, setTheme, customTheme, customThemes, publicThemes, saveCustomTheme, selectCustomTheme, publishCustomTheme, syncStatus: status }), [theme, setTheme, customTheme, customThemes, publicThemes, saveCustomTheme, selectCustomTheme, publishCustomTheme, status]);
 
   return (
     <ThemeContext.Provider value={value}>

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_themes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          theme: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          theme: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          theme?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       learning_sessions: {
         Row: {
           created_at: string
@@ -545,6 +572,7 @@ export type Database = {
           id: string
           quiz_attempts: Json
           quiz_plans: Json
+          siddur_display_settings: Json | null
           show_shared_content: boolean | null
           theme: string | null
           updated_at: string
@@ -560,6 +588,7 @@ export type Database = {
           id?: string
           quiz_attempts?: Json
           quiz_plans?: Json
+          siddur_display_settings?: Json | null
           show_shared_content?: boolean | null
           theme?: string | null
           updated_at?: string
@@ -575,6 +604,7 @@ export type Database = {
           id?: string
           quiz_attempts?: Json
           quiz_plans?: Json
+          siddur_display_settings?: Json | null
           show_shared_content?: boolean | null
           theme?: string | null
           updated_at?: string

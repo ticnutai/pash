@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef, createContext, useContext, useCallback } from "react";
+import { useState, useEffect, useRef, createContext, useContext, useCallback, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useSyncedState } from "@/hooks/useSyncedState";
 
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { ColorPicker } from "@/components/ColorPicker";
+import { DEFAULT_THEME_APPEARANCE, THEME_SHADOWS, ThemeAppearanceControls, type ThemeAppearanceSettings } from "@/components/ThemeAppearanceControls";
 import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, Save, CloudUpload, Pencil, Copy, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,8 +34,27 @@ type TehillimMap     = Record<string, TehillimChapter>;
 type DisplayStyle    = "classic" | "ornate";
 type ViewMode        = "accordion" | "continuous" | "scroll" | "split" | "book";
 
+interface SiddurViewSettings {
+  viewMode: ViewMode;
+  displayStyle: DisplayStyle;
+}
+
+const isViewMode = (value: unknown): value is ViewMode =>
+  value === "accordion" || value === "continuous" || value === "scroll" || value === "split" || value === "book";
+
+const isDisplayStyle = (value: unknown): value is DisplayStyle => value === "classic" || value === "ornate";
+
+const loadLegacySiddurViewSettings = (): SiddurViewSettings => {
+  const savedMode = localStorage.getItem("siddur-view-mode");
+  const savedStyle = localStorage.getItem("siddur-display-style");
+  return {
+    viewMode: isViewMode(savedMode) ? savedMode : "accordion",
+    displayStyle: isDisplayStyle(savedStyle) ? savedStyle : "classic",
+  };
+};
+
 /* ─── Theme system ───────────────────────────────────────── */
-export interface SiddurTheme {
+export interface SiddurTheme extends Partial<ThemeAppearanceSettings> {
   id: string;
   name: string;
   emoji: string;
@@ -134,14 +155,37 @@ export const SIDDUR_PRESET_THEMES: SiddurTheme[] = [
 ];
 
 const CUSTOM_THEME_KEY = "siddur-custom-theme";
+const CUSTOM_THEMES_KEY = "siddur-custom-themes-v2";
 const ACTIVE_THEME_KEY = "siddur-active-theme";
+
+const normalizeSiddurTheme = (theme: SiddurTheme): SiddurTheme => ({
+  ...DEFAULT_THEME_APPEARANCE,
+  ...theme,
+});
+
+const siddurAppearance = (theme: SiddurTheme): ThemeAppearanceSettings => ({
+  cornerRadius: theme.cornerRadius ?? DEFAULT_THEME_APPEARANCE.cornerRadius,
+  buttonRadius: theme.buttonRadius ?? DEFAULT_THEME_APPEARANCE.buttonRadius,
+  borderWidth: theme.borderWidth ?? DEFAULT_THEME_APPEARANCE.borderWidth,
+  shadow: theme.shadow ?? DEFAULT_THEME_APPEARANCE.shadow,
+  headerShadow: theme.headerShadow ?? DEFAULT_THEME_APPEARANCE.headerShadow,
+});
+
+const siddurCardChrome = (theme: SiddurTheme) => {
+  const appearance = siddurAppearance(theme);
+  return {
+    borderRadius: `${appearance.cornerRadius}px`,
+    borderWidth: `${appearance.borderWidth}px`,
+    boxShadow: THEME_SHADOWS[appearance.shadow],
+  };
+};
 
 function loadCustomTheme(): SiddurTheme {
   try {
     const raw = localStorage.getItem(CUSTOM_THEME_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return normalizeSiddurTheme(JSON.parse(raw));
   } catch { /* ignore */ }
-  return {
+  return normalizeSiddurTheme({
     id: "custom",
     name: "מותאם אישית",
     emoji: "🎨",
@@ -154,11 +198,27 @@ function loadCustomTheme(): SiddurTheme {
     cardBg: "rgba(255,255,255,0.05)",
     cardBorder: "rgba(200,160,77,0.28)",
     isCustom: true,
-  };
+  });
 }
 
-function saveCustomTheme(t: SiddurTheme) {
-  localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(t));
+function loadCustomThemes(): SiddurTheme[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_THEMES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.map(normalizeSiddurTheme);
+    }
+  } catch { /* ignore */ }
+  const legacy = loadCustomTheme();
+  return legacy ? [legacy] : [];
+}
+
+function saveLatestCustomTheme(t: SiddurTheme) {
+  localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(normalizeSiddurTheme(t)));
+}
+
+function saveCustomThemes(items: SiddurTheme[]) {
+  localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(items.map(normalizeSiddurTheme)));
 }
 
 /* ─── Theme context ──────────────────────────────────────── */
@@ -168,6 +228,8 @@ interface SiddurThemeCtx {
   previewTheme: (t: SiddurTheme) => void;
   customTheme: SiddurTheme;
   setCustomTheme: (t: SiddurTheme) => void;
+  customThemes: SiddurTheme[];
+  saveCustomTheme: (t: SiddurTheme, options?: { duplicate?: boolean }) => Promise<SiddurTheme>;
   publicThemes: SiddurTheme[];
   publishTheme: (t: SiddurTheme) => Promise<SiddurTheme>;
 }
@@ -180,6 +242,8 @@ const useSiddurTheme = (): SiddurThemeCtx => {
     previewTheme: () => {},
     customTheme: loadCustomTheme(),
     setCustomTheme: () => {},
+    customThemes: loadCustomThemes(),
+    saveCustomTheme: async t => t,
     publicThemes: [],
     publishTheme: async t => t,
   };
@@ -556,6 +620,7 @@ const SiddurPagePreview = ({ theme, label = "תצוגה מקדימה" }: { theme
   const lhVal = lineHeightCSS(settings.siddurLineHeight, settings.siddurLineHeightCustom);
   const headingColor = theme.headingColor ?? theme.accentColor;
   const instrColor   = theme.instructionColor ?? theme.textColor;
+  const appearance = siddurAppearance(theme);
 
   // Resolve solid bg for gradients (use a fallback dark color)
   const solidBg = theme.bg.includes("gradient") || theme.bg.includes("linear")
@@ -568,7 +633,7 @@ const SiddurPagePreview = ({ theme, label = "תצוגה מקדימה" }: { theme
   return (
     <div
       className="flex flex-col h-full rounded-lg overflow-hidden"
-      style={{ border: `1px solid ${theme.accentColor}44` }}
+      style={{ borderStyle: "solid", borderColor: `${theme.accentColor}44`, ...siddurCardChrome(theme) }}
     >
       {/* Preview label */}
       <div className="px-2 py-1 flex items-center justify-between flex-shrink-0"
@@ -588,7 +653,7 @@ const SiddurPagePreview = ({ theme, label = "תצוגה מקדימה" }: { theme
             <span key={t} style={{
               fontSize: "7px",
               padding: "1px 5px",
-              borderRadius: "6px",
+              borderRadius: `${appearance.buttonRadius}px`,
               background: i === 0 ? theme.accentColor : "rgba(255,255,255,0.1)",
               color: i === 0 ? solidBg : theme.textColor,
               fontFamily: "'Noto Serif Hebrew', serif",
@@ -622,8 +687,9 @@ const SiddurPagePreview = ({ theme, label = "תצוגה מקדימה" }: { theme
           background: theme.cardBg.includes("rgba") || theme.cardBg.includes("#")
             ? theme.cardBg
             : `${theme.accentColor}08`,
-          border: `1px solid ${theme.cardBorder}`,
-          borderRadius: "6px",
+          borderStyle: "solid",
+          borderColor: theme.cardBorder,
+          ...siddurCardChrome(theme),
           padding: "6px 8px",
           direction: "rtl",
         }}>
@@ -721,7 +787,7 @@ const COLOR_FIELDS: { key: keyof SiddurTheme; label: string; group: string; colo
 ];
 
 const ThemePicker = () => {
-  const { theme, setTheme, customTheme, setCustomTheme, previewTheme, publicThemes, publishTheme } = useSiddurTheme();
+  const { theme, setTheme, customTheme, customThemes, saveCustomTheme, previewTheme, publicThemes, publishTheme } = useSiddurTheme();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"presets" | "custom">("presets");
@@ -791,7 +857,7 @@ const ThemePicker = () => {
   const allThemes = [
     ...SIDDUR_PRESET_THEMES,
     ...publicThemes,
-    ...(customTheme && !publicThemes.some(t => t.id === customTheme.id) ? [customTheme] : []),
+    ...customThemes.filter(custom => !publicThemes.some(t => t.id === custom.id)),
   ];
 
   // Mini-preview panel still shows hovered / draft theme
@@ -805,34 +871,50 @@ const ThemePicker = () => {
     isCustom: true,
   });
 
-  const saveCustom = () => {
+  const saveCustom = async () => {
     const t = buildCustomTheme();
     if (!t.name) {
       setPublishError("יש להזין שם לערכת הנושא");
       return;
     }
     setPublishError("");
-    saveCustomTheme(t);
-    setCustomTheme(t);
-    setTheme(t);
-    originalThemeRef.current = t;
-    setOpen(false);
+    try {
+      const saved = await saveCustomTheme(t);
+      setTheme(saved);
+      setEditingThemeId(saved.id);
+      setDraft(saved);
+      originalThemeRef.current = saved;
+      setOpen(false);
+      toast.success("ערכת הנושא עודכנה ונשמרה");
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : "שמירת ערכת הנושא נכשלה");
+    }
   };
 
-  const duplicateCustom = () => {
-    const baseName = draft.name.trim().replace(/(?:\s*[–-]\s*עותק)+$/g, "");
-    const t = { ...buildCustomTheme(), id: `custom-${Date.now()}`, name: `${baseName} – עותק` };
+  const duplicateCustom = async () => {
+    const requestedName = draft.name.trim();
     if (!draft.name.trim()) { setPublishError("יש להזין שם לערכת הנושא"); return; }
+    const usedNames = new Set(customThemes.map(item => item.name));
+    let uniqueName = requestedName;
+    if (usedNames.has(uniqueName)) {
+      let copyNumber = 2;
+      uniqueName = `${requestedName} – עותק`;
+      while (usedNames.has(uniqueName)) uniqueName = `${requestedName} – עותק ${copyNumber++}`;
+    }
+    const t = { ...buildCustomTheme(), name: uniqueName };
     setPublishError("");
-    saveCustomTheme(t);
-    setCustomTheme(t);
-    setTheme(t);
-    setEditingThemeId(t.id);
-    originalThemeRef.current = t;
-    setDraft(t);
-    setTab("presets");
-    setHoverTheme(null);
-    toast.success("העותק נשמר. אפשר לבחור אותו או לערוך ערכה אחרת");
+    try {
+      const saved = await saveCustomTheme(t, { duplicate: true });
+      setTheme(saved);
+      setEditingThemeId(saved.id);
+      originalThemeRef.current = saved;
+      setDraft(saved);
+      setTab("presets");
+      setHoverTheme(null);
+      toast.success("נשמרה ערכה חדשה. אפשר ליצור ולשמור ערכות נוספות");
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : "שכפול ערכת הנושא נכשל");
+    }
   };
 
   const applyCustom = async () => {
@@ -853,8 +935,7 @@ const ThemePicker = () => {
     setPublishError("");
     try {
       const published = await publishTheme(t);
-      saveCustomTheme(t);
-      setCustomTheme(t);
+      await saveCustomTheme(t);
       setTheme(published);
       originalThemeRef.current = published;
       setOpen(false);
@@ -871,7 +952,7 @@ const ThemePicker = () => {
 
   // Update draft AND push live to the page immediately
   const updateDraft = (key: keyof SiddurTheme, value: string) => {
-    const newDraft: SiddurTheme = { ...draft, [key]: value, id: "custom", isCustom: true };
+    const newDraft: SiddurTheme = { ...draft, [key]: value, isCustom: true };
     setDraft(newDraft);
     previewTheme(newDraft);
   };
@@ -1003,7 +1084,13 @@ const ThemePicker = () => {
                       <button
                         className="relative z-10 mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px]"
                         style={{ background: editor.surface, color: editor.accent }}
-                        onClick={() => { setDraft({ ...t }); setEditingThemeId(t.id); previewTheme(t); setTab("custom"); }}
+                        onClick={() => {
+                          const editable = normalizeSiddurTheme({ ...t, isCustom: true });
+                          setDraft(editable);
+                          setEditingThemeId(t.id.startsWith("custom") ? t.id : "");
+                          previewTheme(editable);
+                          setTab("custom");
+                        }}
                       >
                         <Pencil className="h-2.5 w-2.5" /> ערוך
                       </button>
@@ -1073,13 +1160,29 @@ const ThemePicker = () => {
                     </div>
                   ))}
 
+                  <ThemeAppearanceControls
+                    value={{
+                      cornerRadius: draft.cornerRadius ?? DEFAULT_THEME_APPEARANCE.cornerRadius,
+                      buttonRadius: draft.buttonRadius ?? DEFAULT_THEME_APPEARANCE.buttonRadius,
+                      borderWidth: draft.borderWidth ?? DEFAULT_THEME_APPEARANCE.borderWidth,
+                      shadow: draft.shadow ?? DEFAULT_THEME_APPEARANCE.shadow,
+                      headerShadow: draft.headerShadow ?? DEFAULT_THEME_APPEARANCE.headerShadow,
+                    }}
+                    onChange={appearance => {
+                      const next = { ...draft, ...appearance, isCustom: true };
+                      setDraft(next);
+                      previewTheme(next);
+                    }}
+                  />
+
                   {/* Action buttons */}
                   {publishError && <p className="text-xs text-red-300 text-center">{publishError}</p>}
                   <div className="sticky bottom-0 grid grid-cols-2 gap-2 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))]" style={{ background: editor.bg }}>
                     <button
                       onClick={() => {
                         const base = SIDDUR_PRESET_THEMES[0];
-                        const reset: SiddurTheme = { ...base, id: "custom", name: "מותאם אישית", emoji: "🎨", isCustom: true };
+                        const reset: SiddurTheme = normalizeSiddurTheme({ ...base, id: "custom", name: "מותאם אישית", emoji: "🎨", isCustom: true });
+                        setEditingThemeId("");
                         setDraft(reset);
                         previewTheme(reset);
                       }}
@@ -1252,10 +1355,10 @@ const SectionCard = ({ section, initialOpen = false }: { section: SiddurSection;
   };
 
   return (
-    <div className="rounded-lg border overflow-hidden mb-2" style={{
+    <div data-siddur-card className="rounded-lg border overflow-hidden mb-2" style={{
       background: theme.cardBg,
       borderColor: theme.cardBorder,
-      boxShadow: "none",
+      ...siddurCardChrome(theme),
     }}>
       {/* Section header / toggle */}
       <button
@@ -1346,8 +1449,9 @@ const ContinuousReader = ({ sections }: { sections: SiddurSection[] }) => {
           </h3>
           <Divider />
           <div
+            data-siddur-card
             className="space-y-1.5 mt-2 rounded-xl border py-3"
-            style={{ paddingInline: gutter, background: theme.cardBg, borderColor: theme.cardBorder }}
+            style={{ paddingInline: gutter, background: theme.cardBg, borderColor: theme.cardBorder, ...siddurCardChrome(theme) }}
           >
             {sec.lines.map((line, j) => (
               <SiddurLine key={j} html={line} s={lineSettings} />
@@ -1476,8 +1580,9 @@ const CategorySectionsBlock = ({ nusach, cat }: { nusach: string; cat: { id: str
               {sec.title}
             </h3>
             <div
+              data-siddur-card
               className="space-y-1.5 mt-2 rounded-xl border py-3"
-              style={{ paddingInline: gutter, background: theme.cardBg, borderColor: theme.cardBorder }}
+              style={{ paddingInline: gutter, background: theme.cardBg, borderColor: theme.cardBorder, ...siddurCardChrome(theme) }}
             >
               {sec.lines.map((line, j) => (
                 <SiddurLine key={j} html={line} s={lineSettings} />
@@ -1611,12 +1716,13 @@ const SplitPane = ({ nusach, catId }: { nusach: string; catId: string }) => {
         <OrnamentTitle text={sec.title} fontSize={s.siddurSize} />
         <Divider />
         <div
+          data-siddur-card
           className="space-y-1.5 mt-3 rounded-xl border py-4"
           style={{
             paddingInline: gutter,
             background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fffaf0 100%)" : theme.cardBg,
             borderColor: ornate ? `${theme.accentColor}44` : theme.cardBorder,
-            boxShadow: ornate ? `0 4px 16px ${theme.accentColor}1f` : undefined,
+            ...(ornate ? { borderRadius: `${siddurAppearance(theme).cornerRadius}px`, borderWidth: `${siddurAppearance(theme).borderWidth}px`, boxShadow: `0 4px 16px ${theme.accentColor}1f` } : siddurCardChrome(theme)),
           }}
         >
           {sec.lines.map((line, i) => (
@@ -2318,26 +2424,31 @@ export const Siddur = () => {
   const navigate                = useNavigate();
   const [nusach, setNusach]    = useState("sefard");
   const [catId, setCatId]      = useState("shacharit");
-  const [viewMode, setViewMode] = useState<ViewMode>(() =>
-    (localStorage.getItem("siddur-view-mode") as ViewMode) ?? "accordion"
-  );
-  const [displayStyle, setDisplayStyleState] = useState<DisplayStyle>(() =>
-    (localStorage.getItem("siddur-display-style") as DisplayStyle) ?? "classic"
-  );
-
   const { user } = useAuth();
+  const initialSiddurViewSettings = useRef(loadLegacySiddurViewSettings()).current;
+  const { data: syncedViewSettings, setData: setSyncedViewSettings } = useSyncedState<SiddurViewSettings>({
+    localStorageKey: "siddur-view-settings-v1",
+    tableName: "user_settings",
+    column: "siddur_display_settings",
+    userId: user?.id ?? null,
+    syncToCloud: !!user,
+    defaultValue: initialSiddurViewSettings,
+  });
+  const viewMode = isViewMode(syncedViewSettings.viewMode) ? syncedViewSettings.viewMode : "accordion";
+  const displayStyle = isDisplayStyle(syncedViewSettings.displayStyle) ? syncedViewSettings.displayStyle : "classic";
 
   const [activeTheme, setActiveTheme] = useState<SiddurTheme>(() => {
     const saved = localStorage.getItem(ACTIVE_THEME_KEY);
     if (saved) {
       const found = SIDDUR_PRESET_THEMES.find(t => t.id === saved);
       if (found) return found;
-      const savedCustom = loadCustomTheme();
+      const savedCustom = loadCustomThemes().find(item => item.id === saved) ?? loadCustomTheme();
       if (saved === savedCustom.id || saved.startsWith("custom")) return savedCustom;
     }
     return SIDDUR_PRESET_THEMES[0];
   });
   const [customTheme, setCustomTheme] = useState<SiddurTheme>(loadCustomTheme);
+  const [customThemes, setCustomThemes] = useState<SiddurTheme[]>(loadCustomThemes);
   const [publicThemes, setPublicThemes] = useState<SiddurTheme[]>([]);
 
   const loadPublicThemes = useCallback(async () => {
@@ -2349,7 +2460,7 @@ export const Siddur = () => {
       console.error("Failed to load public Siddur themes:", error);
       return;
     }
-    setPublicThemes((data ?? []).map(row => ({
+    setPublicThemes((data ?? []).map(row => normalizeSiddurTheme({
       ...(row.theme as unknown as SiddurTheme),
       id: `public:${row.id}`,
       name: row.name,
@@ -2369,7 +2480,7 @@ export const Siddur = () => {
       .select("id,name,theme")
       .single();
     if (error) throw new Error(error.message);
-    const published: SiddurTheme = { ...(data.theme as unknown as SiddurTheme), id: `public:${data.id}`, name: data.name, isCustom: true };
+    const published: SiddurTheme = normalizeSiddurTheme({ ...(data.theme as unknown as SiddurTheme), id: `public:${data.id}`, name: data.name, isCustom: true });
     await loadPublicThemes();
     return published;
   }, [user, loadPublicThemes]);
@@ -2398,7 +2509,7 @@ export const Siddur = () => {
     } catch { /* ignore */ }
   }, [user]);
 
-  const cloudSaveCustomTheme = useCallback(async (t: SiddurTheme) => {
+  const cloudSaveCustomThemes = useCallback(async (items: SiddurTheme[], active: SiddurTheme) => {
     const ts = Date.now();
     localStorage.setItem(`${CUSTOM_THEME_KEY}__ts`, String(ts));
     if (!user) return;
@@ -2407,11 +2518,30 @@ export const Siddur = () => {
       if (!u) return;
       await supabase.auth.updateUser({ data: {
         ...u.user_metadata,
-        siddur_custom_theme: JSON.stringify(t),
+        siddur_custom_theme: JSON.stringify(active),
+        siddur_custom_themes: items,
         siddur_custom_theme_ts: ts,
       }});
     } catch { /* ignore */ }
   }, [user]);
+
+  const saveCustomThemeItem = useCallback(async (draft: SiddurTheme, options?: { duplicate?: boolean }): Promise<SiddurTheme> => {
+    const normalized = normalizeSiddurTheme({ ...draft, name: draft.name.trim(), emoji: "🎨", isCustom: true });
+    const existingIsEditable = !options?.duplicate && normalized.id.startsWith("custom") && customThemes.some(item => item.id === normalized.id);
+    const saved = {
+      ...normalized,
+      id: existingIsEditable ? normalized.id : `custom-${crypto.randomUUID()}`,
+    };
+    const items = existingIsEditable
+      ? customThemes.map(item => item.id === saved.id ? saved : item)
+      : [...customThemes, saved];
+    setCustomThemes(items);
+    setCustomTheme(saved);
+    saveCustomThemes(items);
+    saveLatestCustomTheme(saved);
+    await cloudSaveCustomThemes(items, saved);
+    return saved;
+  }, [cloudSaveCustomThemes, customThemes]);
 
   // On login: pull cloud theme state and apply if newer
   useEffect(() => {
@@ -2420,21 +2550,28 @@ export const Siddur = () => {
       if (!u) return;
       const meta = u.user_metadata ?? {};
 
-      // Restore custom theme
+      // Restore all custom themes (new format), with backwards-compatible single-theme fallback.
       const cloudCustomTs = Number(meta["siddur_custom_theme_ts"]) || 0;
       const localCustomTs = Number(localStorage.getItem(`${CUSTOM_THEME_KEY}__ts`)) || 0;
-      if (cloudCustomTs > localCustomTs && meta["siddur_custom_theme"]) {
+      if (cloudCustomTs > localCustomTs && (meta["siddur_custom_themes"] || meta["siddur_custom_theme"])) {
         try {
           const ct: SiddurTheme = typeof meta["siddur_custom_theme"] === "string"
             ? JSON.parse(meta["siddur_custom_theme"])
             : meta["siddur_custom_theme"];
-          if (ct && ct.id) {
-            saveCustomTheme(ct);
+          const cloudItems: SiddurTheme[] = Array.isArray(meta["siddur_custom_themes"])
+            ? meta["siddur_custom_themes"].map((item: SiddurTheme) => normalizeSiddurTheme(item))
+            : ct?.id ? [normalizeSiddurTheme(ct)] : [];
+          if (cloudItems.length > 0) {
+            const activeCustom = normalizeSiddurTheme(ct?.id ? ct : cloudItems[cloudItems.length - 1]);
+            saveCustomThemes(cloudItems);
+            saveLatestCustomTheme(activeCustom);
             localStorage.setItem(`${CUSTOM_THEME_KEY}__ts`, String(cloudCustomTs));
-            setCustomTheme(ct);
+            setCustomThemes(cloudItems);
+            setCustomTheme(activeCustom);
             // If active theme was custom, update it too
-            if (localStorage.getItem(ACTIVE_THEME_KEY) === ct.id || localStorage.getItem(ACTIVE_THEME_KEY)?.startsWith("custom")) {
-              setActiveTheme(ct);
+            if (localStorage.getItem(ACTIVE_THEME_KEY) === activeCustom.id || localStorage.getItem(ACTIVE_THEME_KEY)?.startsWith("custom")) {
+              const selected = cloudItems.find(item => item.id === localStorage.getItem(ACTIVE_THEME_KEY)) ?? activeCustom;
+              setActiveTheme(selected);
             }
           }
         } catch { /* ignore */ }
@@ -2449,8 +2586,8 @@ export const Siddur = () => {
         localStorage.setItem(`${ACTIVE_THEME_KEY}__ts`, String(cloudActiveTs));
         const found = SIDDUR_PRESET_THEMES.find(t => t.id === id);
         if (found) setActiveTheme(found);
-        else if (id === loadCustomTheme().id || id.startsWith("custom")) {
-          const ct = loadCustomTheme();
+        else if (id.startsWith("custom")) {
+          const ct = loadCustomThemes().find(item => item.id === id) ?? loadCustomTheme();
           setActiveTheme(ct);
         }
       }
@@ -2486,12 +2623,12 @@ export const Siddur = () => {
 
   const setMode = (mode: ViewMode) => {
     localStorage.setItem("siddur-view-mode", mode);
-    setViewMode(mode);
+    setSyncedViewSettings(prev => ({ ...prev, viewMode: mode }));
   };
 
   const setDisplayStyle = (style: DisplayStyle) => {
     localStorage.setItem("siddur-display-style", style);
-    setDisplayStyleState(style);
+    setSyncedViewSettings(prev => ({ ...prev, displayStyle: style }));
   };
 
   const VIEW_MODES: { id: ViewMode; icon: React.ReactNode; title: string; desc?: string }[] = [
@@ -2513,19 +2650,26 @@ export const Siddur = () => {
       previewTheme: t => setActiveTheme(t),
       customTheme,
       setCustomTheme: (t) => {
-        setCustomTheme(t);
-        cloudSaveCustomTheme(t);
+        const normalized = normalizeSiddurTheme(t);
+        setCustomTheme(normalized);
+        saveLatestCustomTheme(normalized);
       },
+      customThemes,
+      saveCustomTheme: saveCustomThemeItem,
       publicThemes,
       publishTheme,
     }}>
     <SiddurDisplayStyleContext.Provider value={{ displayStyle, setDisplayStyle }}>
     <div
-      className="min-h-screen flex flex-col"
+      className="siddur-themed-root min-h-screen flex flex-col"
       style={{
         background: activeTheme.bg,
         direction: "rtl",
-      }}
+        "--siddur-card-radius": `${siddurAppearance(activeTheme).cornerRadius}px`,
+        "--siddur-button-radius": `${siddurAppearance(activeTheme).buttonRadius}px`,
+        "--siddur-border-width": `${siddurAppearance(activeTheme).borderWidth}px`,
+        "--siddur-card-shadow": THEME_SHADOWS[siddurAppearance(activeTheme).shadow],
+      } as CSSProperties}
     >
       {/* ── Header ── */}
       <header
@@ -2533,7 +2677,9 @@ export const Siddur = () => {
         style={{
           background: activeTheme.headerBg,
           paddingTop: "max(var(--safe-area-inset-top, var(--sai-top, env(safe-area-inset-top, 0px))), 24px)",
-          boxShadow: `0 2px 16px rgba(0,0,0,0.18), 0 1px 0 ${hAccent}15`,
+          boxShadow: siddurAppearance(activeTheme).headerShadow
+            ? THEME_SHADOWS[siddurAppearance(activeTheme).shadow]
+            : "none",
         }}
       >
         <div className="w-full px-3 sm:px-5">

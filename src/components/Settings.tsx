@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX, Activity, Save, Pencil, Copy, Loader2 } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX, Activity, Save, Pencil, Copy, Loader2, CloudUpload } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "@/components/ColorPicker";
+import { DEFAULT_THEME_APPEARANCE, THEME_SHADOWS, ThemeAppearanceControls } from "@/components/ThemeAppearanceControls";
 import { BookmarksDialog } from "@/components/BookmarksDialog";
 import { getCalendarPreference, setCalendarPreference } from "@/utils/parshaUtils";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -33,6 +34,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 // ── API Keys cloud sync helpers ──────────────────────────
 const API_KEY_FIELDS = [
@@ -169,7 +171,8 @@ const fonts = [
 export const Settings = () => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("calendar");
-  const { theme, setTheme, customTheme, customThemes, saveCustomTheme, selectCustomTheme } = useTheme();
+  const { theme, setTheme, customTheme, customThemes, publicThemes, saveCustomTheme, selectCustomTheme, publishCustomTheme } = useTheme();
+  const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [customThemeDraft, setCustomThemeDraft] = useState(customTheme);
   const [editingCustomThemeId, setEditingCustomThemeId] = useState<string | undefined>();
   const [savingCustomTheme, setSavingCustomTheme] = useState(false);
@@ -231,6 +234,11 @@ export const Settings = () => {
       name, background: toHex("--background", customTheme.background), foreground: toHex("--foreground", customTheme.foreground),
       card: toHex("--card", customTheme.card), primary: toHex("--primary", customTheme.primary), accent: toHex("--accent", customTheme.accent),
       sidebar: toHex("--sidebar-background", customTheme.sidebar), sidebarForeground: toHex("--sidebar-foreground", customTheme.sidebarForeground),
+      cornerRadius: Number.parseInt(style.getPropertyValue("--radius"), 10) || DEFAULT_THEME_APPEARANCE.cornerRadius,
+      buttonRadius: customTheme.buttonRadius ?? DEFAULT_THEME_APPEARANCE.buttonRadius,
+      borderWidth: customTheme.borderWidth ?? DEFAULT_THEME_APPEARANCE.borderWidth,
+      shadow: customTheme.shadow ?? DEFAULT_THEME_APPEARANCE.shadow,
+      headerShadow: customTheme.headerShadow ?? DEFAULT_THEME_APPEARANCE.headerShadow,
     };
     probe.remove();
     setEditingCustomThemeId(undefined);
@@ -244,7 +252,15 @@ export const Settings = () => {
     }
     setSavingCustomTheme(true);
     try {
-      const next = { ...customThemeDraft, name: duplicate ? `${customThemeDraft.name.trim()} – עותק` : customThemeDraft.name.trim() };
+      const requestedName = customThemeDraft.name.trim();
+      const usedNames = new Set(customThemes.map(item => item.name));
+      let duplicateName = requestedName;
+      if (duplicate && usedNames.has(duplicateName)) {
+        let copyNumber = 2;
+        duplicateName = `${requestedName} – עותק`;
+        while (usedNames.has(duplicateName)) duplicateName = `${requestedName} – עותק ${copyNumber++}`;
+      }
+      const next = { ...customThemeDraft, name: duplicate ? duplicateName : requestedName };
       const saved = await saveCustomTheme(next, { id: editingCustomThemeId, duplicate });
       setEditingCustomThemeId(saved.id);
       setCustomThemeDraft(next);
@@ -252,6 +268,31 @@ export const Settings = () => {
       toast.success(user ? "ערכת הנושא והבחירה נשמרו במכשיר ובענן" : "ערכת הנושא נשמרה במכשיר");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "שמירת ערכת הנושא נכשלה");
+    } finally {
+      setSavingCustomTheme(false);
+    }
+  };
+
+  const handlePublishCustomTheme = async () => {
+    if (rolesLoading) {
+      toast.info("בודק הרשאת מנהל, נסה שוב בעוד רגע");
+      return;
+    }
+    if (!isAdmin) {
+      toast.error("רק מנהל יכול לפרסם ערכת נושא לכל המשתמשים");
+      return;
+    }
+    if (!customThemeDraft.name.trim()) {
+      toast.error("יש להזין שם לערכת הנושא");
+      return;
+    }
+    setSavingCustomTheme(true);
+    try {
+      await publishCustomTheme({ ...customThemeDraft, name: customThemeDraft.name.trim() });
+      setTheme("custom");
+      toast.success("ערכת הנושא פורסמה לכל המשתמשים");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "פרסום ערכת הנושא נכשל");
     } finally {
       setSavingCustomTheme(false);
     }
@@ -982,6 +1023,24 @@ export const Settings = () => {
                 </div>
               </Card>
             )}
+            {publicThemes.length > 0 && (
+              <Card className="space-y-2 p-3" dir="rtl">
+                <h3 className="text-right text-sm font-bold">ערכות שפורסמו לכל המשתמשים</h3>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {publicThemes.map(saved => (
+                    <div key={saved.id} className="flex items-center gap-2 rounded-xl border p-2">
+                      <button className="flex flex-1 items-center gap-2 text-right" onClick={async () => { await selectCustomTheme(saved.id); toast.success("הערכה הציבורית נבחרה וסונכרנה"); }}>
+                        <span className="h-8 w-8 rounded-lg border" style={{ background: saved.background, borderColor: saved.accent }} />
+                        <span className="font-semibold">{saved.name}</span>
+                      </button>
+                      <Button size="icon" variant="ghost" title="ערוך כעותק חדש" onClick={() => { const { id: _id, updatedAt: _updatedAt, ...draft } = saved; setEditingCustomThemeId(undefined); setCustomThemeDraft(draft); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
             <Card className="overflow-hidden border-slate-600 bg-slate-950 text-slate-50" dir="rtl">
               <div className="space-y-4 p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -1012,9 +1071,44 @@ export const Settings = () => {
                     />
                   ))}
                 </div>
-                <div className="rounded-xl border border-slate-600 p-3" style={{ background: customThemeDraft.background, color: customThemeDraft.foreground }}>
-                  <div className="mb-2 rounded-lg p-2 text-center font-bold" style={{ background: customThemeDraft.sidebar, color: customThemeDraft.sidebarForeground }}>תצוגה מקדימה</div>
-                  <div className="rounded-lg border p-3 text-right" style={{ background: customThemeDraft.card, borderColor: customThemeDraft.accent }}>
+                <ThemeAppearanceControls
+                  value={{
+                    cornerRadius: customThemeDraft.cornerRadius ?? DEFAULT_THEME_APPEARANCE.cornerRadius,
+                    buttonRadius: customThemeDraft.buttonRadius ?? DEFAULT_THEME_APPEARANCE.buttonRadius,
+                    borderWidth: customThemeDraft.borderWidth ?? DEFAULT_THEME_APPEARANCE.borderWidth,
+                    shadow: customThemeDraft.shadow ?? DEFAULT_THEME_APPEARANCE.shadow,
+                    headerShadow: customThemeDraft.headerShadow ?? DEFAULT_THEME_APPEARANCE.headerShadow,
+                  }}
+                  onChange={appearance => setCustomThemeDraft(prev => ({ ...prev, ...appearance }))}
+                />
+                <div
+                  className="border border-slate-600 p-3"
+                  style={{
+                    background: customThemeDraft.background,
+                    color: customThemeDraft.foreground,
+                    borderRadius: customThemeDraft.cornerRadius ?? DEFAULT_THEME_APPEARANCE.cornerRadius,
+                    borderWidth: customThemeDraft.borderWidth ?? DEFAULT_THEME_APPEARANCE.borderWidth,
+                    boxShadow: THEME_SHADOWS[customThemeDraft.shadow ?? DEFAULT_THEME_APPEARANCE.shadow],
+                  }}
+                >
+                  <div
+                    className="mb-2 p-2 text-center font-bold"
+                    style={{
+                      background: customThemeDraft.sidebar,
+                      color: customThemeDraft.sidebarForeground,
+                      borderRadius: customThemeDraft.buttonRadius ?? DEFAULT_THEME_APPEARANCE.buttonRadius,
+                      boxShadow: customThemeDraft.headerShadow ? THEME_SHADOWS[customThemeDraft.shadow ?? DEFAULT_THEME_APPEARANCE.shadow] : "none",
+                    }}
+                  >תצוגה מקדימה</div>
+                  <div
+                    className="border p-3 text-right"
+                    style={{
+                      background: customThemeDraft.card,
+                      borderColor: customThemeDraft.accent,
+                      borderRadius: customThemeDraft.cornerRadius ?? DEFAULT_THEME_APPEARANCE.cornerRadius,
+                      borderWidth: customThemeDraft.borderWidth ?? DEFAULT_THEME_APPEARANCE.borderWidth,
+                    }}
+                  >
                     בראשית ברא אלהים את השמים ואת הארץ
                   </div>
                 </div>
@@ -1025,6 +1119,10 @@ export const Settings = () => {
                   </Button>
                   <Button onClick={() => handleSaveCustomTheme(true)} disabled={savingCustomTheme} variant="outline" className="gap-2 border-slate-500 bg-slate-900 text-white">
                     <Copy className="h-4 w-4" /> שכפל ושמור
+                  </Button>
+                  <Button onClick={handlePublishCustomTheme} disabled={savingCustomTheme || rolesLoading} className="col-span-2 gap-2 bg-blue-600 font-bold text-white hover:bg-blue-500">
+                    {savingCustomTheme ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
+                    פרסם לכולם
                   </Button>
                 </div>
               </div>

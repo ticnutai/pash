@@ -853,7 +853,7 @@ const Index = () => {
       }}
     >
       {/* Header - Fully Responsive */}
-      <header data-layout="header" data-layout-label="הדר ראשי" className="sticky top-0 z-50 bg-sidebar shadow-lg">
+      <header data-layout="header" data-theme-header data-layout-label="הדר ראשי" className="sticky top-0 z-50 bg-sidebar shadow-lg">
         <div className="w-full px-3 sm:px-4 py-2 sm:py-3">
           {/* Mobile Layout - Stack vertically */}
           <div
