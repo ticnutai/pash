@@ -642,6 +642,27 @@ export const Settings = () => {
                     />
                   </div>
 
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                    <div className="flex-1 text-right">
+                      <Label htmlFor="auto-weekly-parsha" className="text-base font-semibold cursor-pointer">
+                        פרשת השבוע אוטומטית
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        טוען אוטומטית את פרשת השבוע בפתיחת האפליקציה
+                      </p>
+                    </div>
+                    <Switch
+                      id="auto-weekly-parsha"
+                      checked={autoWeeklyParsha}
+                      onCheckedChange={(checked) => {
+                        setAutoWeeklyParsha(checked);
+                        localStorage.setItem("autoWeeklyParsha", String(checked));
+                        window.dispatchEvent(new CustomEvent("auto-weekly-parsha-changed", { detail: { enabled: checked } }));
+                        toast.success(checked ? "פרשת השבוע תיטען אוטומטית" : "פרשת השבוע לא תיטען אוטומטית");
+                      }}
+                    />
+                  </div>
+
                   <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
                     <div className="flex items-start gap-2">
                       <Calendar className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
