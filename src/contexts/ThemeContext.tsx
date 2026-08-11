@@ -16,7 +16,13 @@ export interface CustomAppTheme {
   sidebarForeground: string;
 }
 
+export interface SavedAppTheme extends CustomAppTheme {
+  id: string;
+  updatedAt: string;
+}
+
 const CUSTOM_THEME_KEY = "torah-custom-theme";
+const CUSTOM_THEMES_KEY = "torah-custom-themes-v1";
 const defaultCustomTheme: CustomAppTheme = {
   name: "הערכה שלי", background: "#f8f6f1", foreground: "#17233d", card: "#ffffff",
   primary: "#173665", accent: "#e9b51f", sidebar: "#142c55", sidebarForeground: "#fff8e6",
@@ -26,7 +32,9 @@ interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   customTheme: CustomAppTheme;
-  saveCustomTheme: (theme: CustomAppTheme) => Promise<void>;
+  customThemes: SavedAppTheme[];
+  saveCustomTheme: (theme: CustomAppTheme, options?: { id?: string; duplicate?: boolean }) => Promise<SavedAppTheme>;
+  selectCustomTheme: (id: string) => Promise<void>;
   syncStatus: 'synced' | 'syncing' | 'offline' | 'error';
 }
 
@@ -38,6 +46,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [customTheme, setCustomTheme] = useState<CustomAppTheme>(() => {
     try { return { ...defaultCustomTheme, ...JSON.parse(localStorage.getItem(CUSTOM_THEME_KEY) || "{}") }; }
     catch { return defaultCustomTheme; }
+  });
+  const [customThemes, setCustomThemes] = useState<SavedAppTheme[]>(() => {
+    try { return JSON.parse(localStorage.getItem(CUSTOM_THEMES_KEY) || "[]"); }
+    catch { return []; }
   });
 
   const { data: theme, setData: setThemeData, status } = useSyncedState<Theme>({
@@ -84,6 +96,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user) return;
     const cloud = user.user_metadata?.custom_app_theme;
+    const cloudThemes = user.user_metadata?.custom_app_themes;
+    if (Array.isArray(cloudThemes)) {
+      setCustomThemes(cloudThemes as SavedAppTheme[]);
+      localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(cloudThemes));
+    }
     if (cloud && typeof cloud === "object") {
       const next = { ...defaultCustomTheme, ...cloud } as CustomAppTheme;
       setCustomTheme(next);
@@ -95,16 +112,39 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     setThemeData(newTheme);
   }, [setThemeData]);
 
-  const saveCustomTheme = useCallback(async (next: CustomAppTheme) => {
-    setCustomTheme(next);
-    localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(next));
+  const persistCustomThemes = useCallback(async (items: SavedAppTheme[], active: CustomAppTheme) => {
+    setCustomThemes(items);
+    localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(items));
     if (user) {
-      const { error } = await supabase.auth.updateUser({ data: { ...user.user_metadata, custom_app_theme: next } });
+      const { error } = await supabase.auth.updateUser({ data: { ...user.user_metadata, custom_app_theme: active, custom_app_themes: items } });
       if (error) throw error;
     }
   }, [user]);
 
-  const value = useMemo(() => ({ theme, setTheme, customTheme, saveCustomTheme, syncStatus: status }), [theme, setTheme, customTheme, saveCustomTheme, status]);
+  const saveCustomTheme = useCallback(async (next: CustomAppTheme, options?: { id?: string; duplicate?: boolean }) => {
+    const now = new Date().toISOString();
+    const existingId = !options?.duplicate ? options?.id : undefined;
+    const saved: SavedAppTheme = { ...next, id: existingId || crypto.randomUUID(), updatedAt: now };
+    const items = existingId && customThemes.some(item => item.id === existingId)
+      ? customThemes.map(item => item.id === existingId ? saved : item)
+      : [...customThemes, saved];
+    setCustomTheme(next);
+    localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(next));
+    await persistCustomThemes(items, next);
+    return saved;
+  }, [customThemes, persistCustomThemes]);
+
+  const selectCustomTheme = useCallback(async (id: string) => {
+    const selected = customThemes.find(item => item.id === id);
+    if (!selected) return;
+    const { id: _id, updatedAt: _updatedAt, ...active } = selected;
+    setCustomTheme(active);
+    localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(active));
+    setThemeData("custom");
+    await persistCustomThemes(customThemes, active);
+  }, [customThemes, persistCustomThemes, setThemeData]);
+
+  const value = useMemo(() => ({ theme, setTheme, customTheme, customThemes, saveCustomTheme, selectCustomTheme, syncStatus: status }), [theme, setTheme, customTheme, customThemes, saveCustomTheme, selectCustomTheme, status]);
 
   return (
     <ThemeContext.Provider value={value}>

@@ -115,7 +115,18 @@ const Index = () => {
   const [selectedPasuk, setSelectedPasuk] = useState<number | null>(null);
   const [currentPasukIndex, setCurrentPasukIndex] = useState(0);
   const [singlePasukMode, setSinglePasukMode] = useState(false);
-  const [globalExpandAll, setGlobalExpandAll] = useState(false);
+  // Expansion is stored independently for the two main layouts and is synced
+  // by DisplayModeContext, so changing one layout never changes the other.
+  const globalExpandAll = displayMode === "luxury"
+    ? displaySettings.chumashExpanded
+    : displaySettings.questionsExpanded;
+  const toggleGlobalExpandAll = useCallback(() => {
+    if (displayMode === "luxury") {
+      updateDisplaySettings({ chumashExpanded: !displaySettings.chumashExpanded });
+    } else {
+      updateDisplaySettings({ questionsExpanded: !displaySettings.questionsExpanded });
+    }
+  }, [displayMode, displaySettings.chumashExpanded, displaySettings.questionsExpanded, updateDisplaySettings]);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const { syncDone: readingPosSyncDone, resolvedState: resolvedReadingState, savePosition } = useReadingPositionSync();
   const weeklyParshaLoadedRef = useRef<number | false>(false); // stores the sefer id that was set by weekly parsha
@@ -1170,7 +1181,7 @@ const Index = () => {
               <MinimizeButton
                 variant="global"
                 isMinimized={!globalExpandAll}
-                onClick={() => setGlobalExpandAll(v => !v)}
+                onClick={toggleGlobalExpandAll}
               />
               </span>
             )}
@@ -1253,7 +1264,7 @@ const Index = () => {
                   <MinimizeButton
                     variant="global"
                     isMinimized={!globalExpandAll}
-                    onClick={() => setGlobalExpandAll(v => !v)}
+                    onClick={toggleGlobalExpandAll}
                   />
                 )}
               </div>
@@ -1354,8 +1365,8 @@ const Index = () => {
                   </Card>
                 ) : (
                   <Suspense fallback={<ComponentLoader />}>
-                    <div data-layout="verse-cards" data-layout-label="כרטיסי פסוקים" className="animate-fade-in"
-                      key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
+                    <div data-layout="verse-cards" data-layout-label="כרטיסי פסוקים"
+                      key={`${selectedPerek}-${selectedParsha}`}
                     >
                       {displayMode === "luxury" ? (
                         <LuxuryTextView pesukim={localizedDisplayedPesukim} expandAll={globalExpandAll} />

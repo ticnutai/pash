@@ -14,6 +14,10 @@ export interface DisplaySettings {
   verseSideMargin: number;
   /** Mobile header arrangement; synced per account with the rest of mobile display settings. */
   headerLayout: "single" | "stacked";
+  /** Whether verse cards are expanded in Questions & Commentaries view. */
+  questionsExpanded: boolean;
+  /** Whether verse cards are expanded in Chumash & Commentaries view. */
+  chumashExpanded: boolean;
 }
 
 interface DisplayModeContextType {
@@ -23,12 +27,14 @@ interface DisplayModeContextType {
 }
 
 const defaultSettings: DisplaySettings = {
-  version: 2,
+  version: 3,
   mode: "compact",
   pasukCount: 10,
   loadMoreCount: 10,
   verseSideMargin: 0,
   headerLayout: "stacked",
+  questionsExpanded: true,
+  chumashExpanded: true,
 };
 
 const normalizeDisplayMode = (mode: unknown): DisplayMode => {
@@ -72,7 +78,7 @@ export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const updateDisplaySettings = useCallback((settings: Partial<DisplaySettings>) => {
-    setDisplaySettingsData((prev) => ({ ...prev, ...settings, version: 2 }));
+    setDisplaySettingsData((prev) => ({ ...prev, ...settings, version: 3 }));
   }, [setDisplaySettingsData]);
 
   // Migrate the former device-only header preference into the synced settings object.
@@ -83,18 +89,22 @@ export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
     try {
       legacy = localStorage.getItem("mobileHeaderLayout") === "single" ? "single" : "stacked";
     } catch { /* storage may be unavailable */ }
-    setDisplaySettingsData((prev) => ({ ...prev, headerLayout: legacy, version: 2 }));
+    setDisplaySettingsData((prev) => ({ ...prev, headerLayout: legacy, version: 3 }));
   }, [displaySettings?.headerLayout, setDisplaySettingsData]);
 
   // Safety layer: ensure displaySettings always has valid structure
   const safeDisplaySettings: DisplaySettings = useMemo(() => ({
     mode: normalizeDisplayMode(displaySettings?.mode),
-    pasukCount: displaySettings?.version === 2
+    pasukCount: (displaySettings?.version ?? 0) >= 2
       ? (displaySettings.pasukCount || defaultSettings.pasukCount)
       : defaultSettings.pasukCount,
     loadMoreCount: displaySettings?.loadMoreCount || defaultSettings.loadMoreCount,
     verseSideMargin: Math.min(32, Math.max(0, displaySettings?.verseSideMargin ?? defaultSettings.verseSideMargin)),
     headerLayout: displaySettings?.headerLayout === "single" ? "single" : "stacked",
+    // Older settings did not store expansion per view. Treat them as expanded
+    // so a fresh install and an upgraded account both open content by default.
+    questionsExpanded: displaySettings?.questionsExpanded !== false,
+    chumashExpanded: displaySettings?.chumashExpanded !== false,
   }), [displaySettings]);
 
   const value = useMemo(() => ({ displaySettings: safeDisplaySettings, updateDisplaySettings, syncStatus: status }), [safeDisplaySettings, updateDisplaySettings, status]);

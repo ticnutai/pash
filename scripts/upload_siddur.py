@@ -12,10 +12,17 @@ Requirements (already in .venv-1): pip install requests
 """
 import json
 import os
+import subprocess
 import sys
 import time
-import requests
 from pathlib import Path
+
+try:
+    import requests  # type: ignore
+except ModuleNotFoundError:
+    requests = None
+    from urllib.error import HTTPError
+    from urllib.request import Request, urlopen
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL = "https://mocukhvfqqzkekphifsr.supabase.co"
@@ -59,9 +66,89 @@ CATEGORIES_ORDER = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+class SimpleResponse:
+    """Minimal requests-compatible response for the standard-library path."""
+
+    def __init__(self, status_code: int, body: bytes, headers):
+        self.status_code = status_code
+        self.text = body.decode("utf-8", errors="replace")
+        self.headers = headers
+
+
+def http_request(method: str, url: str, *, headers: dict, payload=None, timeout: int = 60):
+    if requests is not None:
+        if method == "GET":
+            return requests.get(url, headers=headers, timeout=timeout)
+        return requests.post(url, headers=headers, json=payload, timeout=timeout)
+
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8") if payload is not None else None
+    request = Request(url, data=body, headers=headers, method=method)
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            return SimpleResponse(response.status, response.read(), response.headers)
+    except HTTPError as error:
+        return SimpleResponse(error.code, error.read(), error.headers)
+
+
+def read_env_value(name: str) -> str:
+    value = os.environ.get(name, "")
+    if value:
+        return value
+    for filename in (".env.migrations.local", ".env"):
+        path = Path(__file__).parent.parent / filename
+        if not path.exists():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith(f"{name}="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    if os.name == "nt":
+        try:
+            result = subprocess.run(
+                ["reg.exe", "query", r"HKCU\Environment", "/v", name],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=True,
+            )
+            match = __import__("re").search(rf"{name}\s+REG_(?:SZ|EXPAND_SZ)\s+(.+)$", result.stdout, __import__("re").MULTILINE)
+            if match:
+                return match.group(1).strip()
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return ""
+
+
+def authenticate_admin_for_upload() -> bool:
+    """Use the configured migration admin instead of permitting public writes."""
+    if API_KEY != ANON_KEY:
+        return True
+    email = read_env_value("MIGRATION_ADMIN_EMAIL")
+    password = read_env_value("MIGRATION_ADMIN_PASSWORD")
+    if not email or not password:
+        print("  ✗ Migration admin credentials are not configured.")
+        return False
+    response = http_request(
+        "POST",
+        f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+        headers={"apikey": ANON_KEY, "Content-Type": "application/json"},
+        payload={"email": email, "password": password},
+        timeout=30,
+    )
+    try:
+        access_token = json.loads(response.text).get("access_token", "")
+    except json.JSONDecodeError:
+        access_token = ""
+    if response.status_code != 200 or not access_token:
+        print(f"  ✗ Admin login failed (HTTP {response.status_code}).")
+        return False
+    HEADERS["Authorization"] = f"Bearer {access_token}"
+    print(f"  ✓ Authenticated upload administrator: {email}")
+    return True
+
+
 def insert_batch(rows: list[dict]) -> bool:
-    url = f"{SUPABASE_URL}/rest/v1/siddur"
-    r = requests.post(url, headers=HEADERS, json=rows, timeout=60)
+    url = f"{SUPABASE_URL}/rest/v1/siddur?on_conflict=nusach,category,section_idx"
+    r = http_request("POST", url, headers=HEADERS, payload=rows, timeout=60)
     if r.status_code not in (200, 201):
         print(f"    ✗ Insert error {r.status_code}: {r.text[:300]}")
         return False
@@ -72,7 +159,7 @@ def count_existing(nusach: str) -> int:
     url = f"{SUPABASE_URL}/rest/v1/siddur?nusach=eq.{nusach}&select=id"
     h = dict(HEADERS)
     h["Prefer"] = "count=exact"
-    r = requests.get(url, headers=h, timeout=30)
+    r = http_request("GET", url, headers=h, timeout=30)
     try:
         return int(r.headers.get("content-range", "0/0").split("/")[1])
     except Exception:
@@ -147,6 +234,8 @@ def main():
 
     print("Siddur Upload")
     print("=" * 50)
+    if not authenticate_admin_for_upload():
+        sys.exit(1)
     for nusach in nusachim_to_upload:
         if nusach not in NUSACHIM:
             print(f"Unknown nusach: {nusach}. Valid: {NUSACHIM}")

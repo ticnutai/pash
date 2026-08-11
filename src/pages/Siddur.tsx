@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
-import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, Save, CloudUpload, type LucideProps } from "lucide-react";
+import { ColorPicker } from "@/components/ColorPicker";
+import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, Save, CloudUpload, Pencil, Copy, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { normalizeHebrewText } from "@/utils/textUtils";
 import { useSiddurCategories, useSiddurSections, useTehillimData, preloadSiddurNusach } from "@/hooks/useSiddurData";
 import { getWeekdayLeyning, getCalendarPreference, type WeekdayLeyning } from "@/utils/parshaUtils";
@@ -395,15 +397,16 @@ function renderLineContent(html: string): React.ReactNode {
         continue;
       }
       const children = parse(tag);
-      parts.push(
-        tag === "b" ? (
-          <strong key={key++} style={{ fontWeight: 700 }}>{children}</strong>
-        ) : (
+      if (tag === "b") {
+        // No wrapper at all: keep the opening word in the same shaped text run.
+        parts.push(...children);
+      } else {
+        parts.push(
           <span key={key++} style={{ fontSize: "0.77em", opacity: 0.65, fontStyle: "italic" }}>
             {children}
           </span>
-        )
-      );
+        );
+      }
       re.lastIndex = pos;
     }
     if (pos < h.length) {
@@ -427,7 +430,7 @@ function lineHeightCSS(lh: string, custom?: number): string {
   return "2.0";
 }
 
-function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: boolean): React.CSSProperties {
+function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: boolean, showTaamim: boolean): React.CSSProperties {
   // CRITICAL: do NOT mix multiple Hebrew fonts in the fallback chain.
   // Browsers do per-glyph fallback: if the chosen font lacks (or weakly
   // supports) a specific letter+nikud combination, the browser substitutes
@@ -440,21 +443,50 @@ function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: 
   // generic family. The generic doesn't carry Hebrew glyphs, so the browser
   // will render every Hebrew character from the chosen font — guaranteeing
   // uniform metrics.
-  const isSans = /sans|arial|tahoma|frank ruhl|noto sans/i.test(fontFamily);
+  // Some display fonts expose Hebrew base letters but do not contain the
+  // complete niqqud/te'amim GPOS anchors. Android then keeps their base glyph
+  // and borrows marks (or an entire shaped cluster) from a fallback font.
+  // That is exactly what makes isolated מ/ד/ה/ת clusters appear larger.
+  // Keep user choice for fonts known to support marked Hebrew; otherwise use
+  // the bundled Noto font for the whole run so Android never mixes glyphs.
+  const nikudCapableFonts = new Set([
+    "Noto Serif Hebrew",
+    "David Libre",
+    "Frank Ruhl Libre",
+    "Heebo",
+  ]);
+  const requestedFamily = fontFamily.replace(/["']/g, "").split(",")[0].trim();
+  // Noto is bundled with the app and contains U+0591–U+05C7 in full. The
+  // other verified fonts contain niqqud + mark/mkmk positioning, but not the
+  // complete cantillation block. Use them for ordinary/vocalised prayer text
+  // and switch the entire run to Noto whenever te'amim are visible.
+  const resolvedFamily = showTaamim
+    ? "Noto Serif Hebrew"
+    : (!showNikud || nikudCapableFonts.has(requestedFamily))
+      ? requestedFamily
+      : "Noto Serif Hebrew";
+  const isSans = /sans|arial|tahoma|frank ruhl|noto sans/i.test(resolvedFamily);
   const generic = isSans ? 'sans-serif' : 'serif';
-  const fullFamily = `${fontFamily}, ${generic}`;
+  // Keep the user's selected font for marked text as well. Quoting the family
+  // name is important on Android for multi-word names (David Libre, Frank
+  // Ruhl Libre, etc.); otherwise WebView may parse them as separate fallback
+  // families and mix glyph metrics inside a single Hebrew word.
+  const fullFamily = `'${resolvedFamily}', ${generic}`;
   return {
     fontFamily: fullFamily,
     lineHeight,
-    // Keep OpenType features stable so toggling nikud doesn't change glyph
-    // metrics within the same font.
-    fontFeatureSettings: '"mark" 1, "mkmk" 1, "ccmp" 1',
-    textRendering: 'optimizeLegibility',
+    // Do not force `ccmp` on Android WebView. With Hebrew combining marks it
+    // can select alternate base glyphs for מ/ד/ה/ת, making only those letters
+    // look larger when niqqud or cantillation is enabled. The font shaper's
+    // defaults already position mark/mkmk correctly without changing the
+    // visible base-letter metrics.
+    fontFeatureSettings: 'normal',
+    textRendering: 'auto',
     // Lock metrics so per-glyph fallback (if it ever happens) and any
     // contextual substitution can't change letter heights/baselines:
     fontSynthesis: 'none' as React.CSSProperties['fontSynthesis'],
     fontVariant: 'normal',
-    fontKerning: 'normal',
+    fontKerning: 'none',
     // Prevent mobile auto text-size adjustments that scale individual lines.
     WebkitTextSizeAdjust: '100%',
     textSizeAdjust: '100%' as unknown as React.CSSProperties['textSizeAdjust'],
@@ -463,7 +495,6 @@ function withNikudTypography(fontFamily: string, lineHeight: string, showNikud: 
     verticalAlign: 'baseline',
     fontVariantPosition: 'normal' as unknown as React.CSSProperties['fontVariantPosition'],
     // Avoid the parameter being flagged as unused while preserving the API.
-    ...(showNikud ? {} : {}),
   };
 }
 /* ─── Gold decoration helpers ───────────────────────────── */
@@ -695,6 +726,7 @@ const ThemePicker = () => {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"presets" | "custom">("presets");
   const [draft, setDraft] = useState<SiddurTheme>({ ...customTheme });
+  const [editingThemeId, setEditingThemeId] = useState<string>(customTheme.id);
   const [hoverTheme, setHoverTheme] = useState<SiddurTheme | null>(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -756,7 +788,11 @@ const ThemePicker = () => {
     setOpen(false);
   };
 
-  const allThemes = [...SIDDUR_PRESET_THEMES, ...publicThemes];
+  const allThemes = [
+    ...SIDDUR_PRESET_THEMES,
+    ...publicThemes,
+    ...(customTheme && !publicThemes.some(t => t.id === customTheme.id) ? [customTheme] : []),
+  ];
 
   // Mini-preview panel still shows hovered / draft theme
   const previewedTheme: SiddurTheme = tab === "custom" ? draft : (hoverTheme ?? theme);
@@ -764,7 +800,7 @@ const ThemePicker = () => {
   const buildCustomTheme = (): SiddurTheme => ({
     ...draft,
     name: draft.name.trim(),
-    id: "custom",
+    id: editingThemeId || "custom",
     emoji: "🎨",
     isCustom: true,
   });
@@ -781,6 +817,22 @@ const ThemePicker = () => {
     setTheme(t);
     originalThemeRef.current = t;
     setOpen(false);
+  };
+
+  const duplicateCustom = () => {
+    const baseName = draft.name.trim().replace(/(?:\s*[–-]\s*עותק)+$/g, "");
+    const t = { ...buildCustomTheme(), id: `custom-${Date.now()}`, name: `${baseName} – עותק` };
+    if (!draft.name.trim()) { setPublishError("יש להזין שם לערכת הנושא"); return; }
+    setPublishError("");
+    saveCustomTheme(t);
+    setCustomTheme(t);
+    setTheme(t);
+    setEditingThemeId(t.id);
+    originalThemeRef.current = t;
+    setDraft(t);
+    setTab("presets");
+    setHoverTheme(null);
+    toast.success("העותק נשמר. אפשר לבחור אותו או לערוך ערכה אחרת");
   };
 
   const applyCustom = async () => {
@@ -894,13 +946,13 @@ const ThemePicker = () => {
             </div>
             {/* Tabs + close */}
             <div className="flex gap-1 items-center justify-between sm:justify-start">
-              {isAdmin && !rolesLoading && <button
+              <button
                 onClick={() => { setTab("presets"); setHoverTheme(null); }}
                 className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
                 style={{ background: tab === "presets" ? editor.accent : editor.surfaceSoft, color: tab === "presets" ? "#101827" : editor.text }}
               >
-                ערכות מובנות
-              </button>}
+                בחירת ערכה
+              </button>
               <button
                 onClick={() => { setTab("custom"); setHoverTheme(null); }}
                 className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
@@ -927,21 +979,17 @@ const ThemePicker = () => {
               {tab === "presets" && (
                 <div className="p-3 grid grid-cols-4 gap-2">
                   {allThemes.map(t => (
-                    <button
+                    <div
                       key={t.id}
-                      onClick={() => {
-                        setTheme(t);
-                        originalThemeRef.current = t; // anchor updated — closing won't revert
-                        setOpen(false);
-                      }}
                       onMouseEnter={() => { setHoverTheme(t); previewTheme(t); }}
                       onMouseLeave={() => { setHoverTheme(null); previewTheme(originalThemeRef.current); }}
-                      className="flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all hover:scale-105 active:scale-95"
+                      className="relative flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all hover:scale-105"
                       style={{
                         background: theme.id === t.id ? "rgba(213,170,69,0.16)" : editor.surfaceSoft,
                         border: `1.5px solid ${(hoverTheme?.id ?? theme.id) === t.id ? editor.accent : "transparent"}`,
                       }}
                     >
+                      <button className="absolute inset-0" aria-label={`בחר ${t.name}`} onClick={() => { setTheme(t); originalThemeRef.current = t; setOpen(false); }} />
                       <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0" style={{ border: `1px solid ${t.accentColor}55` }}>
                         <div className="h-4 w-full" style={{ background: t.bg.includes("gradient") ? t.accentColor : t.bg }} />
                         <div className="h-3 w-full flex items-center justify-center" style={{ background: t.cardBg.includes("rgba") ? t.bg : t.cardBg }}>
@@ -952,7 +1000,14 @@ const ThemePicker = () => {
                         </div>
                       </div>
                       <span className="text-[9px] text-center leading-tight font-medium" style={{ color: editor.text }}>{t.emoji} {t.name}</span>
-                    </button>
+                      <button
+                        className="relative z-10 mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px]"
+                        style={{ background: editor.surface, color: editor.accent }}
+                        onClick={() => { setDraft({ ...t }); setEditingThemeId(t.id); previewTheme(t); setTab("custom"); }}
+                      >
+                        <Pencil className="h-2.5 w-2.5" /> ערוך
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -980,21 +1035,22 @@ const ThemePicker = () => {
                         <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: editor.accent }}>{group}</span>
                         <div className="flex-1 h-px" style={{ background: editor.border }} />
                       </div>
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {COLOR_FIELDS.filter(f => f.group === group).map(({ key, label, colorOnly }) => {
                           const val = fieldVal(key);
                           const isHex = val.startsWith("#");
                           return (
-                            <div key={key} className="flex items-center gap-2">
-                              <span className="text-xs flex-shrink-0 w-28" style={{ color: editor.text }}>{label}</span>
-                              <div className="flex items-center gap-1.5 flex-1">
-                                <input
-                                  type="color"
-                                  value={isHex ? val : "#c8a04d"}
-                                  onChange={e => updateDraft(key, e.target.value)}
-                                  className="h-7 w-9 rounded cursor-pointer flex-shrink-0"
-                                  style={{ background: "transparent", border: `1px solid ${editor.border}`, padding: "1px" }}
-                                />
+                            <div key={key} className="rounded-lg p-2" style={{ background: editor.surfaceSoft, border: `1px solid ${editor.border}` }}>
+                              <span className="mb-1 block text-[11px] font-medium" style={{ color: editor.text }}>{label}</span>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="w-full">
+                                  <ColorPicker
+                                    compact
+                                    label={label}
+                                    value={isHex ? val : "#c8a04d"}
+                                    onChange={color => updateDraft(key, color)}
+                                  />
+                                </div>
                                 {!colorOnly && (
                                   <input
                                     type="text"
@@ -1019,7 +1075,7 @@ const ThemePicker = () => {
 
                   {/* Action buttons */}
                   {publishError && <p className="text-xs text-red-300 text-center">{publishError}</p>}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="sticky bottom-0 grid grid-cols-2 gap-2 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))]" style={{ background: editor.bg }}>
                     <button
                       onClick={() => {
                         const base = SIDDUR_PRESET_THEMES[0];
@@ -1046,7 +1102,14 @@ const ThemePicker = () => {
                       title="שמור והחל במכשיר ובחשבון המחובר"
                     >
                       <Save className="h-3.5 w-3.5" />
-                      שמור והחל
+                      עדכן
+                    </button>
+                    <button
+                      onClick={duplicateCustom}
+                      className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                      style={{ background: editor.surface, color: editor.text, border: `1px solid ${editor.border}` }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> שכפל ושמור
                     </button>
                     <button
                       onClick={applyCustom}
@@ -1104,7 +1167,7 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
   html = stripText(html, s.showNikud, s.showTaamim);
   const type = classifyLine(html);
   const lh = lineHeightCSS(s.lineHeight, s.lineHeightCustom);
-  const nikudStyle = withNikudTypography(s.siddurFont, lh, s.showNikud);
+  const nikudStyle = withNikudTypography(s.siddurFont, lh, s.showNikud, s.showTaamim);
   const { theme } = useSiddurTheme();
 
   const letterSpacingCSS = s.letterSpacing === "custom"
@@ -1801,7 +1864,8 @@ const TehillimPane = () => {
   const nikudTextStyle = withNikudTypography(
     tehillimSettings.tehillimFont,
     lineHeightCSS(tehillimSettings.tehillimLineHeight, tehillimSettings.tehillimLineHeightCustom),
-    showNikud
+    showNikud,
+    showTaamim
   );
 
   const verseNumStyle: React.CSSProperties = {
@@ -2268,8 +2332,8 @@ export const Siddur = () => {
     if (saved) {
       const found = SIDDUR_PRESET_THEMES.find(t => t.id === saved);
       if (found) return found;
-      // Active theme was custom — restore from CUSTOM_THEME_KEY
-      if (saved === "custom") return loadCustomTheme();
+      const savedCustom = loadCustomTheme();
+      if (saved === savedCustom.id || saved.startsWith("custom")) return savedCustom;
     }
     return SIDDUR_PRESET_THEMES[0];
   });
@@ -2364,12 +2428,12 @@ export const Siddur = () => {
           const ct: SiddurTheme = typeof meta["siddur_custom_theme"] === "string"
             ? JSON.parse(meta["siddur_custom_theme"])
             : meta["siddur_custom_theme"];
-          if (ct && ct.id === "custom") {
+          if (ct && ct.id) {
             saveCustomTheme(ct);
             localStorage.setItem(`${CUSTOM_THEME_KEY}__ts`, String(cloudCustomTs));
             setCustomTheme(ct);
             // If active theme was custom, update it too
-            if (localStorage.getItem(ACTIVE_THEME_KEY) === "custom") {
+            if (localStorage.getItem(ACTIVE_THEME_KEY) === ct.id || localStorage.getItem(ACTIVE_THEME_KEY)?.startsWith("custom")) {
               setActiveTheme(ct);
             }
           }
@@ -2385,7 +2449,7 @@ export const Siddur = () => {
         localStorage.setItem(`${ACTIVE_THEME_KEY}__ts`, String(cloudActiveTs));
         const found = SIDDUR_PRESET_THEMES.find(t => t.id === id);
         if (found) setActiveTheme(found);
-        else if (id === "custom") {
+        else if (id === loadCustomTheme().id || id.startsWith("custom")) {
           const ct = loadCustomTheme();
           setActiveTheme(ct);
         }
@@ -2494,7 +2558,7 @@ export const Siddur = () => {
                 size="sm"
                 onClick={() => navigate(-1)}
                 className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm font-medium flex-shrink-0 whitespace-nowrap"
-                style={{ color: `${hText}bf`, background: "transparent" }}
+                style={{ color: hText, background: "transparent" }}
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">חזרה</span>
@@ -2593,7 +2657,7 @@ export const Siddur = () => {
                 style={
                   nusach === n.id
                     ? { background: hAccent, color: "hsl(var(--sidebar-background))", boxShadow: `0 2px 8px ${hAccent}55`, fontWeight: 700 }
-                    : { background: "transparent", color: `${hText}a0` }
+                    : { background: "transparent", color: hText }
                 }
               >
                 {n.label}
@@ -2633,7 +2697,7 @@ export const Siddur = () => {
               className="flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all"
               style={{
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                color: catId === cat.id ? hAccent : `${hText}99`,
+                color: catId === cat.id ? hAccent : hText,
                 borderBottomColor: catId === cat.id ? hAccent : "transparent",
               }}
             >
@@ -2655,7 +2719,7 @@ export const Siddur = () => {
               className="flex items-center gap-1 px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-all"
               style={{
                 fontFamily: "'Noto Serif Hebrew', 'David Libre', serif",
-                color: catId === tab.id ? hAccent : `${hText}99`,
+                color: catId === tab.id ? hAccent : hText,
                 borderBottomColor: catId === tab.id ? hAccent : "transparent",
               }}
             >

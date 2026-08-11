@@ -503,3 +503,21 @@ All colors MUST be HSL.
     min-height: 100vh;
   }
 }
+/* Bundled Hebrew prayer font: keeping the full base-letter + niqqud + te'amim
+   glyph set local prevents Android WebView from mixing system/web-font glyphs
+   while a remote Google Font is still loading. */
+@font-face {
+  font-family: "Noto Serif Hebrew";
+  src: url("./assets/fonts/NotoSerifHebrew-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Noto Serif Hebrew";
+  src: url("./assets/fonts/NotoSerifHebrew-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700 900;
+  font-display: block;
+}

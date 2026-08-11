@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX, Activity, Save } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Type, Layout, Database, Calendar, BookmarkCheck, HardDrive, Bell, BellOff, Code, LogOut, MessageSquare, Camera, Eye, EyeOff, Plug, Plus, Trash2, Clock, Volume2, VolumeX, Activity, Save, Pencil, Copy, Loader2 } from "lucide-react";
 import { LocalDBManager } from "@/components/LocalDBManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,8 +169,9 @@ const fonts = [
 export const Settings = () => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("calendar");
-  const { theme, setTheme, customTheme, saveCustomTheme } = useTheme();
+  const { theme, setTheme, customTheme, customThemes, saveCustomTheme, selectCustomTheme } = useTheme();
   const [customThemeDraft, setCustomThemeDraft] = useState(customTheme);
+  const [editingCustomThemeId, setEditingCustomThemeId] = useState<string | undefined>();
   const [savingCustomTheme, setSavingCustomTheme] = useState(false);
   const { settings, updateSettings } = useFontAndColorSettings();
   const { displaySettings, updateDisplaySettings } = useDisplayMode();
@@ -211,16 +212,44 @@ export const Settings = () => {
 
   useEffect(() => setCustomThemeDraft(customTheme), [customTheme]);
 
-  const handleSaveCustomTheme = async () => {
+  const readBuiltInTheme = (themeId: Theme, name: string) => {
+    const probe = document.createElement("div");
+    probe.className = themeId;
+    probe.style.display = "none";
+    document.body.appendChild(probe);
+    const style = getComputedStyle(probe);
+    const toHex = (property: string, fallback: string) => {
+      const value = style.getPropertyValue(property).trim();
+      const match = value.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/);
+      if (!match) return fallback;
+      const h = Number(match[1]), s = Number(match[2]) / 100, l = Number(match[3]) / 100;
+      const a = s * Math.min(l, 1 - l);
+      const f = (n: number) => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+      return `#${[f(0), f(8), f(4)].map(v => Math.round(255 * v).toString(16).padStart(2, "0")).join("")}`;
+    };
+    const next = {
+      name, background: toHex("--background", customTheme.background), foreground: toHex("--foreground", customTheme.foreground),
+      card: toHex("--card", customTheme.card), primary: toHex("--primary", customTheme.primary), accent: toHex("--accent", customTheme.accent),
+      sidebar: toHex("--sidebar-background", customTheme.sidebar), sidebarForeground: toHex("--sidebar-foreground", customTheme.sidebarForeground),
+    };
+    probe.remove();
+    setEditingCustomThemeId(undefined);
+    setCustomThemeDraft(next);
+  };
+
+  const handleSaveCustomTheme = async (duplicate = false) => {
     if (!customThemeDraft.name.trim()) {
       toast.error("יש להזין שם לערכת הנושא");
       return;
     }
     setSavingCustomTheme(true);
     try {
-      await saveCustomTheme({ ...customThemeDraft, name: customThemeDraft.name.trim() });
+      const next = { ...customThemeDraft, name: duplicate ? `${customThemeDraft.name.trim()} – עותק` : customThemeDraft.name.trim() };
+      const saved = await saveCustomTheme(next, { id: editingCustomThemeId, duplicate });
+      setEditingCustomThemeId(saved.id);
+      setCustomThemeDraft(next);
       setTheme("custom");
-      toast.success(user ? "ערכת הנושא נשמרה במכשיר ובענן" : "ערכת הנושא נשמרה במכשיר");
+      toast.success(user ? "ערכת הנושא והבחירה נשמרו במכשיר ובענן" : "ערכת הנושא נשמרה במכשיר");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "שמירת ערכת הנושא נכשלה");
     } finally {
@@ -928,17 +957,38 @@ export const Settings = () => {
                       </Label>
                       <p className="text-sm text-muted-foreground mt-1">{t.description}</p>
                     </div>
+                    <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={(event) => { event.stopPropagation(); readBuiltInTheme(t.id, t.name); }}>
+                      <Pencil className="h-3.5 w-3.5" /> ערוך
+                    </Button>
                   </div>
                 </Card>
               ))}
             </RadioGroup>
+            {customThemes.length > 0 && (
+              <Card className="space-y-2 p-3" dir="rtl">
+                <h3 className="text-right text-sm font-bold">הערכות שלי — נשמרות בענן</h3>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {customThemes.map(saved => (
+                    <div key={saved.id} className={`flex items-center gap-2 rounded-xl border p-2 ${editingCustomThemeId === saved.id ? "ring-2 ring-primary" : ""}`}>
+                      <button className="flex flex-1 items-center gap-2 text-right" onClick={async () => { await selectCustomTheme(saved.id); toast.success("הערכה נבחרה וסונכרנה"); }}>
+                        <span className="h-8 w-8 rounded-lg border" style={{ background: saved.background, borderColor: saved.accent }} />
+                        <span className="font-semibold">{saved.name}</span>
+                      </button>
+                      <Button size="icon" variant="ghost" title="ערוך ערכה" onClick={() => { const { id, updatedAt, ...draft } = saved; setEditingCustomThemeId(id); setCustomThemeDraft(draft); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
             <Card className="overflow-hidden border-slate-600 bg-slate-950 text-slate-50" dir="rtl">
               <div className="space-y-4 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <Palette className="h-5 w-5 text-amber-400" />
                   <div className="flex-1 text-right">
-                    <h3 className="font-bold text-white">ערכת נושא מותאמת אישית</h3>
-                    <p className="text-xs text-slate-300">חלה על שאלות ומפרשים וגם על חומש ומפרשים</p>
+                    <h3 className="font-bold text-white">עריכת ערכת נושא</h3>
+                    <p className="text-xs text-slate-300">תצוגה חיה · נשמר במכשיר ובחשבון המחובר</p>
                   </div>
                 </div>
                 <Input
@@ -947,22 +997,19 @@ export const Settings = () => {
                   placeholder="שם הערכה"
                   className="border-slate-600 bg-slate-900 text-white placeholder:text-slate-400"
                 />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {([
                     ["background", "רקע"], ["foreground", "טקסט"], ["card", "כרטיסים"],
                     ["primary", "צבע ראשי"], ["accent", "הדגשה"], ["sidebar", "כותרת עליונה"],
                     ["sidebarForeground", "טקסט בכותרת"],
                   ] as const).map(([key, label]) => (
-                    <label key={key} className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-900 p-2 text-xs text-slate-100">
-                      <span>{label}</span>
-                      <input
-                        type="color"
-                        value={customThemeDraft[key]}
-                        onChange={e => setCustomThemeDraft(prev => ({ ...prev, [key]: e.target.value }))}
-                        className="h-8 w-10 cursor-pointer rounded border border-slate-600 bg-transparent p-0.5"
-                        aria-label={label}
-                      />
-                    </label>
+                    <ColorPicker
+                      key={key}
+                      compact
+                      label={label}
+                      value={customThemeDraft[key]}
+                      onChange={color => setCustomThemeDraft(prev => ({ ...prev, [key]: color }))}
+                    />
                   ))}
                 </div>
                 <div className="rounded-xl border border-slate-600 p-3" style={{ background: customThemeDraft.background, color: customThemeDraft.foreground }}>
@@ -971,10 +1018,15 @@ export const Settings = () => {
                     בראשית ברא אלהים את השמים ואת הארץ
                   </div>
                 </div>
-                <Button onClick={handleSaveCustomTheme} disabled={savingCustomTheme} className="w-full gap-2 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
-                  {savingCustomTheme ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {savingCustomTheme ? "שומר..." : "שמור והחל בשתי התצוגות"}
-                </Button>
+                <div className="sticky bottom-0 grid grid-cols-2 gap-2 bg-slate-950 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+                  <Button onClick={() => handleSaveCustomTheme(false)} disabled={savingCustomTheme} className="gap-2 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
+                    {savingCustomTheme ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {savingCustomTheme ? "שומר..." : "עדכן"}
+                  </Button>
+                  <Button onClick={() => handleSaveCustomTheme(true)} disabled={savingCustomTheme} variant="outline" className="gap-2 border-slate-500 bg-slate-900 text-white">
+                    <Copy className="h-4 w-4" /> שכפל ושמור
+                  </Button>
+                </div>
               </div>
             </Card>
           </TabsContent>

@@ -16,7 +16,7 @@ export type TextSettingsTab = "pasuk" | "titles" | "questions" | "commentary" | 
 
 const hebrewFonts = [
   { value: "David Libre", label: "דוד ליברה" },
-  { value: "Frank Ruehl Libre", label: "פרנק רוהל" },
+  { value: "Frank Ruhl Libre", label: "פרנק רוהל" },
   { value: "Noto Serif Hebrew", label: "נוטו סריף" },
   { value: "Miriam Libre", label: "מרים ליברה" },
   { value: "Rubik", label: "רוביק" },
@@ -29,6 +29,13 @@ const hebrewFonts = [
   { value: "Arial", label: "אריאל" },
   { value: "Times New Roman", label: "טיימס ניו רומן" },
 ];
+
+// Fonts verified for complete Hebrew combining-mark positioning. Decorative
+// display fonts remain available elsewhere, but using them for prayer text on
+// Android can trigger per-cluster fallback and visibly resize marked letters.
+const markedHebrewFonts = hebrewFonts.filter(font =>
+  ["David Libre", "Frank Ruhl Libre", "Noto Serif Hebrew", "Heebo"].includes(font.value)
+);
 
 const alignmentValues = ["right", "center", "left", "justify"] as const;
 const spacingValues   = ["compact", "normal", "comfortable", "spacious"] as const;
@@ -70,19 +77,19 @@ const SliderSection = ({ label, valueBadge, value, onChange, min, max, step, mar
 );
 
 /* ─── FontSelector ───────────────────────────────────────── */
-const FontSelector = ({ label, value, onChange }: { label: string; value: string; onChange: (f: string) => void }) => (
+const FontSelector = ({ label, value, onChange, fonts = hebrewFonts }: { label: string; value: string; onChange: (f: string) => void; fonts?: typeof hebrewFonts }) => (
   <div className="space-y-2">
     <Label className="text-sm font-semibold">{label}</Label>
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className="text-right h-10">
         <SelectValue>
           <span style={{ fontFamily: value }} className="text-sm">
-            {hebrewFonts.find(f => f.value === value)?.label || value}
+            {fonts.find(f => f.value === value)?.label || value}
           </span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="max-h-[260px] z-[10001]">
-        {hebrewFonts.map((font) => (
+        {fonts.map((font) => (
           <SelectItem key={font.value} value={font.value} className="py-2">
             <div className="flex items-center gap-3 w-full">
               <span className="text-xs text-muted-foreground shrink-0">{font.label}</span>
@@ -118,12 +125,13 @@ interface SettingsControlsProps {
   boldValue: boolean;   onBoldChange: (b: boolean) => void;
   settings: ReturnType<typeof useFontAndColorSettings>["settings"];
   updateSettings: ReturnType<typeof useFontAndColorSettings>["updateSettings"];
+  fontOptions?: typeof hebrewFonts;
 }
 const SettingsControls = ({
   sizeValue, onSizeChange, sizeLabel,
   fontValue, onFontChange, fontLabel,
   boldValue, onBoldChange,
-  settings, updateSettings,
+  settings, updateSettings, fontOptions,
 }: SettingsControlsProps) => {
   // Convert presets to numeric for continuous sliders
   const lhNum = settings.lineHeight === "custom"
@@ -158,7 +166,7 @@ const SettingsControls = ({
 
       <Separator className="bg-accent/20" />
 
-      <FontSelector label={fontLabel} value={fontValue} onChange={onFontChange} />
+      <FontSelector label={fontLabel} value={fontValue} onChange={onFontChange} fonts={fontOptions} />
 
       <div className="flex items-center justify-between">
         <Switch checked={boldValue} onCheckedChange={onBoldChange} />
@@ -826,18 +834,20 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
               <TabsContent value="siddur" className="mt-0 px-3 pb-4">
                 <SettingsControls
                   sizeValue={settings.siddurSize}    onSizeChange={(v) => updateSettings({ siddurSize: v })}    sizeLabel="גודל תפילות"
-                  fontValue={settings.siddurFont}    onFontChange={(f) => updateSettings({ siddurFont: f })}    fontLabel="גופן תפילות"
+                  fontValue={settings.siddurFont}    onFontChange={(f) => updateSettings({ siddurFont: f, ...(f === "Noto Serif Hebrew" ? {} : { showTaamim: false }) })}    fontLabel="גופן תפילות"
                   boldValue={settings.siddurBold}    onBoldChange={(b) => updateSettings({ siddurBold: b })}
                   settings={scopedForTab("siddur")} updateSettings={updaterForTab("siddur")}
+                  fontOptions={markedHebrewFonts}
                 />
               </TabsContent>
 
               <TabsContent value="tehillim" className="mt-0 px-3 pb-4">
                 <SettingsControls
                   sizeValue={settings.tehillimSize}  onSizeChange={(v) => updateSettings({ tehillimSize: v })}  sizeLabel="גודל תהילים"
-                  fontValue={settings.tehillimFont}  onFontChange={(f) => updateSettings({ tehillimFont: f })}  fontLabel="גופן תהילים"
+                  fontValue={settings.tehillimFont}  onFontChange={(f) => updateSettings({ tehillimFont: f, ...(f === "Noto Serif Hebrew" ? {} : { showTaamim: false }) })}  fontLabel="גופן תהילים"
                   boldValue={settings.tehillimBold}  onBoldChange={(b) => updateSettings({ tehillimBold: b })}
                   settings={scopedForTab("tehillim")} updateSettings={updaterForTab("tehillim")}
+                  fontOptions={markedHebrewFonts}
                 />
               </TabsContent>
             </div>

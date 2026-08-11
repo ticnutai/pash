@@ -664,7 +664,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
 
   return (
     <div
-      className="w-full animate-fade-in"
+      className="w-full"
       style={{ maxWidth: "100%", margin: "0" }}
     >
       {/* Toolbar */}

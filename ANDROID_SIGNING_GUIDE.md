@@ -10,8 +10,11 @@ Read it before changing `versionCode`, building an AAB, or uploading to Google P
 - Google Play app ID: `4973641710236493710`
 - Developer account ID: `7704462559572865167`
 - Testing track: `internal`
-- Current prepared release: `1.8.3`, version code `27`
-- Upload-key reset requested on 2026-08-06 and currently pending Google approval.
+- Current internal-testing release: `1.8.5`, version code `29`
+- Current production release: `1.8.2`, version code `26`
+- Upload-key reset requested on 2026-08-06 and approved by Google. The new key was confirmed by a successful upload on 2026-08-11.
+- Internal testing is active. Release `1.8.5` is available to the selected tester email lists.
+- Tester opt-in URL: `https://play.google.com/apps/internaltest/4701562293919669655`
 
 ### Certificate fingerprints
 
@@ -49,7 +52,7 @@ keytool -list -v -keystore $keyPath -storepass $props.storePassword -alias $prop
   Select-String 'SHA1:'
 ```
 
-After Google approves the pending reset, the result must be:
+The result must be:
 
 `A6:5F:46:C5:30:6A:41:AC:6E:03:4F:1E:89:E0:60:FA:F9:C6:7E:A7`
 

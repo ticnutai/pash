@@ -107,7 +107,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
 
   return (
     <div 
-      className="flex flex-col animate-fade-in"
+      className="flex flex-col"
       style={{ gap: displayStyles.gap }}
     >
       {displayedPesukim.map((pasuk) => {
@@ -245,7 +245,7 @@ export const CompactPasukView = memo(({ pesukim, seferId, expandAll = false }: C
             {/* Expanded Content */}
             {isExpanded && (
               <div
-                className="border-t border-border animate-accordion-down"
+                className="border-t border-border"
                 onClick={(e) => {
                   e.stopPropagation();
                   togglePasuk(pasuk.id);
