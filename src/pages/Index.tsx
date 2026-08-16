@@ -1267,16 +1267,27 @@ const Index = () => {
 
             {/* Mobile controls - ABOVE the grid */}
             {isMobile && (
-              <div data-layout="mobile-controls" data-layout-label="בקרות מובייל" className="mt-3 flex items-center gap-1.5 flex-wrap">
-                <TextDisplaySettings />
-                <ViewModeToggle seferId={selectedSefer} />
-                {filteredPesukim.length > 0 && (
+              <div
+                data-layout="mobile-controls"
+                data-layout-label="בקרות מובייל"
+                className="mt-4 grid w-full grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-3 rounded-2xl border border-accent/20 bg-card/35 px-3 py-3 shadow-sm"
+                dir="ltr"
+              >
+                <div className="flex h-11 w-11 items-center justify-center justify-self-start">
+                  {filteredPesukim.length > 0 && (
                   <MinimizeButton
                     variant="global"
                     isMinimized={!globalExpandAll}
                     onClick={toggleGlobalExpandAll}
                   />
-                )}
+                  )}
+                </div>
+                <div className="flex min-w-0 items-center justify-center" dir="rtl">
+                  <ViewModeToggle seferId={selectedSefer} />
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center justify-self-end" dir="rtl">
+                  <TextDisplaySettings />
+                </div>
               </div>
             )}
 

@@ -33,7 +33,7 @@ export const MinimizeButton = ({
         ${variant === "individual" && !isMobile ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'} 
         transition-all duration-200
         ${isGlobal
-          ? 'border-0 bg-transparent text-accent shadow-none ring-0 hover:bg-accent/10 hover:text-accent'
+          ? 'border-0 bg-transparent text-[#c8a04d] shadow-none ring-0 hover:bg-[#c8a04d]/10 hover:text-[#c8a04d]'
           : 'border border-border bg-background/90 text-primary hover:border-primary/40 hover:bg-accent/20'}
         ${className}
       `}
