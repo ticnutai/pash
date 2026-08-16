@@ -1,4 +1,14 @@
 import sys
+import socket
+
+# Some Windows networks advertise IPv6 DNS records without providing a usable
+# IPv6 route. Prefer IPv4 so Google OAuth/Play API uploads do not time out.
+_original_getaddrinfo = socket.getaddrinfo
+def _ipv4_getaddrinfo(*args, **kwargs):
+    results = _original_getaddrinfo(*args, **kwargs)
+    ipv4 = [result for result in results if result[0] == socket.AF_INET]
+    return ipv4 or results
+socket.getaddrinfo = _ipv4_getaddrinfo
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -40,8 +50,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "גרסה 1.8.4 - שיפורי תצוגה, גלילת פסוקים ותיקוני ממשק"},
-                {"language": "en-US", "text": "Version 1.8.4 - display, verse scrolling, and interface improvements"},
+                {"language": "he-IL", "text": "גרסה 1.8.7 - שיפורי ניווט פסוקים, מצבי תצוגה, מזעור והרחבה ותיקוני ממשק"},
+                {"language": "en-US", "text": "Version 1.8.7 - verse navigation, display modes, expand and collapse, and interface improvements"},
             ]
         }]
     }

@@ -1275,7 +1275,7 @@ const Index = () => {
             )}
 
             {/* Navigation buttons - parsha & pasuk - mobile only (desktop has it inside desktop-controls above) */}
-            {isMobile && currentParshaName && parshaAllPesukim.length > 0 && (
+            {displayMode !== "luxury" && isMobile && currentParshaName && parshaAllPesukim.length > 0 && (
               <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="mt-3 flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
                 <Button
                   variant="ghost"
@@ -1373,7 +1373,41 @@ const Index = () => {
                       key={`${selectedPerek}-${selectedParsha}`}
                     >
                       {displayMode === "luxury" ? (
-                        <LuxuryTextView pesukim={localizedDisplayedPesukim} expandAll={globalExpandAll} />
+                        <LuxuryTextView
+                          pesukim={localizedDisplayedPesukim}
+                          expandAll={globalExpandAll}
+                          navigation={isMobile && currentParshaName && parshaAllPesukim.length > 0 ? (
+                            <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="mb-5 flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigateToParsha('prev')}
+                                disabled={!canNavigatePrev}
+                                className="h-10 w-10 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
+                              >
+                                <ChevronRight className="h-5 w-5" />
+                              </Button>
+                              <span className="text-sm font-bold text-primary truncate max-w-[120px] text-center" style={{ fontSize: currentParshaName.length > 8 ? '0.75rem' : '0.875rem' }}>
+                                {currentParshaName}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigateToParsha('next')}
+                                disabled={!canNavigateNext}
+                                className="h-10 w-10 p-0 rounded-full hover:bg-primary/10 disabled:opacity-20 transition-colors flex-shrink-0"
+                              >
+                                <ChevronLeft className="h-5 w-5" />
+                              </Button>
+                              <div className="h-5 w-px bg-border mx-1" />
+                              <PasukSimpleNavigator
+                                pesukim={parshaAllPesukim}
+                                currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
+                                onNavigate={handlePasukSelect}
+                              />
+                            </div>
+                          ) : null}
+                        />
                       ) : displayMode === "chumash" ? (
                         <ChumashView 
                           pesukim={localizedDisplayedPesukim} 

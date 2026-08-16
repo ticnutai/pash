@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
@@ -576,9 +576,10 @@ const SettingsPanel = ({
 interface LuxuryTextViewProps {
   pesukim: FlatPasuk[];
   expandAll?: boolean;
+  navigation?: ReactNode;
 }
 
-export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProps) => {
+export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: LuxuryTextViewProps) => {
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
   const { isMobile } = useDevice();
@@ -725,7 +726,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
       style={{ maxWidth: "100%", margin: "0" }}
     >
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4 px-1" dir="rtl">
+      <div data-layout="luxury-toolbar" className="flex items-center justify-between mb-4 px-1" dir="rtl">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -798,6 +799,8 @@ export const LuxuryTextView = ({ pesukim, expandAll = true }: LuxuryTextViewProp
           onClose={() => setShowSettings(false)}
         />
       )}
+
+      {navigation}
 
       {/* Decorative top border (non-fragment modes) */}
       {!isFragmentMode && (

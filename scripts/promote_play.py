@@ -1,4 +1,12 @@
 import sys
+import socket
+
+_original_getaddrinfo = socket.getaddrinfo
+def _ipv4_getaddrinfo(*args, **kwargs):
+    results = _original_getaddrinfo(*args, **kwargs)
+    ipv4 = [result for result in results if result[0] == socket.AF_INET]
+    return ipv4 or results
+socket.getaddrinfo = _ipv4_getaddrinfo
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -31,8 +39,8 @@ service.edits().tracks().update(
             "versionCodes": [VERSION],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "v1.6.0 - מערכת תזכורות משופרת: תזכורות מרובות עם תזמון, פופ-אפ באפליקציה, בחירת ימים, הפעלה אוטומטית בהתקנה. התראות נייטיב לאנדרואיד."},
-                {"language": "en-US", "text": "v1.6.0 - Enhanced reminder system: multiple reminders with scheduling, in-app popup, day picker, auto-enable on install. Native Android notifications."},
+                {"language": "he-IL", "text": "גרסה 1.8.6 - שיפורי תצוגה, פרשת השבוע, סידור ותיקוני יציבות"},
+                {"language": "en-US", "text": "Version 1.8.6 - weekly portion, Siddur, display, and stability improvements"},
             ]
         }]
     }

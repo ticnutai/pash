@@ -11,7 +11,7 @@ export const ViewModeToggle = ({ seferId: _seferId }: ViewModeToggleProps) => {
 
   return (
     <div className="inline-flex items-center" dir="rtl">
-      <div className="inline-flex items-center gap-2 rounded-2xl border border-accent/35 bg-card/95 p-1.5 shadow-sm">
+      <div className="inline-flex items-center gap-2 rounded-2xl border border-accent/30 bg-card/95 p-1.5 shadow-sm">
         <Button
           type="button"
           variant="ghost"
@@ -22,8 +22,8 @@ export const ViewModeToggle = ({ seferId: _seferId }: ViewModeToggleProps) => {
           title="שאלות ומפרשים"
           className={`h-9 whitespace-nowrap rounded-xl border px-2.5 text-[11px] font-bold leading-none shadow-sm transition-all sm:px-3.5 sm:text-xs ${
             safeSettings.mode === "compact"
-              ? "border-accent bg-accent text-accent-foreground shadow-md hover:bg-accent/90"
-              : "border-border/70 bg-background/80 text-primary hover:border-accent/50 hover:bg-accent/10"
+              ? "border-accent bg-transparent text-primary shadow-[0_0_0_1px_hsl(var(--accent)/0.12)] hover:bg-transparent"
+              : "border-transparent bg-transparent text-primary/85 shadow-none hover:border-accent/35 hover:bg-accent/5"
           }`}
         >
           שאלות ומפרשים
@@ -38,8 +38,8 @@ export const ViewModeToggle = ({ seferId: _seferId }: ViewModeToggleProps) => {
           title="חומש ומפרשים"
           className={`h-9 whitespace-nowrap rounded-xl border px-2.5 text-[11px] font-bold leading-none shadow-sm transition-all sm:px-3.5 sm:text-xs ${
             safeSettings.mode === "luxury"
-              ? "border-accent bg-accent text-accent-foreground shadow-md hover:bg-accent/90"
-              : "border-border/70 bg-background/80 text-primary hover:border-accent/50 hover:bg-accent/10"
+              ? "border-accent bg-transparent text-primary shadow-[0_0_0_1px_hsl(var(--accent)/0.12)] hover:bg-transparent"
+              : "border-transparent bg-transparent text-primary/85 shadow-none hover:border-accent/35 hover:bg-accent/5"
           }`}
         >
           חומש ומפרשים
