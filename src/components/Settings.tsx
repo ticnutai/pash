@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTheme, Theme } from "@/contexts/ThemeContext";
+import { useTheme, Theme, type CustomAppTheme } from "@/contexts/ThemeContext";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
 import { useDisplayMode } from "@/contexts/DisplayModeContext";
 import { DataManager } from "@/components/DataManager";
@@ -156,6 +156,86 @@ const themes = [
   { id: "ancient-scroll" as Theme, name: "מגילה עתיקה", description: "נושא בגווני קלף ודיו" },
 ];
 
+const ChumashThemePreview = ({ preview }: { preview: CustomAppTheme }) => {
+  const radius = preview.cornerRadius ?? DEFAULT_THEME_APPEARANCE.cornerRadius;
+  const buttonRadius = preview.buttonRadius ?? DEFAULT_THEME_APPEARANCE.buttonRadius;
+  const borderWidth = preview.borderWidth ?? DEFAULT_THEME_APPEARANCE.borderWidth;
+  const shadow = THEME_SHADOWS[preview.shadow ?? DEFAULT_THEME_APPEARANCE.shadow];
+
+  return (
+    <div
+      data-testid="chumash-theme-preview"
+      className="overflow-hidden border text-right"
+      style={{
+        direction: "rtl",
+        background: preview.background,
+        color: preview.foreground,
+        borderColor: preview.accent,
+        borderRadius: radius,
+        borderWidth,
+        boxShadow: shadow,
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-3 py-2 text-[10px] font-bold"
+        style={{
+          background: preview.sidebar,
+          color: preview.sidebarForeground,
+          boxShadow: preview.headerShadow ? shadow : "none",
+        }}
+      >
+        <span style={{ color: preview.accent }}>✦ תורה עם מפרשים</span>
+        <span>חומש&nbsp;&nbsp; סידור</span>
+      </div>
+      <div className="space-y-2.5 p-2.5">
+        <div className="text-[10px] font-bold" style={{ color: preview.primary }}>בראשית / בראשית</div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {["בראשית", "שמות", "ויקרא"].map((book, index) => (
+            <div
+              key={book}
+              className="px-1 py-2 text-center text-[9px] font-bold"
+              style={{
+                background: index === 0 ? preview.primary : preview.card,
+                color: index === 0 ? preview.sidebarForeground : preview.foreground,
+                border: `${borderWidth}px solid ${index === 0 ? preview.primary : preview.accent}55`,
+                borderRadius: buttonRadius,
+              }}
+            >
+              <div className="mb-0.5 text-xs">▣</div>{book}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between gap-1 text-[8px] font-bold">
+          <span style={{ color: preview.accent }}>T</span>
+          <span className="flex-1 border px-2 py-1 text-center" style={{ borderColor: preview.accent, borderRadius: buttonRadius }}>
+            שאלות ומפרשים
+          </span>
+          <span style={{ color: preview.accent }}>⛶</span>
+        </div>
+        <div
+          className="p-2.5"
+          style={{
+            background: preview.card,
+            border: `${borderWidth}px solid ${preview.accent}`,
+            borderRadius: radius,
+            boxShadow: shadow,
+          }}
+        >
+          <div className="mb-2 text-[9px] font-bold" style={{ color: preview.primary }}>פרק א׳ · פסוק א׳</div>
+          <p className="text-center font-serif text-[13px] leading-6" style={{ color: preview.foreground }}>
+            בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ
+          </p>
+          <div className="mt-2 flex justify-center gap-1">
+            <span className="px-2 py-0.5 text-[8px] font-bold" style={{ background: `${preview.accent}33`, borderRadius: buttonRadius }}>שאלות</span>
+            <span className="px-2 py-0.5 text-[8px] font-bold" style={{ background: `${preview.accent}33`, borderRadius: buttonRadius }}>תשובות</span>
+          </div>
+        </div>
+        <div className="text-center text-[9px] font-bold" style={{ color: preview.accent }}>✦ תצוגה מקדימה ✦</div>
+      </div>
+    </div>
+  );
+};
+
 const fonts = [
   { value: "David", label: "דוד" },
   { value: "Frank Ruehl Libre", label: "פרנק רוהל" },
@@ -172,10 +252,12 @@ export const Settings = () => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("calendar");
   const [themesOnly, setThemesOnly] = useState(false);
+  const [themeEditorTab, setThemeEditorTab] = useState<"presets" | "custom">("presets");
   const [autoWeeklyParsha, setAutoWeeklyParsha] = useState(() => localStorage.getItem("autoWeeklyParsha") !== "false");
   const { theme, setTheme, customTheme, customThemes, publicThemes, saveCustomTheme, selectCustomTheme, publishCustomTheme } = useTheme();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [customThemeDraft, setCustomThemeDraft] = useState(customTheme);
+  const [previewThemeDraft, setPreviewThemeDraft] = useState<CustomAppTheme>(customTheme);
   const [editingCustomThemeId, setEditingCustomThemeId] = useState<string | undefined>();
   const [savingCustomTheme, setSavingCustomTheme] = useState(false);
   const { settings, updateSettings } = useFontAndColorSettings();
@@ -213,19 +295,25 @@ export const Settings = () => {
       setOpen(true);
     };
     const openThemes = () => {
+      delete document.documentElement.dataset.openAppThemes;
       setThemesOnly(true);
       setActiveTab("themes");
+      setThemeEditorTab("presets");
       setOpen(true);
     };
     window.addEventListener("open-app-settings", openSettings);
     window.addEventListener("open-app-themes", openThemes);
+    if (document.documentElement.dataset.openAppThemes === "true") openThemes();
     return () => {
       window.removeEventListener("open-app-settings", openSettings);
       window.removeEventListener("open-app-themes", openThemes);
     };
   }, []);
 
-  useEffect(() => setCustomThemeDraft(customTheme), [customTheme]);
+  useEffect(() => {
+    setCustomThemeDraft(customTheme);
+    setPreviewThemeDraft(customTheme);
+  }, [customTheme]);
 
   const readBuiltInTheme = (themeId: Theme, name: string) => {
     const probe = document.createElement("div");
@@ -255,6 +343,8 @@ export const Settings = () => {
     probe.remove();
     setEditingCustomThemeId(undefined);
     setCustomThemeDraft(next);
+    setPreviewThemeDraft(next);
+    return next;
   };
 
   const handleSaveCustomTheme = async (duplicate = false) => {
@@ -565,8 +655,38 @@ export const Settings = () => {
           <SettingsIcon className="h-5 w-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent data-layout="dialog-settings" data-layout-label="📦 דיאלוג: הגדרות" className="w-[95vw] sm:max-w-[650px] max-h-[85vh] overflow-y-auto text-right">
+      <DialogContent
+        data-layout="dialog-settings"
+        data-layout-label="📦 דיאלוג: הגדרות"
+        data-theme-panel={themesOnly ? "chumash" : undefined}
+        className={themesOnly
+          ? "!fixed !inset-x-0 !bottom-0 !top-auto !flex !h-[50dvh] !max-h-[50dvh] !w-screen !max-w-none !translate-x-0 !translate-y-0 flex-col gap-0 overflow-hidden rounded-b-none rounded-t-2xl border-[#d5aa4547] bg-[#101b35] p-0 text-right text-slate-50 shadow-2xl sm:!bottom-auto sm:!left-auto sm:!right-4 sm:!top-16 sm:!h-auto sm:!max-h-[88vh] sm:!w-[628px] sm:rounded-xl [&>button]:hidden"
+          : "w-[95vw] sm:max-w-[650px] max-h-[85vh] overflow-y-auto text-right"}
+      >
         <DialogHeader>
+          {themesOnly ? (
+          <div className="flex flex-col items-stretch justify-between gap-2 border-b border-[#d5aa4547] px-3 py-2.5 sm:flex-row sm:items-center sm:px-4" dir="rtl">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-[#d5aa45]" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>✦ ערכת נושא</span>
+              <span className="rounded-full bg-[#d5aa4529] px-1.5 py-0.5 text-[9px] text-[#d5aa45]">תצוגה חיה בדף</span>
+            </div>
+            <div className="flex items-center justify-between gap-1 sm:justify-start">
+              <button
+                type="button"
+                onClick={() => setThemeEditorTab("presets")}
+                className="rounded-full px-2.5 py-1 text-xs font-medium transition-all"
+                style={{ background: themeEditorTab === "presets" ? "#d5aa45" : "rgba(255,255,255,0.07)", color: themeEditorTab === "presets" ? "#101827" : "#f8fafc" }}
+              >בחירת ערכה</button>
+              <button
+                type="button"
+                onClick={() => setThemeEditorTab("custom")}
+                className="rounded-full px-2.5 py-1 text-xs font-medium transition-all"
+                style={{ background: themeEditorTab === "custom" ? "#d5aa45" : "rgba(255,255,255,0.07)", color: themeEditorTab === "custom" ? "#101827" : "#f8fafc" }}
+              >עריכה מותאמת</button>
+              <button type="button" onClick={() => setOpen(false)} className="mr-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-sm text-white" title="סגור">✕</button>
+            </div>
+          </div>
+          ) : (
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-xs text-[#C8A44D] font-mono">v{__APP_VERSION__}</span>
             <DialogTitle className="text-right text-xl sm:text-2xl flex items-center justify-end gap-2">
@@ -574,9 +694,10 @@ export const Settings = () => {
               {themesOnly ? <Palette className="h-5 w-5 sm:h-6 sm:w-6" /> : <SettingsIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
             </DialogTitle>
           </div>
+          )}
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className={themesOnly ? "flex min-h-0 w-full flex-1 flex-col" : "w-full"} dir="rtl">
           {!themesOnly && <TabsList className="flex flex-wrap justify-center h-auto mb-4 sm:mb-6 gap-0.5 sm:gap-1 p-1">
             <TabsTrigger value="calendar" className="gap-0.5 sm:gap-1 text-[10px] sm:text-sm px-1.5 sm:px-3 py-1.5 sm:py-2 min-w-0">
               <span className="truncate">לוח</span>
@@ -1010,25 +1131,39 @@ export const Settings = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="themes" className="space-y-4">
-            <RadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+          <TabsContent value="themes" className={themesOnly ? "m-0 min-h-0 flex-1 overflow-y-auto p-3" : "space-y-4"}>
+            <div className="grid min-h-0 items-start gap-0 sm:grid-cols-[minmax(0,1fr)_200px]">
+            <div className="min-w-0 space-y-4">
+            {(!themesOnly || themeEditorTab === "presets") && (
+            <>
+            <RadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)} className={themesOnly ? "grid grid-cols-3 gap-2 sm:grid-cols-4" : undefined}>
               {themes.map((t) => (
                 <Card
                   key={t.id}
-                  className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-                    theme === t.id ? "ring-2 ring-primary shadow-lg" : ""
+                  className={`${themesOnly ? "relative border-[#d5aa4547] bg-white/[0.07] p-2 text-slate-50 hover:scale-[1.03]" : "p-4 hover:shadow-md"} cursor-pointer transition-all ${
+                    theme === t.id ? (themesOnly ? "ring-1 ring-[#d5aa45]" : "ring-2 ring-primary shadow-lg") : ""
                   }`}
-                  onClick={() => setTheme(t.id)}
+                  onClick={() => {
+                    setTheme(t.id);
+                    readBuiltInTheme(t.id, t.name);
+                  }}
                 >
-                  <div className="flex items-center gap-3">
-                    <RadioGroupItem value={t.id} id={t.id} />
+                  <div className={themesOnly ? "flex flex-col items-center gap-1.5 text-center" : "flex items-center gap-3"}>
+                    <RadioGroupItem value={t.id} id={t.id} className={themesOnly ? "sr-only" : undefined} />
+                    {themesOnly && (
+                      <div className="h-10 w-10 overflow-hidden rounded-lg border border-[#d5aa4555]">
+                        <div className="h-4 bg-[#d5aa45]" />
+                        <div className="flex h-3 items-center justify-center bg-white"><span className="text-[7px] text-slate-900">אבג</span></div>
+                        <div className="h-3 bg-[#172544]" />
+                      </div>
+                    )}
                     <div className="flex-1 text-right">
-                      <Label htmlFor={t.id} className="text-base font-semibold cursor-pointer">
+                      <Label htmlFor={t.id} className={themesOnly ? "cursor-pointer text-[10px] font-semibold text-slate-50" : "text-base font-semibold cursor-pointer"}>
                         {t.name}
                       </Label>
-                      <p className="text-sm text-muted-foreground mt-1">{t.description}</p>
+                      {!themesOnly && <p className="text-sm text-muted-foreground mt-1">{t.description}</p>}
                     </div>
-                    <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={(event) => { event.stopPropagation(); readBuiltInTheme(t.id, t.name); }}>
+                    <Button type="button" size="sm" variant="outline" className={themesOnly ? "relative z-10 h-6 gap-1 border-[#d5aa4547] bg-[#172544] px-2 text-[9px] text-[#d5aa45]" : "h-8 gap-1"} onClick={(event) => { event.stopPropagation(); readBuiltInTheme(t.id, t.name); setThemeEditorTab("custom"); }}>
                       <Pencil className="h-3.5 w-3.5" /> ערוך
                     </Button>
                   </div>
@@ -1045,7 +1180,7 @@ export const Settings = () => {
                         <span className="h-8 w-8 rounded-lg border" style={{ background: saved.background, borderColor: saved.accent }} />
                         <span className="font-semibold">{saved.name}</span>
                       </button>
-                      <Button size="icon" variant="ghost" title="ערוך ערכה" onClick={() => { const { id, updatedAt, ...draft } = saved; setEditingCustomThemeId(id); setCustomThemeDraft(draft); }}>
+                      <Button size="icon" variant="ghost" title="ערוך ערכה" onClick={() => { const { id, updatedAt, ...draft } = saved; setEditingCustomThemeId(id); setCustomThemeDraft(draft); setPreviewThemeDraft(draft); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1063,7 +1198,7 @@ export const Settings = () => {
                         <span className="h-8 w-8 rounded-lg border" style={{ background: saved.background, borderColor: saved.accent }} />
                         <span className="font-semibold">{saved.name}</span>
                       </button>
-                      <Button size="icon" variant="ghost" title="ערוך כעותק חדש" onClick={() => { const { id: _id, updatedAt: _updatedAt, ...draft } = saved; setEditingCustomThemeId(undefined); setCustomThemeDraft(draft); }}>
+                      <Button size="icon" variant="ghost" title="ערוך כעותק חדש" onClick={() => { const { id: _id, updatedAt: _updatedAt, ...draft } = saved; setEditingCustomThemeId(undefined); setCustomThemeDraft(draft); setPreviewThemeDraft(draft); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1071,6 +1206,9 @@ export const Settings = () => {
                 </div>
               </Card>
             )}
+            </>
+            )}
+            {(!themesOnly || themeEditorTab === "custom") && (
             <Card className="overflow-hidden border-slate-600 bg-slate-950 text-slate-50" dir="rtl">
               <div className="space-y-4 p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -1082,7 +1220,11 @@ export const Settings = () => {
                 </div>
                 <Input
                   value={customThemeDraft.name}
-                  onChange={e => setCustomThemeDraft(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={e => {
+                    const name = e.target.value;
+                    setCustomThemeDraft(prev => ({ ...prev, name }));
+                    setPreviewThemeDraft(prev => ({ ...prev, name }));
+                  }}
                   placeholder="שם הערכה"
                   className="border-slate-600 bg-slate-900 text-white placeholder:text-slate-400"
                 />
@@ -1097,7 +1239,10 @@ export const Settings = () => {
                       compact
                       label={label}
                       value={customThemeDraft[key]}
-                      onChange={color => setCustomThemeDraft(prev => ({ ...prev, [key]: color }))}
+                      onChange={color => {
+                        setCustomThemeDraft(prev => ({ ...prev, [key]: color }));
+                        setPreviewThemeDraft(prev => ({ ...prev, [key]: color }));
+                      }}
                     />
                   ))}
                 </div>
@@ -1109,7 +1254,10 @@ export const Settings = () => {
                     shadow: customThemeDraft.shadow ?? DEFAULT_THEME_APPEARANCE.shadow,
                     headerShadow: customThemeDraft.headerShadow ?? DEFAULT_THEME_APPEARANCE.headerShadow,
                   }}
-                  onChange={appearance => setCustomThemeDraft(prev => ({ ...prev, ...appearance }))}
+                  onChange={appearance => {
+                    setCustomThemeDraft(prev => ({ ...prev, ...appearance }));
+                    setPreviewThemeDraft(prev => ({ ...prev, ...appearance }));
+                  }}
                 />
                 <div
                   className="border border-slate-600 p-3"
@@ -1143,6 +1291,11 @@ export const Settings = () => {
                   </div>
                 </div>
                 <div className="sticky bottom-0 grid grid-cols-2 gap-2 bg-slate-950 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+                  {themesOnly && (
+                  <Button onClick={() => setOpen(false)} variant="outline" className="gap-2 border-slate-500 bg-slate-900 text-white">
+                    ביטול
+                  </Button>
+                  )}
                   <Button onClick={() => handleSaveCustomTheme(false)} disabled={savingCustomTheme} className="gap-2 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
                     {savingCustomTheme ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {savingCustomTheme ? "שומר..." : "עדכן"}
@@ -1157,6 +1310,19 @@ export const Settings = () => {
                 </div>
               </div>
             </Card>
+            )}
+            </div>
+            <aside className="hidden border-r border-[#d5aa4547] bg-black/15 sm:order-last sm:block sm:sticky sm:top-0" aria-label="תצוגה מקדימה של ערכת הנושא">
+              <div className="overflow-hidden p-2.5">
+                <div className="mb-2 flex items-center justify-between gap-2 px-1 text-[10px] font-bold text-amber-300">
+                  <span>⟳ תצוגה מקדימה</span>
+                  <span className="truncate text-slate-300">{previewThemeDraft.name}</span>
+                </div>
+                <ChumashThemePreview preview={previewThemeDraft} />
+                <p className="mt-2 text-center text-[9px] text-slate-400">השינויים מוצגים כאן לפני השמירה</p>
+              </div>
+            </aside>
+            </div>
           </TabsContent>
 
           <TabsContent value="fonts" className="space-y-6">

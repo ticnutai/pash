@@ -912,7 +912,10 @@ const Index = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-app-themes"))}
+                  onClick={() => {
+                    document.documentElement.dataset.openAppThemes = "true";
+                    window.dispatchEvent(new CustomEvent("open-app-themes"));
+                  }}
                   className="h-8 w-8 text-accent hover:bg-accent/10 hover:text-accent"
                   title="ערכות נושא"
                   aria-label="פתח ערכות נושא"
@@ -1088,7 +1091,10 @@ const Index = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => window.dispatchEvent(new CustomEvent("open-app-themes"))}
+                    onClick={() => {
+                      document.documentElement.dataset.openAppThemes = "true";
+                      window.dispatchEvent(new CustomEvent("open-app-themes"));
+                    }}
                     className="h-8 w-8 text-accent hover:text-accent hover:bg-accent/10"
                     title="ערכות נושא"
                     aria-label="פתח ערכות נושא"
