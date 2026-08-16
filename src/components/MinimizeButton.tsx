@@ -29,13 +29,12 @@ export const MinimizeButton = ({
       size="icon"
       onClick={onClick}
       className={`
-        ${isGlobal ? 'h-10 w-10 rounded-xl shadow-sm' : 'h-7 w-7 rounded-md'} p-0 shrink-0
+        ${isGlobal ? 'h-10 w-10 rounded-lg' : 'h-7 w-7 rounded-md'} p-0 shrink-0
         ${variant === "individual" && !isMobile ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'} 
         transition-all duration-200
-        ${isGlobal && !isMinimized
-          ? 'border-primary/60 bg-primary/10 text-primary ring-2 ring-primary/15 hover:bg-primary/20'
-          : 'border-border bg-background/90 text-primary hover:border-primary/40 hover:bg-accent/20'}
-        border
+        ${isGlobal
+          ? 'border-0 bg-transparent text-accent shadow-none ring-0 hover:bg-accent/10 hover:text-accent'
+          : 'border border-border bg-background/90 text-primary hover:border-primary/40 hover:bg-accent/20'}
         ${className}
       `}
       title={tooltips[variant]}

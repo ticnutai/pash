@@ -1,3 +1,11 @@
+import socket
+_original_getaddrinfo = socket.getaddrinfo
+def _ipv4_getaddrinfo(*args, **kwargs):
+    results = _original_getaddrinfo(*args, **kwargs)
+    ipv4 = [result for result in results if result[0] == socket.AF_INET]
+    return ipv4 or results
+socket.getaddrinfo = _ipv4_getaddrinfo
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import json
