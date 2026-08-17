@@ -1416,7 +1416,6 @@ const Index = () => {
                               >
                                 <ChevronLeft className="h-5 w-5" />
                               </Button>
-                              <div className="h-5 w-px bg-border mx-1" />
                               <PasukSimpleNavigator
                                 pesukim={parshaAllPesukim}
                                 currentPasukNum={selectedPasuk || filteredPesukim[0]?.pasuk_num || 1}
