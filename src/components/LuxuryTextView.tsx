@@ -10,11 +10,12 @@ import { sharePasukWhatsApp, sharePasukEmail, sharePasukLink } from "@/utils/sha
 import { useCommentaries, ALL_COMMENTATORS, CommentatorConfig, CommentaryMode, CommentaryMap } from "@/hooks/useCommentaries";
 import { CommentaryPickerDialog } from "@/components/CommentaryPickerDialog";
 import { Button } from "@/components/ui/button";
-import { Bookmark, BookmarkCheck, Settings2, X, ChevronDown, Share2, Mail, Link2, Eye, MoreHorizontal, BookOpen, Loader2, Library } from "lucide-react";
+import { Bookmark, BookmarkCheck, X, Share2, Mail, Link2, PanelsTopLeft, MoreHorizontal, BookOpen, Loader2, Library } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { createPortal } from "react-dom";
 
 // ─── Template definitions ────────────────────────────────────────────────────
 
@@ -475,18 +476,23 @@ const SettingsPanel = ({
   commentaryLabelPosition,
   onCommentaryLabelPositionChange,
   onClose,
-}: SettingsPanelProps) => (
+}: SettingsPanelProps) => createPortal((
   <div
     dir="rtl"
-    className="bg-card border border-accent/40 rounded-xl shadow-2xl p-5 mb-6 animate-fade-in"
+    data-testid="luxury-display-settings-sheet"
+    role="dialog"
+    aria-modal="false"
+    aria-label="הגדרות תצוגת שמו״ת"
+    className="fixed inset-x-0 bottom-0 z-[1000] flex h-[50dvh] max-h-[50dvh] flex-col overflow-hidden rounded-t-2xl border border-b-0 border-accent/40 bg-card shadow-2xl animate-in slide-in-from-bottom duration-300"
   >
-    <div className="flex items-center justify-between mb-5">
+    <div className="flex shrink-0 items-center justify-between border-b border-accent/25 bg-card px-4 py-3">
       <h3 className="font-bold text-base text-foreground">הגדרות תצוגת שמו"ת</h3>
-      <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7 rounded-full">
+      <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full" aria-label="סגור הגדרות תצוגה">
         <X className="h-4 w-4" />
       </Button>
     </div>
 
+    <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] [scrollbar-gutter:stable]">
     {/* Templates */}
     <div className="mb-5">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">תבנית עיצוב</p>
@@ -568,8 +574,9 @@ const SettingsPanel = ({
         className="[&_.relative]:bg-accent/20 [&_[role=slider]]:border-accent [&_[role=slider]]:bg-accent"
       />
     </div>
+    </div>
   </div>
-);
+), document.body);
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -646,15 +653,6 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
 
   const template = TEMPLATES.find((t) => t.id === templateId)!;
 
-  const cycleTemplate = useCallback(() => {
-    const currentIndex = TEMPLATES.findIndex((t) => t.id === templateId);
-    const nextIndex = (currentIndex + 1) % TEMPLATES.length;
-    const next = TEMPLATES[nextIndex];
-    setTemplateId(next.id);
-    setLineHeightOverride(null);
-    toast.success(`עיצוב שמו"ת: ${next.name}`);
-  }, [templateId]);
-
   const baseFontSize = settings.pasukSize || 22;
   const scale = displayStyles.fontScale;
   const rawSize = fontSizeOverride ?? (isMobile ? Math.min(baseFontSize * scale, 28) : baseFontSize * scale);
@@ -723,53 +721,69 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
   return (
     <div
       className="w-full"
+      data-luxury-template={templateId}
       style={{ maxWidth: "100%", margin: "0" }}
     >
+      {/* Gold divider between the main view-mode controls and this view's tools */}
+      <div data-layout="luxury-top-divider" className="mb-4 flex items-center justify-center gap-3">
+        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[hsl(var(--accent))] to-transparent" />
+        <span className="text-2xl" style={{ color: "#c8a04d" }}>✦</span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[hsl(var(--accent))] to-transparent" />
+      </div>
+
       {/* Toolbar */}
-      <div data-layout="luxury-toolbar" className="flex items-center justify-between mb-4 px-1" dir="rtl">
-        <div className="flex items-center gap-2">
+      <div data-layout="luxury-toolbar" className="mb-4 flex w-full items-center justify-center px-1" dir="rtl">
+        <div className="flex min-w-0 items-center justify-center">
+          <div className="inline-flex items-center rounded-2xl border border-accent/30 bg-card/95 p-1.5 shadow-sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCommentaryPicker(true)}
+              className={cn(
+                "h-9 gap-1.5 whitespace-nowrap rounded-xl border px-2.5 text-[11px] font-bold leading-none shadow-sm transition-all sm:px-3.5 sm:text-xs",
+                activeConfigs.length > 0
+                  ? "border-accent bg-transparent text-primary shadow-[0_0_0_1px_hsl(var(--accent)/0.12)] hover:bg-transparent"
+                  : "border-transparent bg-transparent text-primary/85 shadow-none hover:border-accent/35 hover:bg-accent/5"
+              )}
+              title="בחירת מפרשים"
+            >
+              {commentaryLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Library className="h-3.5 w-3.5" />
+              )}
+              בחירת מפרשים
+              {activeConfigs.length > 0 && (
+                <span className="text-[10px] opacity-70">({activeConfigs.length})</span>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        data-layout="luxury-navigation-row"
+        className="mb-4 grid min-h-11 w-full grid-cols-[32px_minmax(0,1fr)_32px] items-center px-1"
+        dir="ltr"
+      >
+        <div aria-hidden="true" className="h-8 w-8" />
+        <div className="flex min-w-0 items-center justify-center" dir="rtl">
+          {navigation}
+        </div>
+        <div className="flex h-8 w-8 items-center justify-center justify-self-end" dir="rtl">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            onClick={cycleTemplate}
-            className="h-9 w-9 border-accent/50"
-            title='החלף עיצוב שמו"ת'
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={showSettings ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowSettings((p) => !p)}
+            onClick={() => setShowSettings((previous) => !previous)}
+            aria-label="פתח הגדרות תצוגה"
+            aria-expanded={showSettings}
             className={cn(
-              "gap-2 border-accent/50 text-sm font-semibold",
-              showSettings && "bg-accent text-accent-foreground"
+              "h-8 w-8 shrink-0 rounded-lg border-0 bg-transparent p-0 text-[#c8a04d] shadow-none ring-0 transition-all hover:bg-[#c8a04d]/10 hover:text-[#c8a04d]",
+              showSettings && "bg-[#c8a04d]/10"
             )}
+            title="פתח הגדרות תצוגה"
           >
-            <Settings2 className="h-4 w-4" />
-            הגדרות
-            <ChevronDown className={cn("h-3 w-3 transition-transform", showSettings && "rotate-180")} />
-          </Button>
-          {/* Commentaries picker button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCommentaryPicker(true)}
-            className={cn(
-              "gap-1.5 border-accent/50 font-bold text-xs",
-              activeConfigs.length > 0 && "bg-[#c8a04d]/15 border-[#c8a04d] text-[#c8a04d]"
-            )}
-            title="בחר מפרשים"
-          >
-            {commentaryLoading ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Library className="h-3.5 w-3.5" />
-            )}
-            מפרשים
-            {activeConfigs.length > 0 && (
-              <span className="text-[10px] opacity-70">({activeConfigs.length})</span>
-            )}
+            <PanelsTopLeft className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -798,17 +812,6 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
           onCommentaryLabelPositionChange={updateCommentaryLabelPosition}
           onClose={() => setShowSettings(false)}
         />
-      )}
-
-      {navigation}
-
-      {/* Decorative top border (non-fragment modes) */}
-      {!isFragmentMode && (
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[hsl(var(--accent))] to-transparent" />
-          <span className="text-2xl" style={{ color: "#c8a04d" }}>✦</span>
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[hsl(var(--accent))] to-transparent" />
-        </div>
       )}
 
       {/* Content */}

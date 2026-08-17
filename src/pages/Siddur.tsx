@@ -76,6 +76,26 @@ const DEFAULT_ACCENT = "#c8a04d";
 
 export const SIDDUR_PRESET_THEMES: SiddurTheme[] = [
   {
+    id: "chumash_gold",
+    name: "חומש זהב",
+    emoji: "✦",
+    bg: "linear-gradient(180deg, #fffefd 0%, #fbf8f1 100%)",
+    headerBg: "#142b57",
+    headerTextColor: "#f8fafc",
+    headerAccentColor: "#d5aa45",
+    textColor: "#172033",
+    headingColor: "#173463",
+    instructionColor: "#64748b",
+    accentColor: "#d5aa45",
+    cardBg: "#fffdfa",
+    cardBorder: "rgba(213,170,69,0.38)",
+    cornerRadius: 18,
+    buttonRadius: 14,
+    borderWidth: 1,
+    shadow: "soft",
+    headerShadow: true,
+  },
+  {
     id: "dark_navy",
     name: "כחול לילה",
     emoji: "🌙",
@@ -986,6 +1006,7 @@ const ThemePicker = () => {
       {open && (
         <div
           ref={panelRef}
+          data-siddur-theme-panel
           className="fixed z-[999] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden"
           style={{
             left: mobileViewport ? 0 : pos.x,
@@ -1062,6 +1083,7 @@ const ThemePicker = () => {
                   {allThemes.map(t => (
                     <div
                       key={t.id}
+                      data-siddur-theme-option={t.id}
                       onMouseEnter={() => { setHoverTheme(t); previewTheme(t); }}
                       onMouseLeave={() => { setHoverTheme(null); previewTheme(originalThemeRef.current); }}
                       className="relative flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all hover:scale-105"
@@ -2661,6 +2683,7 @@ export const Siddur = () => {
     }}>
     <SiddurDisplayStyleContext.Provider value={{ displayStyle, setDisplayStyle }}>
     <div
+      data-siddur-theme={activeTheme.id}
       className="siddur-themed-root min-h-screen flex flex-col"
       style={{
         background: activeTheme.bg,

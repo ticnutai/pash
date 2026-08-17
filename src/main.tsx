@@ -13,6 +13,26 @@ torahDB.init();
 installStartupDiagnostics();
 installLayoutShiftTracker();
 
+// A production PWA service worker may remain attached to localhost after a
+// previous preview build and keep serving stale UI during development. Vite's
+// disabled dev SW does not remove an older registration, so clean it once and
+// reload before rendering the current source. This branch is removed from
+// production builds and intentionally leaves localStorage/IndexedDB untouched.
+if (import.meta.env.DEV && "serviceWorker" in navigator) {
+  const cleanupKey = "torah-dev-sw-cleanup-v1";
+  void navigator.serviceWorker.getRegistrations().then(async registrations => {
+    const hasStaleWorker = registrations.length > 0 || Boolean(navigator.serviceWorker.controller);
+    if (!hasStaleWorker || sessionStorage.getItem(cleanupKey) === "done") return;
+
+    sessionStorage.setItem(cleanupKey, "done");
+    await Promise.all(registrations.map(registration => registration.unregister()));
+    if ("caches" in window) {
+      await Promise.all((await caches.keys()).map(cacheName => caches.delete(cacheName)));
+    }
+    window.location.reload();
+  }).catch(() => {});
+}
+
 // Initialize Capacitor plugins on native platforms
 if (Capacitor.isNativePlatform()) {
   StatusBar.setStyle({ style: Style.Dark }).catch(() => {});

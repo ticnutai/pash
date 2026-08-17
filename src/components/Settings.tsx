@@ -642,7 +642,7 @@ export const Settings = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} modal={!themesOnly}>
       <DialogTrigger asChild>
         <Button 
           data-settings-trigger
@@ -656,16 +656,17 @@ export const Settings = () => {
         </Button>
       </DialogTrigger>
       <DialogContent
+        hideOverlay={themesOnly}
         data-layout="dialog-settings"
         data-layout-label="📦 דיאלוג: הגדרות"
         data-theme-panel={themesOnly ? "chumash" : undefined}
         className={themesOnly
-          ? "!fixed !inset-x-0 !bottom-0 !top-auto !flex !h-[50dvh] !max-h-[50dvh] !w-screen !max-w-none !translate-x-0 !translate-y-0 flex-col gap-0 overflow-hidden rounded-b-none rounded-t-2xl border-[#d5aa4547] bg-[#101b35] p-0 text-right text-slate-50 shadow-2xl sm:!bottom-auto sm:!left-auto sm:!right-4 sm:!top-16 sm:!h-auto sm:!max-h-[88vh] sm:!w-[628px] sm:rounded-xl [&>button]:hidden"
+          ? "!fixed !inset-x-0 !bottom-0 !top-auto !z-[1000] !flex !h-[50dvh] !max-h-[50dvh] !w-screen !max-w-none !translate-x-0 !translate-y-0 flex-col gap-0 overflow-hidden rounded-b-none rounded-t-2xl border-[#d5aa4547] bg-[#101b35] p-0 text-right text-slate-50 shadow-2xl sm:!inset-x-auto sm:!bottom-auto sm:!left-auto sm:!right-4 sm:!top-16 sm:!h-[min(88dvh,760px)] sm:!max-h-[calc(100dvh-5rem)] sm:!w-[628px] sm:rounded-xl [&>button]:hidden"
           : "w-[95vw] sm:max-w-[650px] max-h-[85vh] overflow-y-auto text-right"}
       >
         <DialogHeader>
           {themesOnly ? (
-          <div className="flex flex-col items-stretch justify-between gap-2 border-b border-[#d5aa4547] px-3 py-2.5 sm:flex-row sm:items-center sm:px-4" dir="rtl">
+          <div className="relative z-10 flex shrink-0 flex-col items-stretch justify-between gap-2 border-b border-[#d5aa4547] bg-[#101b35] px-3 py-2.5 sm:flex-row sm:items-center sm:px-4" dir="rtl">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-[#d5aa45]" style={{ fontFamily: "'Noto Serif Hebrew', serif" }}>✦ ערכת נושא</span>
               <span className="rounded-full bg-[#d5aa4529] px-1.5 py-0.5 text-[9px] text-[#d5aa45]">תצוגה חיה בדף</span>
@@ -1131,7 +1132,7 @@ export const Settings = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="themes" className={themesOnly ? "m-0 min-h-0 flex-1 overflow-y-auto p-3" : "space-y-4"}>
+          <TabsContent value="themes" className={themesOnly ? "m-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain p-3 [scrollbar-gutter:stable]" : "space-y-4"}>
             <div className="grid min-h-0 items-start gap-0 sm:grid-cols-[minmax(0,1fr)_200px]">
             <div className="min-w-0 space-y-4">
             {(!themesOnly || themeEditorTab === "presets") && (
@@ -1151,10 +1152,16 @@ export const Settings = () => {
                   <div className={themesOnly ? "flex flex-col items-center gap-1.5 text-center" : "flex items-center gap-3"}>
                     <RadioGroupItem value={t.id} id={t.id} className={themesOnly ? "sr-only" : undefined} />
                     {themesOnly && (
-                      <div className="h-10 w-10 overflow-hidden rounded-lg border border-[#d5aa4555]">
-                        <div className="h-4 bg-[#d5aa45]" />
-                        <div className="flex h-3 items-center justify-center bg-white"><span className="text-[7px] text-slate-900">אבג</span></div>
-                        <div className="h-3 bg-[#172544]" />
+                      <div
+                        data-theme-swatch={t.id}
+                        className={`${t.id} h-10 w-10 overflow-hidden rounded-lg border`}
+                        style={{ borderColor: "hsl(var(--accent))", background: "hsl(var(--background))" }}
+                      >
+                        <div className="h-4" style={{ background: "hsl(var(--sidebar-background))" }} />
+                        <div className="flex h-3 items-center justify-center" style={{ background: "hsl(var(--card))" }}>
+                          <span className="text-[7px]" style={{ color: "hsl(var(--foreground))" }}>אבג</span>
+                        </div>
+                        <div className="h-3" style={{ background: "hsl(var(--primary))" }} />
                       </div>
                     )}
                     <div className="flex-1 text-right">

@@ -49,6 +49,12 @@ const ScreenshotTool = import.meta.env.DEV && !navigator.webdriver
   ? lazy(() => import("@/components/ScreenshotTool").then(m => ({ default: m.ScreenshotTool })))
   : null;
 
+// Interactive Galaxy S25 frame for the local Vite dev server only.
+// import.meta.env.DEV is replaced at build time, so the launcher is absent in production.
+const DevMobilePreview = import.meta.env.DEV
+  ? lazy(() => import("@/components/DevMobilePreview").then(m => ({ default: m.DevMobilePreview })))
+  : null;
+
 // Lazy load ALL pages for optimal initial bundle size
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth").then(m => ({ default: m.Auth })));
@@ -174,6 +180,7 @@ const App = () => {
                       {reminderHookEnabled && <DeferredReminderPopup />}
                       {DevChatWidget && showDevFloating && showDevChat && <Suspense fallback={null}><DevChatWidget /></Suspense>}
                       {ScreenshotTool && showDevFloating && showScreenshotTool && <Suspense fallback={null}><ScreenshotTool /></Suspense>}
+                      {DevMobilePreview && <Suspense fallback={null}><DevMobilePreview /></Suspense>}
                       <Router
                         future={{
                           v7_startTransition: true,

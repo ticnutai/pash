@@ -39,8 +39,8 @@ service.edits().tracks().update(
             "versionCodes": [VERSION],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "גרסה 1.8.6 - שיפורי תצוגה, פרשת השבוע, סידור ותיקוני יציבות"},
-                {"language": "en-US", "text": "Version 1.8.6 - weekly portion, Siddur, display, and stability improvements"},
+                {"language": "he-IL", "text": "גרסה 1.8.8 - ערכות נושא משופרות בחומש ובסידור, תצוגה מקדימה ותיקוני ממשק"},
+                {"language": "en-US", "text": "Version 1.8.8 - improved Chumash and Siddur themes, live preview, and interface fixes"},
             ]
         }]
     }

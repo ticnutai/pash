@@ -85,7 +85,7 @@ const getCorpusModeForSefer = (seferId: number): CorpusMode => {
 
 const Index = () => {
   const { displaySettings, updateDisplaySettings } = useDisplayMode();
-  const { isMobile } = useDevice();
+  const { isMobile, isTablet } = useDevice();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [corpusMode, setCorpusMode] = useState<CorpusMode>(() => {
@@ -1292,7 +1292,7 @@ const Index = () => {
             )}
 
             {/* Navigation buttons - parsha & pasuk - mobile only (desktop has it inside desktop-controls above) */}
-            {displayMode !== "luxury" && isMobile && currentParshaName && parshaAllPesukim.length > 0 && (
+            {displayMode !== "luxury" && (isMobile || isTablet) && currentParshaName && parshaAllPesukim.length > 0 && (
               <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="mt-3 flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
                 <Button
                   variant="ghost"
@@ -1393,8 +1393,8 @@ const Index = () => {
                         <LuxuryTextView
                           pesukim={localizedDisplayedPesukim}
                           expandAll={globalExpandAll}
-                          navigation={isMobile && currentParshaName && parshaAllPesukim.length > 0 ? (
-                            <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="mb-5 flex items-center justify-center gap-3 py-3 px-2" dir="rtl">
+                          navigation={(isMobile || isTablet) && currentParshaName && parshaAllPesukim.length > 0 ? (
+                            <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="flex items-center justify-center gap-3 px-2 py-3" dir="rtl">
                               <Button
                                 variant="ghost"
                                 size="icon"
