@@ -724,15 +724,8 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
       data-luxury-template={templateId}
       style={{ maxWidth: "100%", margin: "0" }}
     >
-      {/* Gold divider between the main view-mode controls and this view's tools */}
-      <div data-layout="luxury-top-divider" className="mb-4 flex items-center justify-center gap-3">
-        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[hsl(var(--accent))] to-transparent" />
-        <span className="text-2xl" style={{ color: "#c8a04d" }}>✦</span>
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[hsl(var(--accent))] to-transparent" />
-      </div>
-
-      {/* Toolbar */}
-      <div data-layout="luxury-toolbar" className="mb-4 flex w-full items-center justify-center px-1" dir="rtl">
+      {/* Toolbar sits exactly where the gold divider ornament used to be */}
+      <div data-layout="luxury-toolbar" className="mb-4 mt-1 flex w-full items-center justify-center px-1" dir="rtl">
         <div className="flex min-w-0 items-center justify-center">
           <div className="inline-flex items-center rounded-2xl border border-accent/30 bg-card/95 p-1.5 shadow-sm">
             <Button
