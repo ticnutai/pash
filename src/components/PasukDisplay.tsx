@@ -278,15 +278,16 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
             toggleSelect(pasuk);
             return;
           }
-          if (baseMinimized) {
-            setExpandedInMinimizedMode((prev) => !prev);
-          }
         }}
       >
         <CardHeader 
-          className="bg-secondary/30 relative group"
+          className={`bg-secondary/30 relative group ${baseMinimized && !selectionMode ? "cursor-pointer" : ""}`}
           style={{ padding: displayStyles.isMobile ? "0.75rem" : "1rem 1.25rem" }}
           dir="rtl"
+          onClick={() => {
+            if (selectionMode) return;
+            if (baseMinimized) setExpandedInMinimizedMode((prev) => !prev);
+          }}
         >
           {/* Top row: Badge + action icons */}
           <div className="flex items-center justify-between gap-2 mb-3">
