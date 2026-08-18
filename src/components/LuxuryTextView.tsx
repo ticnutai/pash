@@ -651,6 +651,7 @@ interface LuxuryTextViewProps {
   navigation?: ReactNode;
   settingsTitle?: string;
   commentaryStorageKey?: string;
+  availableCommentators?: Omit<CommentatorConfig, "mode" | "order">[];
 }
 
 export const LuxuryTextView = ({
@@ -659,6 +660,7 @@ export const LuxuryTextView = ({
   navigation,
   settingsTitle,
   commentaryStorageKey = "commentaryConfigs",
+  availableCommentators = ALL_COMMENTATORS,
 }: LuxuryTextViewProps) => {
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
@@ -685,14 +687,16 @@ export const LuxuryTextView = ({
       const saved = localStorage.getItem(commentaryStorageKey);
       if (saved) {
         const parsed: CommentatorConfig[] = JSON.parse(saved);
-        const ids = new Set(parsed.map((c) => c.id));
-        const extras = ALL_COMMENTATORS
-          .filter((c) => !ids.has(c.id))
-          .map((c, i) => ({ ...c, mode: "off" as CommentaryMode, order: parsed.length + i }));
-        return [...parsed, ...extras].sort((a, b) => a.order - b.order);
+        const allowedIds = new Set(availableCommentators.map((commentator) => commentator.id));
+        const retained = parsed.filter((commentator) => allowedIds.has(commentator.id));
+        const retainedIds = new Set(retained.map((commentator) => commentator.id));
+        const extras = availableCommentators
+          .filter((c) => !retainedIds.has(c.id))
+          .map((c, i) => ({ ...c, mode: "off" as CommentaryMode, order: retained.length + i }));
+        return [...retained, ...extras].sort((a, b) => a.order - b.order);
       }
     } catch { /* ignore invalid localStorage data */ }
-    return ALL_COMMENTATORS.map((c, i) => ({
+    return availableCommentators.map((c, i) => ({
       ...c,
       mode: c.id === "Rashi" ? ("inline" as CommentaryMode) : ("off" as CommentaryMode),
       order: i,

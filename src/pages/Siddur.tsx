@@ -10,6 +10,7 @@ import { FontAndColorSettingsProvider, useFontAndColorSettings } from "@/context
 import { LuxuryTextView } from "@/components/LuxuryTextView";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import type { FlatPasuk } from "@/types/torah";
+import { TEHILLIM_COMMENTATORS } from "@/hooks/useCommentaries";
 import { ColorPicker } from "@/components/ColorPicker";
 import { DEFAULT_THEME_APPEARANCE, THEME_SHADOWS, ThemeAppearanceControls, type ThemeAppearanceSettings } from "@/components/ThemeAppearanceControls";
 import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, Save, CloudUpload, Pencil, Copy, type LucideProps } from "lucide-react";
@@ -2101,6 +2102,7 @@ const TehillimPane = () => {
             navigation={chapterNavigation}
             settingsTitle="הגדרות תצוגת פירושי תהילים"
             commentaryStorageKey="tehillim-commentary-configs"
+            availableCommentators={TEHILLIM_COMMENTATORS}
           />
         </FontAndColorSettingsProvider>
       </div>

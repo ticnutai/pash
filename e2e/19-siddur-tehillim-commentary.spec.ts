@@ -24,6 +24,18 @@ test("Tehillim commentary tab reuses the full luxury commentary experience", asy
   await expect(pane.getByRole("button", { name: "מזער את כל הפסוקים" })).toBeVisible();
   await expect(pane.locator('[data-luxury-template="classic"]')).toBeVisible();
   await expect(pane.locator("[data-luxury-pasuk-text]")).not.toHaveCount(0);
+  const rashiCommentary = pane.locator("[data-luxury-commentary]").filter({ hasText: "רש״י" }).first();
+  await expect(rashiCommentary).toBeVisible({ timeout: 20_000 });
+  await expect(rashiCommentary).toContainText("אַשְׁרֵי");
+
+  await pane.getByRole("button", { name: "בחירת מפרשים" }).click();
+  const picker = page.getByRole("dialog", { name: "בחירת מפרשים" });
+  for (const commentator of ["רש״י", "אבן עזרא", "רד״ק", "מצודת דוד", "מלבי״ם"]) {
+    await expect(picker.getByRole("button", { name: commentator, exact: true })).toBeVisible();
+  }
+  await picker.getByRole("button", { name: "רד״ק", exact: true }).click();
+  await picker.getByRole("button", { name: "שמור", exact: true }).click();
+  await expect(pane.locator("[data-luxury-commentary]").filter({ hasText: "רד״ק" }).first()).toBeVisible({ timeout: 20_000 });
 
   await pane.getByRole("button", { name: "מזער את כל הפסוקים" }).click();
   await expect(pane.getByRole("button", { name: "הרחב את כל הפסוקים" })).toBeVisible();

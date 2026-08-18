@@ -27,6 +27,22 @@ export const ALL_COMMENTATORS: Omit<CommentatorConfig, "mode" | "order">[] = [
   { id: "Malbim",     hebrewName: "מלב״ים" },
 ];
 
+export const TEHILLIM_COMMENTATORS: Omit<CommentatorConfig, "mode" | "order">[] = [
+  { id: "Rashi", hebrewName: "רש״י" },
+  { id: "Ibn_Ezra", hebrewName: "אבן עזרא" },
+  { id: "Radak", hebrewName: "רד״ק" },
+  { id: "Metzudat_David", hebrewName: "מצודת דוד" },
+  { id: "Malbim", hebrewName: "מלבי״ם" },
+];
+
+const TEHILLIM_SEFARIA_TITLES: Record<string, string> = {
+  Rashi: "Rashi on Psalms",
+  Ibn_Ezra: "Ibn Ezra on Psalms",
+  Radak: "Radak on Psalms",
+  Metzudat_David: "Metzudat David on Psalms",
+  Malbim: "Malbim on Psalms",
+};
+
 /** Local JSON files available per commentator per sefer (1-based).
  * These are bundled in the app and work offline.
  * Supabase is always tried first (online), local is the fallback. */
@@ -149,6 +165,40 @@ async function loadChapterFromLocal(
   }
 }
 
+const flattenCommentary = (value: unknown): string[] => {
+  if (typeof value === "string") return [value];
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(flattenCommentary);
+};
+
+async function loadTehillimChapterFromSefaria(
+  commentatorId: string,
+  perek: number,
+): Promise<CommentaryMap | null> {
+  const title = TEHILLIM_SEFARIA_TITLES[commentatorId];
+  if (!title) return null;
+
+  try {
+    const ref = encodeURIComponent(`${title} ${perek}`);
+    const response = await fetch(`https://www.sefaria.org/api/v3/texts/${ref}?version=primary`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return null;
+    const payload = await response.json() as { versions?: Array<{ language?: string; text?: unknown[] }> };
+    const version = payload.versions?.find(item => item.language === "he") ?? payload.versions?.[0];
+    if (!Array.isArray(version?.text)) return null;
+
+    const result = new Map<string, string>();
+    version.text.forEach((verseComments, index) => {
+      const text = cleanCommentaryText(flattenCommentary(verseComments).join(" "));
+      if (text) result.set(commentaryKey(27, perek, index + 1), text);
+    });
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchChapter(
   commentatorId: string,
   seferId: number,
@@ -181,7 +231,17 @@ async function fetchChapter(
     // fall through to local JSON
   }
 
-  // 2. Fall back to local bundled JSON (always works offline)
+  // 2. Tehillim commentaries are loaded directly from Sefaria until their
+  // complete offline datasets are bundled/uploaded to the project database.
+  if (seferId === 27) {
+    const sefaria = await loadTehillimChapterFromSefaria(commentatorId, perek);
+    if (sefaria !== null) {
+      setCachedChapter(commentatorId, ck, sefaria);
+      return sefaria;
+    }
+  }
+
+  // 3. Fall back to local bundled JSON (always works offline)
   const local = await loadChapterFromLocal(commentatorId, seferId, perek);
   if (local !== null) {
     setCachedChapter(commentatorId, ck, local);
