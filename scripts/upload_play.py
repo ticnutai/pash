@@ -50,8 +50,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "גרסה 1.8.10 - פירושים אמיתיים לתהילים, בחירת מפרשים ומזעור והרחבה"},
-                {"language": "en-US", "text": "Version 1.8.10 - Psalms commentaries, commentator selection, and expand or minimize controls"},
+                {"language": "he-IL", "text": "גרסה 1.8.11 - כל פירושי תהילים מובנים באפליקציה וזמינים גם ללא אינטרנט"},
+                {"language": "en-US", "text": "Version 1.8.11 - all Psalms commentaries are bundled and available offline"},
             ]
         }]
     }

@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-test("Tehillim commentary tab reuses the full luxury commentary experience", async ({ page }) => {
+test("Tehillim commentary tab reuses the full luxury commentary experience offline", async ({ page }) => {
   const pageErrors: string[] = [];
+  let sefariaRequests = 0;
+  page.on("request", request => {
+    if (request.url().includes("sefaria.org")) sefariaRequests += 1;
+  });
   page.on("pageerror", error => {
     pageErrors.push(error.message);
     console.log(`PAGE_ERROR: ${error.stack ?? error.message}`);
@@ -13,6 +17,9 @@ test("Tehillim commentary tab reuses the full luxury commentary experience", asy
   const tabs = page.locator('[data-layout="tehillim-content-tabs"]');
   await expect(tabs).toBeVisible();
   await expect(tabs.getByRole("button", { name: "תהילים", exact: true })).toHaveAttribute("aria-pressed", "true");
+  // Block every external HTTPS request while keeping locally bundled Vite
+  // chunks available, matching an installed Capacitor application offline.
+  await page.route(/^https:\/\//, route => route.abort("internetdisconnected"));
   await tabs.getByRole("button", { name: "פירושים", exact: true }).click();
   await expect(tabs.getByRole("button", { name: "פירושים", exact: true })).toHaveAttribute("aria-pressed", "true");
 
@@ -65,5 +72,6 @@ test("Tehillim commentary tab reuses the full luxury commentary experience", asy
 
   await pane.getByRole("button", { name: "פרק הבא" }).click();
   await expect(pane.locator('[data-layout="tehillim-commentary-navigation"]')).toContainText("פרק ב");
+  expect(sefariaRequests).toBe(0);
   expect(pageErrors).toEqual([]);
 });

@@ -35,12 +35,13 @@ export const TEHILLIM_COMMENTATORS: Omit<CommentatorConfig, "mode" | "order">[] 
   { id: "Malbim", hebrewName: "מלבי״ם" },
 ];
 
-const TEHILLIM_SEFARIA_TITLES: Record<string, string> = {
-  Rashi: "Rashi on Psalms",
-  Ibn_Ezra: "Ibn Ezra on Psalms",
-  Radak: "Radak on Psalms",
-  Metzudat_David: "Metzudat David on Psalms",
-  Malbim: "Malbim on Psalms",
+type BundledCommentary = { default: { text: unknown[] } };
+const LOCAL_TEHILLIM_LOADERS: Record<string, () => Promise<BundledCommentary>> = {
+  Rashi: () => import("@/data/sefaria/Rashi_on_Psalms.json"),
+  Ibn_Ezra: () => import("@/data/sefaria/Ibn_Ezra_on_Psalms.json"),
+  Radak: () => import("@/data/sefaria/Radak_on_Psalms.json"),
+  Metzudat_David: () => import("@/data/sefaria/Metzudat_David_on_Psalms.json"),
+  Malbim: () => import("@/data/sefaria/Malbim_on_Psalms.json"),
 };
 
 /** Local JSON files available per commentator per sefer (1-based).
@@ -144,6 +145,24 @@ async function loadChapterFromLocal(
   seferId: number,
   perek: number
 ): Promise<CommentaryMap | null> {
+  if (seferId === 27) {
+    const loader = LOCAL_TEHILLIM_LOADERS[commentatorId];
+    if (!loader) return null;
+    try {
+      const mod = await loader();
+      const chapter = mod.default.text[perek - 1];
+      if (!Array.isArray(chapter)) return null;
+      const result = new Map<string, string>();
+      chapter.forEach((verseComments, index) => {
+        const text = cleanCommentaryText(flattenCommentary(verseComments).join(" "));
+        if (text) result.set(commentaryKey(27, perek, index + 1), text);
+      });
+      return result;
+    } catch {
+      return null;
+    }
+  }
+
   const fileName = LOCAL_FILES[commentatorId]?.[seferId];
   if (!fileName) return null;
   try {
@@ -171,34 +190,6 @@ const flattenCommentary = (value: unknown): string[] => {
   return value.flatMap(flattenCommentary);
 };
 
-async function loadTehillimChapterFromSefaria(
-  commentatorId: string,
-  perek: number,
-): Promise<CommentaryMap | null> {
-  const title = TEHILLIM_SEFARIA_TITLES[commentatorId];
-  if (!title) return null;
-
-  try {
-    const ref = encodeURIComponent(`${title} ${perek}`);
-    const response = await fetch(`https://www.sefaria.org/api/v3/texts/${ref}?version=primary`, {
-      headers: { Accept: "application/json" },
-    });
-    if (!response.ok) return null;
-    const payload = await response.json() as { versions?: Array<{ language?: string; text?: unknown[] }> };
-    const version = payload.versions?.find(item => item.language === "he") ?? payload.versions?.[0];
-    if (!Array.isArray(version?.text)) return null;
-
-    const result = new Map<string, string>();
-    version.text.forEach((verseComments, index) => {
-      const text = cleanCommentaryText(flattenCommentary(verseComments).join(" "));
-      if (text) result.set(commentaryKey(27, perek, index + 1), text);
-    });
-    return result;
-  } catch {
-    return null;
-  }
-}
-
 async function fetchChapter(
   commentatorId: string,
   seferId: number,
@@ -208,6 +199,15 @@ async function fetchChapter(
   const ck = `${seferId}-${perek}`;
 
   if (cache.has(ck)) return cache.get(ck)!;
+
+  // Tehillim ships with all five complete commentary datasets. Prefer them
+  // before any cloud query so normal reading performs no commentary request.
+  if (seferId === 27) {
+    const localTehillim = await loadChapterFromLocal(commentatorId, seferId, perek);
+    const bundledResult = localTehillim ?? new Map<string, string>();
+    setCachedChapter(commentatorId, ck, bundledResult);
+    return bundledResult;
+  }
 
   // 1. Try Supabase (cloud, fast, all books)
   try {
@@ -231,17 +231,7 @@ async function fetchChapter(
     // fall through to local JSON
   }
 
-  // 2. Tehillim commentaries are loaded directly from Sefaria until their
-  // complete offline datasets are bundled/uploaded to the project database.
-  if (seferId === 27) {
-    const sefaria = await loadTehillimChapterFromSefaria(commentatorId, perek);
-    if (sefaria !== null) {
-      setCachedChapter(commentatorId, ck, sefaria);
-      return sefaria;
-    }
-  }
-
-  // 3. Fall back to local bundled JSON (always works offline)
+  // 2. Fall back to local bundled JSON (always works offline)
   const local = await loadChapterFromLocal(commentatorId, seferId, perek);
   if (local !== null) {
     setCachedChapter(commentatorId, ck, local);
