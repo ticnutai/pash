@@ -226,6 +226,7 @@ const PasukRow = ({
   commentaries,
   isMobile,
   commentaryLabelPosition,
+  minimizedMode = false,
 }: {
   pasuk: FlatPasuk;
   numColor: string;
@@ -237,9 +238,11 @@ const PasukRow = ({
   commentaries: CommentaryEntry[];
   isMobile: boolean;
   commentaryLabelPosition: CommentaryLabelPosition;
+  minimizedMode?: boolean;
 }) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [openCommentaries, setOpenCommentaries] = useState<Set<string>>(new Set());
+  const [expandedFromMinimized, setExpandedFromMinimized] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTouchStart = () => {
@@ -275,7 +278,7 @@ const PasukRow = ({
       onTouchMove={isMobile ? cancelLongPress : undefined}
     >
       {/* Mobile long-press action overlay */}
-      {isMobile && actionsOpen && (
+      {!minimizedMode && isMobile && actionsOpen && (
         <div className="absolute top-0 left-0 z-50 flex items-center gap-1 bg-background border border-border rounded-lg shadow-lg p-1" dir="ltr">
           <button
             onTouchEnd={(e) => { e.stopPropagation(); onToggleBookmark(pasuk); setActionsOpen(false); }}
@@ -308,7 +311,7 @@ const PasukRow = ({
         </div>
       )}
       {/* Action buttons - desktop only */}
-      {!isMobile && <div className="mb-2 w-full flex justify-start" dir="ltr">
+      {!minimizedMode && !isMobile && <div className="mb-2 w-full flex justify-start" dir="ltr">
         <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
           <PopoverTrigger asChild>
             <button
@@ -384,7 +387,21 @@ const PasukRow = ({
         </Popover>
       </div>}
 
-      <p className="m-0" dir="rtl">
+      <p
+        className={cn("m-0", minimizedMode && "cursor-pointer rounded-md px-2 py-1 transition-colors hover:bg-accent/10")}
+        dir="rtl"
+        role={minimizedMode ? "button" : undefined}
+        tabIndex={minimizedMode ? 0 : undefined}
+        aria-expanded={minimizedMode ? expandedFromMinimized : undefined}
+        aria-label={minimizedMode ? `${expandedFromMinimized ? "סגור" : "פתח"} מפרשים לפסוק ${pasukMarker}` : undefined}
+        onClick={minimizedMode ? () => setExpandedFromMinimized((previous) => !previous) : undefined}
+        onKeyDown={minimizedMode ? (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setExpandedFromMinimized((previous) => !previous);
+          }
+        } : undefined}
+      >
         {/* Pasuk number */}
         <span
           className={cn(
@@ -411,7 +428,7 @@ const PasukRow = ({
       </p>
 
       {/* Click-mode toggle buttons — outside <p> to avoid bidi collision */}
-      {commentaries.some((c) => c.mode === "click") && (
+      {!minimizedMode && commentaries.some((c) => c.mode === "click") && (
         <div dir="rtl" className="mt-0.5 flex flex-wrap gap-1 justify-end">
           {commentaries
             .filter((c) => c.mode === "click")
@@ -435,7 +452,9 @@ const PasukRow = ({
 
       {/* Commentary blocks */}
       {commentaries.map((c) => {
-        const show = c.mode === "inline" || (c.mode === "click" && openCommentaries.has(c.id));
+        const show = minimizedMode
+          ? expandedFromMinimized
+          : c.mode === "inline" || (c.mode === "click" && openCommentaries.has(c.id));
         if (!show) return null;
         return (
           <CommentaryBlock
@@ -659,9 +678,9 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
   const effectiveSize = Math.round(rawSize);
   const effectiveLineHeight = lineHeightOverride ?? parseFloat(template.lineHeight);
 
-  // In the continuous Chumash view, minimizing keeps a compact chapter index
-  // visible; expanding restores the complete text and commentaries.
-  const visiblePesukim = expandAll ? displayedPesukim : [];
+  // Minimizing keeps the verses visible. Each verse independently reveals its
+  // commentaries when tapped, while the expanded view keeps the full layout.
+  const visiblePesukim = displayedPesukim;
 
   // Group only visible verses to keep this mode lightweight on mobile.
   useEffect(() => {
@@ -816,8 +835,34 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
 
       {/* Content */}
       {!expandAll && (
-        <div data-theme-card className="rounded-xl border border-accent/30 bg-card/95 px-4 py-5 text-center text-sm font-semibold text-muted-foreground shadow-sm">
-          התצוגה ממוזערת — לחץ על כפתור ההרחבה כדי להציג את כל הפסוקים והמפרשים
+        <div className="space-y-2" dir="rtl">
+          {visiblePesukim.map((pasuk) => {
+            const pasukId = `${pasuk.sefer}-${pasuk.perek}-${pasuk.pasuk_num}`;
+            return (
+              <PasukRow
+                key={pasuk.id}
+                pasuk={pasuk}
+                numColor={template.pasukNumColor}
+                fontSize={effectiveSize}
+                isBookmarked={isBookmarked(pasukId)}
+                onToggleBookmark={handleToggleBookmark}
+                seferId={pasuk.sefer}
+                templateId="minimal"
+                commentaries={commentaryConfigs
+                  .filter((c) => c.mode !== "off")
+                  .map((c) => ({
+                    id: c.id,
+                    hebrewName: c.hebrewName,
+                    text: commentaryMaps[c.id]?.get(pasukId) ?? "",
+                    mode: c.mode,
+                  }))
+                  .filter((c) => c.text !== "")}
+                isMobile={isMobile}
+                commentaryLabelPosition={commentaryLabelPosition}
+                minimizedMode
+              />
+            );
+          })}
         </div>
       )}
       {expandAll && (
@@ -940,7 +985,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
       </>
       )}
 
-      {expandAll && hasMore && (
+      {hasMore && (
         <div ref={loadMoreRef} className="flex justify-center mt-5">
           <Button
             variant="outline"
