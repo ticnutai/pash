@@ -404,7 +404,13 @@ const TAB_PREVIEW_TEXT: Record<TextSettingsTab, string> = {
 };
 
 /* ─── Main component ─────────────────────────────────────── */
-export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: TextSettingsTab }) => {
+export const TextDisplaySettings = ({
+  initialTab = "pasuk",
+  showPasukCount = true,
+}: {
+  initialTab?: TextSettingsTab;
+  showPasukCount?: boolean;
+}) => {
   const {
     settings: contextSettings,
     updateSettings: commitSettings,
@@ -450,17 +456,17 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
 
   const saveEditor = useCallback(() => {
     if (draftSettings) commitSettings(draftSettings);
-    if (draftPasukCount !== baselinePasukCount) updateDisplaySettings({ pasukCount: draftPasukCount });
+    if (showPasukCount && draftPasukCount !== baselinePasukCount) updateDisplaySettings({ pasukCount: draftPasukCount });
     setPreviewSettings(null);
     setDraftSettings(null);
     setBaselineSettings(null);
     setOpen(false);
-  }, [baselinePasukCount, commitSettings, draftPasukCount, draftSettings, setPreviewSettings, updateDisplaySettings]);
+  }, [baselinePasukCount, commitSettings, draftPasukCount, draftSettings, setPreviewSettings, showPasukCount, updateDisplaySettings]);
 
   const hasChanges = draftSettings !== null
     && baselineSettings !== null
     && (JSON.stringify(draftSettings) !== JSON.stringify(baselineSettings)
-      || draftPasukCount !== baselinePasukCount);
+      || (showPasukCount && draftPasukCount !== baselinePasukCount));
 
   // Scoped settings helpers — map per-tab fields onto the generic keys that SettingsControls reads
   const scopedForTab = (tab: TextSettingsTab): ReturnType<typeof useFontAndColorSettings>["settings"] => {
@@ -773,7 +779,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
               style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y" }}
             >
               <TabsContent value="pasuk" className="mt-0 px-3 pb-4">
-                <div className="mb-4 rounded-xl border border-accent/25 bg-accent/5 p-3">
+                {showPasukCount && <div className="mb-4 rounded-xl border border-accent/25 bg-accent/5 p-3">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 font-bold">
                       <Hash className="h-4 w-4 text-accent" />
@@ -795,7 +801,7 @@ export const TextDisplaySettings = ({ initialTab = "pasuk" }: { initialTab?: Tex
                       </Button>
                     ))}
                   </div>
-                </div>
+                </div>}
                 <SettingsControls
                   sizeValue={settings.pasukSize}     onSizeChange={(v) => updateSettings({ pasukSize: v })}     sizeLabel="גודל פסוקים"
                   fontValue={settings.pasukFont}     onFontChange={(f) => updateSettings({ pasukFont: f })}     fontLabel="גופן פסוקים"

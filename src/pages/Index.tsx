@@ -10,6 +10,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { GlobalSearchTrigger } from "@/components/GlobalSearchTrigger";
 import { InlineSearch } from "@/components/InlineSearch";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
+import { FontAndColorSettingsProvider } from "@/contexts/FontAndColorSettingsContext";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import { PasukSimpleNavigator } from "@/components/PasukSimpleNavigator";
 // ReadingProgress removed - replaced with nav buttons
@@ -924,7 +925,7 @@ const Index = () => {
                 </Button>
                 </span>
 
-                <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
+                {displayMode !== "luxury" && <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>}
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
                 {/* Mode switcher: in the regular layout all destinations stay on this row. */}
@@ -1084,7 +1085,7 @@ const Index = () => {
 
               {/* Left: Icons clustered together + Search at far left */}
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>
+                {displayMode !== "luxury" && <span data-layout="btn-text-settings" data-layout-label="✏️ הגדרות טקסט"><TextDisplaySettings /></span>}
                 <span data-layout="btn-selection" data-layout-label="☑️ מצב בחירה"><SelectionModeButton /></span>
                 <span data-layout="btn-search" data-layout-label="🔍 חיפוש"><GlobalSearchTrigger onNavigateToPasuk={handleSearchNavigate} /></span>
                 <span data-layout="btn-themes" data-layout-label="🎨 ערכות נושא">
@@ -1154,7 +1155,7 @@ const Index = () => {
         <div data-layout="desktop-controls" data-layout-label="שורת כלים" className="hidden md:flex justify-between items-center gap-2">
           {/* Left side: toolbar buttons */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span data-layout="btn-text-settings-inline" data-layout-label="✏️ הגדרות טקסט (שורת כלים)"><TextDisplaySettings /></span>
+            {displayMode !== "luxury" && <span data-layout="btn-text-settings-inline" data-layout-label="✏️ הגדרות טקסט (שורת כלים)"><TextDisplaySettings /></span>}
             <span data-layout="btn-view-mode" data-layout-label="👁️ מצב תצוגה"><ViewModeToggle seferId={selectedSefer} /></span>
             <span data-layout="btn-user-content" data-layout-label="📂 התוכן שלי">
             <Button
@@ -1286,7 +1287,7 @@ const Index = () => {
                   <ViewModeToggle seferId={selectedSefer} />
                 </div>
                 <div className="flex h-11 w-11 items-center justify-center justify-self-end" dir="rtl">
-                  <TextDisplaySettings />
+                  {displayMode !== "luxury" && <TextDisplaySettings />}
                 </div>
               </div>
             )}
@@ -1390,6 +1391,7 @@ const Index = () => {
                       key={`${selectedPerek}-${selectedParsha}`}
                     >
                       {displayMode === "luxury" ? (
+                        <FontAndColorSettingsProvider scopeKey="luxury">
                         <LuxuryTextView
                           pesukim={localizedDisplayedPesukim}
                           expandAll={globalExpandAll}
@@ -1424,6 +1426,7 @@ const Index = () => {
                             </div>
                           ) : null}
                         />
+                        </FontAndColorSettingsProvider>
                       ) : displayMode === "chumash" ? (
                         <ChumashView 
                           pesukim={localizedDisplayedPesukim} 

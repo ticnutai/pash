@@ -50,8 +50,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "גרסה 1.8.8 - ערכות נושא משופרות בחומש ובסידור, תצוגה מקדימה ותיקוני ממשק"},
-                {"language": "en-US", "text": "Version 1.8.8 - improved Chumash and Siddur themes, live preview, and interface fixes"},
+                {"language": "he-IL", "text": "גרסה 1.8.9 - שיפור תצוגת מובייל, ניווט פסוקים ותצוגה מקדימה למפתחים"},
+                {"language": "en-US", "text": "Version 1.8.9 - improved mobile layout, verse navigation, and developer preview"},
             ]
         }]
     }

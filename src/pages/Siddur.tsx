@@ -6,7 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useSyncedState } from "@/hooks/useSyncedState";
 
-import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+import { FontAndColorSettingsProvider, useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+import { LuxuryTextView } from "@/components/LuxuryTextView";
+import { MinimizeButton } from "@/components/MinimizeButton";
+import type { FlatPasuk } from "@/types/torah";
 import { ColorPicker } from "@/components/ColorPicker";
 import { DEFAULT_THEME_APPEARANCE, THEME_SHADOWS, ThemeAppearanceControls, type ThemeAppearanceSettings } from "@/components/ThemeAppearanceControls";
 import { ArrowLeft, ChevronDown, ChevronUp, BookMarked, Loader2, BookOpen, ExternalLink, LayoutList, AlignJustify, ScrollText, Layers, Sunrise, Sun, Moon, Sparkles, Flame, Star, Leaf, Heart, Book, Columns2, PanelRightOpen, Palette, Save, CloudUpload, Pencil, Copy, type LucideProps } from "lucide-react";
@@ -1912,6 +1915,8 @@ const TehillimPane = () => {
   const [mode,    setMode]    = useState<"select" | "daily" | "continuous">(
     () => (localStorage.getItem("tehillim-view-mode") as "select" | "daily" | "continuous") ?? "select"
   );
+  const [contentTab, setContentTab] = useState<"text" | "commentary">("text");
+  const [commentaryExpanded, setCommentaryExpanded] = useState(true);
   const { settings: tehillimSettings } = useFontAndColorSettings();
   const textRef               = useRef<HTMLDivElement>(null);
   const continuousSentinelRef = useRef<HTMLDivElement>(null);
@@ -2003,6 +2008,105 @@ const TehillimPane = () => {
     display: "inline-block", marginLeft: "0.3em",
   };
 
+  const contentTabs = (
+    <div className="mb-4 flex justify-center" data-layout="tehillim-content-tabs">
+      <div
+        className="inline-flex items-center gap-1 rounded-2xl border p-1 shadow-sm"
+        style={{ background: "hsl(var(--card))", borderColor: `${theme.accentColor}55` }}
+      >
+        {([[
+          "text", "תהילים",
+        ], [
+          "commentary", "פירושים",
+        ]] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={contentTab === id}
+            onClick={() => setContentTab(id)}
+            className="min-w-[94px] rounded-xl border px-4 py-2 text-sm font-bold transition-all"
+            style={contentTab === id ? {
+              color: "hsl(var(--primary))",
+              borderColor: theme.accentColor,
+              background: `${theme.accentColor}10`,
+              boxShadow: `0 0 0 1px ${theme.accentColor}18`,
+            } : {
+              color: "hsl(var(--primary))",
+              borderColor: "transparent",
+              background: "transparent",
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (contentTab === "commentary") {
+    // 27 is the stable application id reserved for Tehillim commentary rows.
+    // Uploaded rows in `commentaries` can therefore use sefer_id=27 and are
+    // picked up automatically by the same loader used by Chumash commentaries.
+    const commentaryPesukim: FlatPasuk[] = current.lines.map((line, index) => ({
+      id: chapter * 1000 + index + 1,
+      sefer: 27,
+      sefer_name: "תהילים",
+      perek: chapter,
+      pasuk_num: index + 1,
+      text: stripText(cleanLine(line), showNikud, showTaamim),
+      content: [],
+    }));
+
+    const chapterNavigation = (
+      <div className="flex min-w-0 items-center justify-center gap-2" data-layout="tehillim-commentary-navigation">
+        <button
+          type="button"
+          aria-label="פרק קודם"
+          disabled={chapter <= 1}
+          onClick={() => setChapter(value => Math.max(1, value - 1))}
+          className="h-8 w-8 rounded-lg text-lg disabled:opacity-30"
+        >
+          ›
+        </button>
+        <span className="min-w-[92px] text-center text-sm font-bold text-primary">פרק {heNum(chapter)}</span>
+        <button
+          type="button"
+          aria-label="פרק הבא"
+          disabled={chapter >= 150}
+          onClick={() => setChapter(value => Math.min(150, value + 1))}
+          className="h-8 w-8 rounded-lg text-lg disabled:opacity-30"
+        >
+          ‹
+        </button>
+      </div>
+    );
+
+    return (
+      <div className="pb-10 px-1" dir="rtl" data-layout="tehillim-commentary-pane">
+        <OrnamentTitle text="תהילים" fontSize={tehillimSettings.tehillimSize} />
+        <Divider />
+        {contentTabs}
+        <div className="mb-2 flex justify-center">
+          <MinimizeButton
+            variant="global"
+            isMinimized={!commentaryExpanded}
+            onClick={() => setCommentaryExpanded(value => !value)}
+          />
+        </div>
+        <FontAndColorSettingsProvider scopeKey="tehillim-commentary">
+          <LuxuryTextView
+            key={`tehillim-commentary-${chapter}`}
+            pesukim={commentaryPesukim}
+            expandAll={commentaryExpanded}
+            navigation={chapterNavigation}
+            settingsTitle="הגדרות תצוגת פירושי תהילים"
+            commentaryStorageKey="tehillim-commentary-configs"
+          />
+        </FontAndColorSettingsProvider>
+      </div>
+    );
+  }
+
   const renderVerseCard = (lines: string[], highlightPasuk: number | null, trackRefs = false) => (
     <div className="rounded-xl border border-border/50 py-5 space-y-3" style={{
       background: ornate ? "linear-gradient(180deg, #fffdfa 0%, #fff8eb 100%)" : "hsl(var(--card))",
@@ -2034,6 +2138,7 @@ const TehillimPane = () => {
     <div className="pb-10 px-1" dir="rtl">
       <OrnamentTitle text="תהילים" fontSize={tehillimSettings.tehillimSize} />
       <Divider />
+      {contentTabs}
 
       {/* ── Mode toggle — 3 pills ── */}
       <div className="flex justify-center mb-4">

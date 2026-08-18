@@ -16,6 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { createPortal } from "react-dom";
+import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 
 // ─── Template definitions ────────────────────────────────────────────────────
 
@@ -93,14 +94,30 @@ const TEMPLATES: Template[] = [
 // ─── Perek Header ─────────────────────────────────────────────────────────────
 
 const PerekHeader = ({ perek, style }: { perek: number; style: Template["perekStyle"] }) => {
+  const { settings } = useFontAndColorSettings();
+  const titleStyles = useTextDisplayStyles("title");
   const label = `פרק ${toHebrewNumber(perek)}`;
+  const titleTextStyle = {
+    fontFamily: settings.titleFont,
+    fontSize: `${settings.titleSize}px`,
+    fontWeight: settings.titleBold ? 700 : 400,
+    lineHeight: titleStyles.lineHeight,
+    letterSpacing: titleStyles.letterSpacing,
+    wordSpacing: titleStyles.wordSpacing,
+    textAlign: titleStyles.textAlign,
+  };
+  const titleContainerStyle = {
+    maxWidth: titleStyles.maxWidth,
+    marginInline: "auto",
+    marginBottom: titleStyles.gap,
+  };
 
   if (style === "ornate") {
     return (
-      <div className="text-center mb-6 relative">
+      <div className="text-center relative" style={titleContainerStyle}>
         <div className="flex items-center justify-center gap-3">
           <span style={{ color: "#c8a04d", fontSize: "0.7em" }}>❧</span>
-          <span className="font-bold tracking-wide text-[#c8a04d]" style={{ fontSize: "0.8em", fontFamily: "inherit" }}>{label}</span>
+          <span data-luxury-perek-title className="tracking-wide text-[#c8a04d]" style={titleTextStyle}>{label}</span>
           <span style={{ color: "#c8a04d", fontSize: "0.7em", transform: "scaleX(-1)", display: "inline-block" }}>❧</span>
         </div>
         <div className="mx-auto mt-2" style={{ width: "50%", height: "1px", background: "linear-gradient(90deg, transparent, #c8a04d, transparent)" }} />
@@ -109,23 +126,23 @@ const PerekHeader = ({ perek, style }: { perek: number; style: Template["perekSt
   }
   if (style === "simple") {
     return (
-      <div className="mb-4 text-center">
-        <span className="text-sm text-muted-foreground font-medium">{label}</span>
+      <div className="text-center" style={titleContainerStyle}>
+        <span data-luxury-perek-title className="text-muted-foreground" style={titleTextStyle}>{label}</span>
       </div>
     );
   }
   if (style === "underline") {
     return (
-      <div className="mb-6 text-center border-b border-accent/40 pb-2">
-        <span className="text-base font-bold text-accent">{label}</span>
+      <div className="text-center border-b border-accent/40 pb-2" style={titleContainerStyle}>
+        <span data-luxury-perek-title className="text-accent" style={titleTextStyle}>{label}</span>
       </div>
     );
   }
   // badge
   return (
-    <div className="mb-5 flex items-center gap-3">
+    <div className="flex items-center gap-3" style={titleContainerStyle}>
       <div className="flex-1 h-px bg-border" />
-      <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">{label}</span>
+      <span data-luxury-perek-title className="bg-primary px-3 py-1 text-primary-foreground rounded-full" style={titleTextStyle}>{label}</span>
       <div className="flex-1 h-px bg-border" />
     </div>
   );
@@ -148,6 +165,8 @@ const CommentaryBlock = ({
   sourceText: string;
   labelPosition: CommentaryLabelPosition;
 }) => {
+  const { settings } = useFontAndColorSettings();
+  const commentaryStyles = useTextDisplayStyles("commentary");
   const stripHebrewMarks = (value: string) => value
     .normalize("NFD")
     .replace(/[\u0591-\u05C7]/g, "")
@@ -173,12 +192,23 @@ const CommentaryBlock = ({
   const parts = text.split(/(\[\[B\]\][\s\S]*?\[\[\/B\]\])/g).filter(Boolean);
   return (
   <div
+    data-luxury-commentary
     dir="rtl"
     className={cn(
       "relative mt-3 mb-1 border-r-2 border-[#c8a04d]/60 pr-3 animate-fade-in",
       labelPosition === "side" && "sm:-mr-[1.1rem] sm:pr-4",
     )}
-    style={{ fontSize: `${Math.max(fontSize - 4, 13)}px`, lineHeight: 1.8 }}
+    style={{
+      maxWidth: commentaryStyles.maxWidth,
+      marginInline: "auto",
+      marginBottom: commentaryStyles.gap,
+      fontFamily: settings.commentaryFont,
+      fontSize: `${settings.commentarySize || Math.max(fontSize - 4, 13)}px`,
+      fontWeight: settings.commentaryBold ? 700 : 400,
+      lineHeight: commentaryStyles.lineHeight,
+      letterSpacing: commentaryStyles.letterSpacing,
+      wordSpacing: commentaryStyles.wordSpacing,
+    }}
   >
     <div className={cn(
       "mb-1.5 flex w-full justify-start",
@@ -193,7 +223,7 @@ const CommentaryBlock = ({
     </div>
     <div
       className="w-full text-foreground/80"
-      style={{ textAlign: "justify", textAlignLast: "right" }}
+      style={{ textAlign: commentaryStyles.textAlign, textAlignLast: commentaryStyles.textAlign === "justify" ? "right" : undefined }}
     >
       {parts.map((part, index) => {
         const bold = part.startsWith("[[B]]") && part.endsWith("[[/B]]");
@@ -240,6 +270,8 @@ const PasukRow = ({
   commentaryLabelPosition: CommentaryLabelPosition;
   minimizedMode?: boolean;
 }) => {
+  const { settings } = useFontAndColorSettings();
+  const pasukStyles = useTextDisplayStyles("pasuk");
   const [actionsOpen, setActionsOpen] = useState(false);
   const [openCommentaries, setOpenCommentaries] = useState<Set<string>>(new Set());
   const [expandedFromMinimized, setExpandedFromMinimized] = useState(false);
@@ -272,7 +304,7 @@ const PasukRow = ({
         !isMinimal && "rounded-xl px-3 py-2",
         isOrnate && "bg-gradient-to-l from-accent/5 via-transparent to-accent/5 border border-accent/15",
       )}
-      style={{ margin: "0 0 0.65em", minHeight: "1.6em" }}
+      style={{ margin: `0 0 ${pasukStyles.gap}`, minHeight: "1.6em" }}
       onTouchStart={isMobile ? handleTouchStart : undefined}
       onTouchEnd={isMobile ? cancelLongPress : undefined}
       onTouchMove={isMobile ? cancelLongPress : undefined}
@@ -388,6 +420,7 @@ const PasukRow = ({
       </div>}
 
       <p
+        data-luxury-pasuk-text
         className={cn("m-0", minimizedMode && "cursor-pointer rounded-md px-2 py-1 transition-colors hover:bg-accent/10")}
         dir="rtl"
         role={minimizedMode ? "button" : undefined}
@@ -401,6 +434,17 @@ const PasukRow = ({
             setExpandedFromMinimized((previous) => !previous);
           }
         } : undefined}
+        style={{
+          maxWidth: pasukStyles.maxWidth,
+          marginInline: "auto",
+          fontFamily: settings.pasukFont,
+          fontSize: `${fontSize}px`,
+          fontWeight: settings.pasukBold ? 700 : 400,
+          lineHeight: pasukStyles.lineHeight,
+          textAlign: pasukStyles.textAlign,
+          letterSpacing: pasukStyles.letterSpacing,
+          wordSpacing: pasukStyles.wordSpacing,
+        }}
       >
         {/* Pasuk number */}
         <span
@@ -483,6 +527,7 @@ interface SettingsPanelProps {
   commentaryLabelPosition: CommentaryLabelPosition;
   onCommentaryLabelPositionChange: (position: CommentaryLabelPosition) => void;
   onClose: () => void;
+  title?: string;
 }
 
 const SettingsPanel = ({
@@ -495,17 +540,18 @@ const SettingsPanel = ({
   commentaryLabelPosition,
   onCommentaryLabelPositionChange,
   onClose,
+  title = "הגדרות תצוגת שמו\"ת",
 }: SettingsPanelProps) => createPortal((
   <div
     dir="rtl"
     data-testid="luxury-display-settings-sheet"
     role="dialog"
     aria-modal="false"
-    aria-label="הגדרות תצוגת שמו״ת"
+    aria-label={title}
     className="fixed inset-x-0 bottom-0 z-[1000] flex h-[50dvh] max-h-[50dvh] flex-col overflow-hidden rounded-t-2xl border border-b-0 border-accent/40 bg-card shadow-2xl animate-in slide-in-from-bottom duration-300"
   >
     <div className="flex shrink-0 items-center justify-between border-b border-accent/25 bg-card px-4 py-3">
-      <h3 className="font-bold text-base text-foreground">הגדרות תצוגת שמו"ת</h3>
+      <h3 className="font-bold text-base text-foreground">{title}</h3>
       <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full" aria-label="סגור הגדרות תצוגה">
         <X className="h-4 w-4" />
       </Button>
@@ -603,9 +649,17 @@ interface LuxuryTextViewProps {
   pesukim: FlatPasuk[];
   expandAll?: boolean;
   navigation?: ReactNode;
+  settingsTitle?: string;
+  commentaryStorageKey?: string;
 }
 
-export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: LuxuryTextViewProps) => {
+export const LuxuryTextView = ({
+  pesukim,
+  expandAll = true,
+  navigation,
+  settingsTitle,
+  commentaryStorageKey = "commentaryConfigs",
+}: LuxuryTextViewProps) => {
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
   const { isMobile } = useDevice();
@@ -628,7 +682,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
   /** Commentator configs — persisted in localStorage */
   const [commentaryConfigs, setCommentaryConfigs] = useState<CommentatorConfig[]>(() => {
     try {
-      const saved = localStorage.getItem("commentaryConfigs");
+      const saved = localStorage.getItem(commentaryStorageKey);
       if (saved) {
         const parsed: CommentatorConfig[] = JSON.parse(saved);
         const ids = new Set(parsed.map((c) => c.id));
@@ -647,8 +701,8 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
 
   const saveCommentaryConfigs = useCallback((configs: CommentatorConfig[]) => {
     setCommentaryConfigs(configs);
-    try { localStorage.setItem("commentaryConfigs", JSON.stringify(configs)); } catch { /* ignore quota exceeded */ }
-  }, []);
+    try { localStorage.setItem(commentaryStorageKey, JSON.stringify(configs)); } catch { /* ignore quota exceeded */ }
+  }, [commentaryStorageKey]);
 
   const activeConfigs = useMemo(
     () => commentaryConfigs.filter((c) => c.mode !== "off"),
@@ -676,7 +730,16 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
   const scale = displayStyles.fontScale;
   const rawSize = fontSizeOverride ?? (isMobile ? Math.min(baseFontSize * scale, 28) : baseFontSize * scale);
   const effectiveSize = Math.round(rawSize);
-  const effectiveLineHeight = lineHeightOverride ?? parseFloat(template.lineHeight);
+  const effectiveLineHeight = lineHeightOverride ?? Number.parseFloat(displayStyles.lineHeight);
+
+  // A change made in the dedicated T editor must take precedence over an old
+  // quick override from the template panel.
+  useEffect(() => {
+    setFontSizeOverride(null);
+  }, [settings.pasukSize]);
+  useEffect(() => {
+    setLineHeightOverride(null);
+  }, [settings.pasukLineHeight, settings.pasukLineHeightCustom]);
 
   // Minimizing keeps the verses visible. Each verse independently reveals its
   // commentaries when tapped, while the expanded view keeps the full layout.
@@ -782,14 +845,17 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
 
       <div
         data-layout="luxury-navigation-row"
-        className="mb-4 grid min-h-11 w-full grid-cols-[32px_minmax(0,1fr)_32px] items-center px-1"
+        className="mb-4 grid min-h-11 w-full grid-cols-[68px_minmax(0,1fr)_68px] items-center px-1"
         dir="ltr"
       >
-        <div aria-hidden="true" className="h-8 w-8" />
+        <div aria-hidden="true" className="h-8 w-[68px]" />
         <div className="flex min-w-0 items-center justify-center" dir="rtl">
           {navigation}
         </div>
-        <div className="flex h-8 w-8 items-center justify-center justify-self-end" dir="rtl">
+        <div className="flex h-8 w-[68px] items-center justify-end gap-1 justify-self-end" dir="rtl">
+          <span data-layout="luxury-text-settings" data-layout-label="T הגדרות טקסט לחומש ומפרשים">
+            <TextDisplaySettings initialTab="pasuk" showPasukCount={false} />
+          </span>
           <Button
             variant="ghost"
             size="icon"
@@ -830,6 +896,7 @@ export const LuxuryTextView = ({ pesukim, expandAll = true, navigation }: Luxury
           commentaryLabelPosition={commentaryLabelPosition}
           onCommentaryLabelPositionChange={updateCommentaryLabelPosition}
           onClose={() => setShowSettings(false)}
+          title={settingsTitle}
         />
       )}
 

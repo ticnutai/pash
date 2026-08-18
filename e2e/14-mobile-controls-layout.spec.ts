@@ -98,10 +98,11 @@ test("mobile luxury controls keep navigation below the toolbar and use subtle go
 
   const minimize = page.getByRole("button", { name: "מזער את כל הפסוקים" });
   const mobileControls = page.locator('[data-layout="mobile-controls"]');
-  const textSettings = mobileControls.getByTitle("הגדרות תצוגת טקסט");
+  const textSettings = navigationRow.locator('[data-layout="luxury-text-settings"]').getByTitle("הגדרות תצוגת טקסט");
   await expect(mobileControls).toBeVisible();
   await expect(minimize).toBeVisible();
   await expect(textSettings).toBeVisible();
+  await expect(mobileControls.getByTitle("הגדרות תצוגת טקסט")).toHaveCount(0);
 
   const controlsLayout = await mobileControls.evaluate((element) => {
     const style = getComputedStyle(element);
