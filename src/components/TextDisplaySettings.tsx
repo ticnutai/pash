@@ -838,6 +838,33 @@ export const TextDisplaySettings = ({
               </TabsContent>
 
               <TabsContent value="siddur" className="mt-0 px-3 pb-4">
+                <div className="mb-4 rounded-xl border border-accent/25 bg-accent/5 p-3 space-y-3" data-testid="siddur-semantic-emphasis-settings">
+                  <div>
+                    <div className="text-sm font-bold">הדגשה חכמה בסידור</div>
+                    <p className="mt-1 text-xs text-muted-foreground">אפשר להפעיל כל הדגשה בנפרד. השינוי מוצג מיד בתצוגה המקדימה.</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <Switch aria-label="כותרות מודגשות" checked={settings.siddurHeadingBold} onCheckedChange={(checked) => updateSettings({ siddurHeadingBold: checked })} />
+                    <Label className="text-sm font-semibold">כותרות מודגשות</Label>
+                  </div>
+                  <Separator className="bg-accent/15" />
+                  <div className="flex items-center justify-between gap-3">
+                    <Switch aria-label="פתיחת פסקה מודגשת" checked={settings.siddurOpeningBold} onCheckedChange={(checked) => updateSettings({ siddurOpeningBold: checked })} />
+                    <div className="text-right">
+                      <Label className="text-sm font-semibold">פתיחת פסקה מודגשת</Label>
+                      <p className="text-[11px] text-muted-foreground">מכבד גם הדגשות שקיימות במקור</p>
+                    </div>
+                  </div>
+                  {settings.siddurOpeningBold && (
+                    <div className="grid grid-cols-3 gap-2" aria-label="מספר מילים מודגשות">
+                      {([1, 2, 3] as const).map((count) => (
+                        <Button key={count} type="button" size="sm" variant={settings.siddurOpeningWordCount === count ? "default" : "outline"} onClick={() => updateSettings({ siddurOpeningWordCount: count })} aria-pressed={settings.siddurOpeningWordCount === count}>
+                          {count === 1 ? "מילה אחת" : `${count} מילים`}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <SettingsControls
                   sizeValue={settings.siddurSize}    onSizeChange={(v) => updateSettings({ siddurSize: v })}    sizeLabel="גודל תפילות"
                   fontValue={settings.siddurFont}    onFontChange={(f) => updateSettings({ siddurFont: f, ...(f === "Noto Serif Hebrew" ? {} : { showTaamim: false }) })}    fontLabel="גופן תפילות"

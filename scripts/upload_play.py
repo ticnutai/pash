@@ -50,8 +50,8 @@ service.edits().tracks().update(
             "versionCodes": [str(vc)],
             "status": "completed",
             "releaseNotes": [
-                {"language": "he-IL", "text": "גרסה 1.8.11 - כל פירושי תהילים מובנים באפליקציה וזמינים גם ללא אינטרנט"},
-                {"language": "en-US", "text": "Version 1.8.11 - all Psalms commentaries are bundled and available offline"},
+                {"language": "he-IL", "text": "גרסה 1.8.12 - הדגשה חכמה ואופציונלית לכותרות ולפתיחת פסקאות בסידור"},
+                {"language": "en-US", "text": "Version 1.8.12 - optional smart emphasis for Siddur headings and paragraph openings"},
             ]
         }]
     }

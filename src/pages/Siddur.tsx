@@ -456,14 +456,20 @@ function classifyLine(html: string): "heading" | "instruction" | "prayer" {
 }
 
 /* Parses <b> and inline <small> tags inside a prayer line into React nodes */
-function renderLineContent(html: string): React.ReactNode {
-  const h = sanitizeHebrewMarkup(html)
+function renderLineContent(html: string, emphasizeInline = false, openingWordCount = 0): React.ReactNode {
+  let h = sanitizeHebrewMarkup(html)
     .replace(/&thinsp;/g, "\u2009")
     .replace(/&nbsp;/g, "\u00a0")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/\{[פסנ]\}/g, "");
+  // Prefer intentional emphasis from the source. When none exists, optionally
+  // mark the requested number of opening words without changing the prayer.
+  if (emphasizeInline && openingWordCount > 0 && !/<b>/i.test(h)) {
+    const match = h.match(new RegExp(`^((?:\\S+\\s+){0,${openingWordCount - 1}}\\S+)`));
+    if (match) h = `<b>${match[1]}</b>${h.slice(match[1].length)}`;
+  }
   // Recursive descent over the (already well-formed) <b>/<small> markup so
   // mixed nesting like <b>x<small>y</small></b> renders correctly instead of
   // leaking literal tags into the text.
@@ -486,8 +492,9 @@ function renderLineContent(html: string): React.ReactNode {
       }
       const children = parse(tag);
       if (tag === "b") {
-        // No wrapper at all: keep the opening word in the same shaped text run.
-        parts.push(...children);
+        parts.push(emphasizeInline
+          ? <strong key={key++} style={{ fontWeight: 700 }}>{children}</strong>
+          : <span key={key++}>{children}</span>);
       } else {
         parts.push(
           <span key={key++} style={{ fontSize: "0.77em", opacity: 0.65, fontStyle: "italic" }}>
@@ -1290,7 +1297,7 @@ const ThemePicker = () => {
 };
 
 /* ─── SiddurLine — renders one siddur line with semantic styling ─── */
-type SiddurLineSettings = { siddurFont: string; siddurSize: number; siddurBold: boolean; textAlignment: string; lineHeight: string; lineHeightCustom: number; showNikud: boolean; showTaamim: boolean; letterSpacing: string; letterSpacingCustom: number; wordSpacing: number; };
+type SiddurLineSettings = { siddurFont: string; siddurSize: number; siddurBold: boolean; siddurHeadingBold: boolean; siddurOpeningBold: boolean; siddurOpeningWordCount: 1 | 2 | 3; textAlignment: string; lineHeight: string; lineHeightCustom: number; showNikud: boolean; showTaamim: boolean; letterSpacing: string; letterSpacingCustom: number; wordSpacing: number; };
 
 const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
   html = stripText(html, s.showNikud, s.showTaamim);
@@ -1317,12 +1324,12 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
         <span style={{
           ...nikudStyle,
           fontSize: `${Math.round(s.siddurSize * 0.82)}px`,
-          fontWeight: 700,
+          fontWeight: s.siddurHeadingBold ? 700 : 600,
           color: headingColor,
           letterSpacing: letterSpacingCSS,
           wordSpacing: wordSpacingCSS,
         }}>
-          {renderLineContent(html)}
+          {renderLineContent(html, s.siddurHeadingBold)}
         </span>
       </div>
     );
@@ -1359,7 +1366,7 @@ const SiddurLine = ({ html, s }: { html: string; s: SiddurLineSettings }) => {
       letterSpacing: letterSpacingCSS,
       wordSpacing: wordSpacingCSS,
     }}>
-      {renderLineContent(html)}
+      {renderLineContent(html, s.siddurOpeningBold, s.siddurOpeningWordCount)}
     </p>
   );
 };

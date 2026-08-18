@@ -82,6 +82,9 @@ export interface FontAndColorSettings {
   siddurFont: string;
   siddurSize: number;
   siddurBold: boolean;
+  siddurHeadingBold: boolean;
+  siddurOpeningBold: boolean;
+  siddurOpeningWordCount: 1 | 2 | 3;
   siddurTextAlignment: "right" | "center" | "left" | "justify";
   siddurLineHeight: "tight" | "normal" | "relaxed" | "loose" | "custom";
   siddurLineHeightCustom: number;
@@ -196,6 +199,9 @@ const defaultSettings: FontAndColorSettings = {
   siddurFont: "Noto Serif Hebrew",
   siddurSize: 18,
   siddurBold: false,
+  siddurHeadingBold: false,
+  siddurOpeningBold: false,
+  siddurOpeningWordCount: 1,
   siddurTextAlignment: "justify",
   siddurLineHeight: "normal",
   siddurLineHeightCustom: 1.5,
@@ -241,6 +247,9 @@ const normalizeSettings = (settings: FontAndColorSettings): FontAndColorSettings
   answerSize: clamp(Number(settings.answerSize || defaultSettings.answerSize), 8, 24),
   commentarySize: clamp(Number(settings.commentarySize || defaultSettings.commentarySize), 8, 24),
   siddurSize: clamp(Number(settings.siddurSize || defaultSettings.siddurSize), 8, 36),
+  siddurHeadingBold: Boolean(settings.siddurHeadingBold),
+  siddurOpeningBold: Boolean(settings.siddurOpeningBold),
+  siddurOpeningWordCount: clamp(Number(settings.siddurOpeningWordCount || 1), 1, 3) as 1 | 2 | 3,
   tehillimSize: clamp(Number(settings.tehillimSize || defaultSettings.tehillimSize), 8, 36),
   siddurLineHeightCustom: clamp(Number(settings.siddurLineHeightCustom || defaultSettings.siddurLineHeightCustom), 1, 3),
   tehillimLineHeightCustom: clamp(Number(settings.tehillimLineHeightCustom || defaultSettings.tehillimLineHeightCustom), 1, 3),
