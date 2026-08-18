@@ -380,7 +380,13 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
                   <MinimizeButton
                     variant="individual"
                     isMinimized={effectiveMinimized}
-                    onClick={() => setIsMinimized(!isMinimized)}
+                    onClick={() => {
+                      if (baseMinimized) {
+                        setExpandedInMinimizedMode((prev) => !prev);
+                      } else {
+                        setIsMinimized(true);
+                      }
+                    }}
                   />
                 </>
               )}
