@@ -125,6 +125,7 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
   // closed after pressing "expand all".
   useEffect(() => {
     setIsMinimized(false);
+    setExpandedInMinimizedMode(false);
   }, [forceMinimized]);
   const [expandedInMinimizedMode, setExpandedInMinimizedMode] = useState(false);
   const [editorContext, setEditorContext] = useState<{
@@ -144,19 +145,16 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
   const [deletingQuestion, setDeletingQuestion] = useState<number | null>(null);
   const [deletingAnswer, setDeletingAnswer] = useState<number | null>(null);
 
-  const effectiveMinimized = forceMinimized || isMinimized || (displayMode === "minimized" && !expandedInMinimizedMode);
+  // When minimized (globally, per-pasuk, or via minimized display mode) only the
+  // pasuk text is shown; tapping the pasuk opens its commentaries, tapping again closes.
+  const baseMinimized = forceMinimized || isMinimized || displayMode === "minimized";
+  const effectiveMinimized = baseMinimized && !expandedInMinimizedMode;
 
   useEffect(() => {
-    if (displayMode !== "minimized") {
+    if (!baseMinimized) {
       setExpandedInMinimizedMode(false);
     }
-  }, [displayMode]);
-
-  useEffect(() => {
-    if (isMinimized) {
-      setExpandedInMinimizedMode(false);
-    }
-  }, [isMinimized]);
+  }, [baseMinimized]);
   
   // Safety check: ensure content exists and is an array
   const content = pasuk.content || [];
@@ -280,8 +278,8 @@ const PasukDisplayBase = ({ pasuk, seferId, forceMinimized = false, hideHeaderAc
             toggleSelect(pasuk);
             return;
           }
-          if (displayMode === "minimized" && !expandedInMinimizedMode && !forceMinimized) {
-            setExpandedInMinimizedMode(true);
+          if (baseMinimized) {
+            setExpandedInMinimizedMode((prev) => !prev);
           }
         }}
       >
