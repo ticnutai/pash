@@ -40,6 +40,20 @@ test("Tehillim commentary tab reuses the full luxury commentary experience", asy
   await pane.getByRole("button", { name: "מזער את כל הפסוקים" }).click();
   await expect(pane.getByRole("button", { name: "הרחב את כל הפסוקים" })).toBeVisible();
   await expect(pane.locator("[data-luxury-pasuk-text]").first()).toBeVisible();
+  await pane.getByRole("button", { name: "הרחב את כל הפסוקים" }).click();
+  await expect(pane.getByRole("button", { name: "מזער את כל הפסוקים" })).toBeVisible();
+
+  const commentaryControls = pane.locator('[data-layout="tehillim-commentary-controls"]');
+  await expect(commentaryControls).toHaveCSS("display", "grid");
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(250);
+  const minimizeStyle = await commentaryControls.getByRole("button", { name: "מזער את כל הפסוקים" }).evaluate(element => {
+    const style = getComputedStyle(element);
+    return { color: style.color, backgroundColor: style.backgroundColor, borderTopWidth: style.borderTopWidth };
+  });
+  expect(minimizeStyle.color).toBe("rgb(200, 160, 77)");
+  expect(minimizeStyle.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  expect(minimizeStyle.borderTopWidth).toBe("0px");
 
   await pane.getByRole("button", { name: "פתח הגדרות תצוגה" }).click();
   await expect(page.getByRole("dialog", { name: "הגדרות תצוגת פירושי תהילים" })).toBeVisible();

@@ -2087,12 +2087,23 @@ const TehillimPane = () => {
         <OrnamentTitle text="תהילים" fontSize={tehillimSettings.tehillimSize} />
         <Divider />
         {contentTabs}
-        <div className="mb-2 flex justify-center">
-          <MinimizeButton
-            variant="global"
-            isMinimized={!commentaryExpanded}
-            onClick={() => setCommentaryExpanded(value => !value)}
-          />
+        <div
+          data-layout="tehillim-commentary-controls"
+          data-layout-label="בקרות פירושי תהילים"
+          className="mb-4 grid w-full grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-3 rounded-2xl border border-accent/20 bg-card/35 px-3 py-3 shadow-sm"
+          dir="ltr"
+        >
+          <div className="flex h-11 w-11 items-center justify-center justify-self-start">
+            <MinimizeButton
+              variant="global"
+              isMinimized={!commentaryExpanded}
+              onClick={() => setCommentaryExpanded(value => !value)}
+            />
+          </div>
+          <div className="min-w-0 text-center text-sm font-bold text-primary" dir="rtl">
+            תצוגת פירושים
+          </div>
+          <div aria-hidden="true" className="h-11 w-11" />
         </div>
         <FontAndColorSettingsProvider scopeKey="tehillim-commentary">
           <LuxuryTextView
