@@ -225,7 +225,14 @@ test("right swipe anywhere in Chumash and commentaries opens the commentator pic
     }));
   }, box!);
 
-  await expect(page.getByRole("dialog", { name: "בחירת מפרשים" })).toBeVisible();
+  const picker = page.getByRole("dialog", { name: "בחירת מפרשים" });
+  await expect(picker).toBeVisible();
+  const pickerPanel = page.getByTestId("commentary-picker-dialog");
+  await expect(pickerPanel).toHaveCSS("border-radius", "28px");
+  await expect(pickerPanel).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.getByTestId("commentary-picker-header")).toHaveCSS("background-color", "rgb(11, 35, 75)");
+  await expect(page.locator("[data-dialog-overlay]")).toHaveCSS("background-color", "rgba(2, 8, 23, 0.85)");
+  await expect(picker.locator("[data-commentary-option]").first()).toHaveCSS("border-radius", "16px");
   await expect(page).toHaveURL(/\/$/);
 });
 
