@@ -40,6 +40,16 @@ const EXTRA_FAB_ACTIONS = [
   { id: "settings", icon: Settings, label: "הגדרות" },
 ] as const;
 
+const FAB_SIZE = 40;
+
+function clampFabPosition(position: { x: number; y: number }) {
+  const safeBottom = Math.max(getSafeAreaBottom(), 48);
+  return {
+    x: Math.min(Math.max(0, position.x), Math.max(0, window.innerWidth - FAB_SIZE)),
+    y: Math.min(Math.max(0, position.y), Math.max(0, window.innerHeight - FAB_SIZE - safeBottom)),
+  };
+}
+
 export const FloatingActionButton = ({
   onNavigateToPasuk,
   onOpenQuickNav,
@@ -67,9 +77,7 @@ export const FloatingActionButton = ({
     try {
       const parsed = JSON.parse(saved);
       if (typeof window !== 'undefined') {
-        const maxX = window.innerWidth - 60;
-        const maxY = window.innerHeight - 60 - Math.max(getSafeAreaBottom(), 48);
-        return { x: Math.min(Math.max(0, parsed.x), maxX), y: Math.min(Math.max(0, parsed.y), maxY) };
+        return clampFabPosition(parsed);
       }
       return parsed;
     } catch {
@@ -82,13 +90,50 @@ export const FloatingActionButton = ({
   const isDraggingRef = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
   const hasMoved = useRef(false);
+  const positionRef = useRef(position);
+
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  // Local-first, last-write-wins synchronization of the draggable position.
+  // Guests stay fully local; signed-in users receive their latest position on
+  // every device without blocking the initial render.
+  useEffect(() => {
+    if (!user) return;
+
+    const hasLocalPosition = localStorage.getItem('fab_position') !== null;
+    const localTs = Number(localStorage.getItem('fab_position_ts')) || 0;
+    const cloudTs = Number(user.user_metadata?.fab_position_ts) || 0;
+    const cloudPosition = user.user_metadata?.fab_position as { x?: unknown; y?: unknown } | undefined;
+    const hasCloudPosition = Number.isFinite(cloudPosition?.x) && Number.isFinite(cloudPosition?.y);
+
+    if (hasCloudPosition && cloudTs > localTs) {
+      const next = clampFabPosition({ x: Number(cloudPosition!.x), y: Number(cloudPosition!.y) });
+      setPosition(next);
+      localStorage.setItem('fab_position', JSON.stringify(next));
+      localStorage.setItem('fab_position_ts', String(cloudTs));
+      return;
+    }
+
+    if ((hasLocalPosition && !hasCloudPosition) || localTs > cloudTs) {
+      const current = positionRef.current;
+      const uploadTs = localTs || Date.now();
+      localStorage.setItem('fab_position_ts', String(uploadTs));
+      supabase.auth.updateUser({ data: {
+        ...user.user_metadata,
+        fab_position: current,
+        fab_position_ts: uploadTs,
+      } }).catch(() => {});
+    }
+  }, [user?.id]);
 
   // Capacitor 8 SystemBars plugin injects --safe-area-inset-bottom after DOM ready.
   // Re-check FAB position once on mount (with small delay) to account for injection timing.
   useEffect(() => {
     const adjustPosition = () => {
       const sab = Math.max(getSafeAreaBottom(), 48);
-      const maxY = window.innerHeight - 56 - sab;
+      const maxY = window.innerHeight - FAB_SIZE - sab;
       setPosition(prev => {
         if (prev.y > maxY) {
           const next = { ...prev, y: maxY };
@@ -131,8 +176,8 @@ export const FloatingActionButton = ({
     const dy = e.clientY - dragStart.current.y;
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved.current = true;
 
-    const newX = Math.max(0, Math.min(window.innerWidth - 56, dragStart.current.startX + dx));
-    const newY = Math.max(0, Math.min(window.innerHeight - 56 - getSafeAreaBottom(), dragStart.current.startY + dy));
+    const newX = Math.max(0, Math.min(window.innerWidth - FAB_SIZE, dragStart.current.startX + dx));
+    const newY = Math.max(0, Math.min(window.innerHeight - FAB_SIZE - getSafeAreaBottom(), dragStart.current.startY + dy));
     setPosition({ x: newX, y: newY });
   }, [isDragging, position, expanded]);
 
@@ -147,13 +192,14 @@ export const FloatingActionButton = ({
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       setIsDragging(false);
-      localStorage.setItem('fab_position', JSON.stringify(position));
-      localStorage.setItem('fab_position_ts', String(Date.now()));
+      const finalPosition = positionRef.current;
+      const ts = Date.now();
+      localStorage.setItem('fab_position', JSON.stringify(finalPosition));
+      localStorage.setItem('fab_position_ts', String(ts));
       if (hasMoved.current && user) {
-        const ts = Date.now();
         supabase.auth.updateUser({ data: {
           ...user.user_metadata,
-          fab_position: position,
+          fab_position: finalPosition,
           fab_position_ts: ts,
         } }).catch(() => {});
       }
@@ -265,7 +311,7 @@ export const FloatingActionButton = ({
   // Determine menu expansion direction based on position
   const isNearBottom = position.y > window.innerHeight / 2;
 
-  const mainSize = "h-11 w-11";
+  const mainSize = "h-10 w-10";
 
   return (
     <>
@@ -368,9 +414,9 @@ export const FloatingActionButton = ({
           }}
         >
           {expanded ? (
-            <X className="h-[18px] w-[18px]" strokeWidth={2.25} />
+            <X className="h-4 w-4" strokeWidth={2.25} />
           ) : (
-            <Search className="h-[18px] w-[18px]" strokeWidth={2.25} />
+            <Search className="h-4 w-4" strokeWidth={2.25} />
           )}
         </div>
       </div>

@@ -672,6 +672,7 @@ export const LuxuryTextView = ({
   const [fontSizeOverride, setFontSizeOverride] = useState<number | null>(null);
   const [lineHeightOverride, setLineHeightOverride] = useState<number | null>(null);
   const [showCommentaryPicker, setShowCommentaryPicker] = useState(false);
+  const commentarySwipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const [commentaryLabelPosition, setCommentaryLabelPosition] = useState<CommentaryLabelPosition>(() =>
     localStorage.getItem("commentary-label-position") === "above" ? "above" : "side"
   );
@@ -793,6 +794,25 @@ export const LuxuryTextView = ({
     [toggleBookmark]
   );
 
+  const handleCommentarySwipeStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isMobile || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    commentarySwipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, [isMobile]);
+
+  const handleCommentarySwipeEnd = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    const start = commentarySwipeStartRef.current;
+    commentarySwipeStartRef.current = null;
+    if (!start || !isMobile || event.changedTouches.length === 0) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (deltaX >= 72 && Math.abs(deltaY) <= Math.max(60, Math.abs(deltaX) * 0.65)) {
+      event.preventDefault();
+      setShowCommentaryPicker(true);
+    }
+  }, [isMobile]);
+
   if (pesukim.length === 0) {
     return (
       <div className="p-12 text-center animate-fade-in">
@@ -808,7 +828,12 @@ export const LuxuryTextView = ({
     <div
       className="w-full"
       data-luxury-template={templateId}
-      style={{ maxWidth: "100%", margin: "0" }}
+      data-no-page-swipe
+      data-commentary-swipe-surface
+      style={{ maxWidth: "100%", margin: "0", touchAction: "pan-y" }}
+      onTouchStartCapture={handleCommentarySwipeStart}
+      onTouchEndCapture={handleCommentarySwipeEnd}
+      onTouchCancelCapture={() => { commentarySwipeStartRef.current = null; }}
     >
       {/* Gold divider between the main view-mode controls and this view's tools */}
       <div data-layout="luxury-top-divider" className="mb-4 flex items-center justify-center gap-3">

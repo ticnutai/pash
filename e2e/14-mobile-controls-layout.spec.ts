@@ -186,3 +186,54 @@ test("questions navigation remains visible at tablet preview widths", async ({ p
 
   await expect(page.locator('[data-layout="nav-buttons"]')).toBeVisible();
 });
+
+test("right swipe anywhere in Chumash and commentaries opens the commentator picker", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "חומש ומפרשים" }).click();
+
+  const surface = page.locator('[data-commentary-swipe-surface]');
+  await expect(surface).toBeVisible();
+  const box = await surface.boundingBox();
+  expect(box).not.toBeNull();
+
+  await surface.evaluate((element, point) => {
+    const touch = (x: number, y: number) => new Touch({
+      identifier: 1,
+      target: element,
+      clientX: x,
+      clientY: y,
+      pageX: x,
+      pageY: y,
+      screenX: x,
+      screenY: y,
+    });
+    const start = touch(point.x + 30, point.y + 220);
+    element.dispatchEvent(new TouchEvent("touchstart", {
+      bubbles: true,
+      cancelable: true,
+      touches: [start],
+      targetTouches: [start],
+      changedTouches: [start],
+    }));
+    const end = touch(point.x + Math.min(point.width - 20, 180), point.y + 225);
+    element.dispatchEvent(new TouchEvent("touchend", {
+      bubbles: true,
+      cancelable: true,
+      touches: [],
+      targetTouches: [],
+      changedTouches: [end],
+    }));
+  }, box!);
+
+  await expect(page.getByRole("dialog", { name: "בחירת מפרשים" })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+});
+
+test("floating search button uses the smaller mobile size", async ({ page }) => {
+  await page.goto("/");
+  const fab = page.locator('[data-layout="fab-toggle"]');
+  await expect(fab).toBeVisible();
+  const box = await fab.boundingBox();
+  expect(box?.width).toBeCloseTo(40, 0);
+  expect(box?.height).toBeCloseTo(40, 0);
+});

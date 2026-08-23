@@ -23,6 +23,7 @@ import { ReminderPopup } from "@/components/ReminderPopup";
 import { OmerEntryPopup } from "@/components/OmerEntryPopup";
 import { useNotifications } from "@/hooks/useNotifications";
 import { MetaSyncInitializer } from "@/components/MetaSyncInitializer";
+import { MobilePageSwipeNavigation } from "@/components/MobilePageSwipeNavigation";
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
@@ -187,6 +188,7 @@ const App = () => {
                           v7_relativeSplatPath: true,
                         }}
                       >
+                        <MobilePageSwipeNavigation />
                         <OmerEntryPopup />
                         <ErrorBoundary fallbackTitle="שגיאה בטעינת הדף">
                           <Trace id="App.Routes">
