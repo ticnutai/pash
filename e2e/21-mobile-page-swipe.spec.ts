@@ -10,6 +10,7 @@ async function swipe(page: Page, fromX: number, toX: number, fromY = 500, toY = 
 }
 
 test("horizontal gestures navigate between the main mobile pages without hijacking vertical gestures", async ({ page }) => {
+  await page.addInitScript(() => { window.__OMER_TEST_NOW__ = "2026-04-10T12:00:00+03:00"; });
   const pageErrors: string[] = [];
   page.on("pageerror", error => pageErrors.push(error.message));
 

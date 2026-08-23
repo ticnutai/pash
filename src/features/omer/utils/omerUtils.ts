@@ -1,5 +1,11 @@
 import { HebrewCalendar, HDate, flags } from "@hebcal/core";
 
+declare global {
+  interface Window {
+    __OMER_TEST_NOW__?: string;
+  }
+}
+
 // @hebcal/core doesn't export TypeScript types for OmerEvent runtime properties
 interface OmerEventLike {
   omer: number;
@@ -52,8 +58,17 @@ function buildEvents(gregYear: number) {
   );
 }
 
-export function getOmerBoardData(): OmerBoardData {
-  const now = new Date();
+function getOmerNow(now?: Date): Date {
+  if (now) return now;
+  if (typeof window !== "undefined" && navigator.webdriver && window.__OMER_TEST_NOW__) {
+    const testDate = new Date(window.__OMER_TEST_NOW__);
+    if (!Number.isNaN(testDate.getTime())) return testDate;
+  }
+  return new Date();
+}
+
+export function getOmerBoardData(at?: Date): OmerBoardData {
+  const now = getOmerNow(at);
 
   // After nightfall (≥18:00 local time) the Jewish day has already advanced —
   // show the next Omer count so users know what to say tonight.
@@ -120,6 +135,11 @@ export function getOmerBoardData(): OmerBoardData {
   });
 
   return { hebrewYear, currentDay, isInSeason, startDate, endDate, days };
+}
+
+/** Canonical seasonal gate for every Omer entry point in the application. */
+export function isOmerSeason(now?: Date): boolean {
+  return getOmerBoardData(now).isInSeason;
 }
 
 /** Format a Date as DD/MM */

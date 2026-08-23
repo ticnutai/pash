@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { normalizeHebrewText } from "@/utils/textUtils";
 import { useSiddurCategories, useSiddurSections, useTehillimData, preloadSiddurNusach } from "@/hooks/useSiddurData";
 import { getWeekdayLeyning, getCalendarPreference, type WeekdayLeyning } from "@/utils/parshaUtils";
+import { useOmerSeason } from "@/features/omer/hooks/useOmerSeason";
 
 /* ─── Types ─────────────────────────────────────────────── */
 type SiddurSection   = { title: string; lines: string[] };
@@ -2569,6 +2570,7 @@ const KriaPane = ({ onNavigate }: { onNavigate: (seferId?: number, perek?: numbe
 /* ─── Main Siddur component ──────────────────────────────── */
 export const Siddur = () => {
   const navigate                = useNavigate();
+  const omerInSeason            = useOmerSeason();
   const [nusach, setNusach]    = useState("sefard");
   const [catId, setCatId]      = useState("shacharit");
   const { user } = useAuth();
@@ -2924,6 +2926,7 @@ export const Siddur = () => {
                   <BookMarked className="h-3.5 w-3.5 flex-shrink-0" />
                   <span className="hidden sm:inline">סידור</span>
                 </div>
+                {omerInSeason && <>
                 <span className="w-px h-3.5 opacity-25" style={{ background: hAccent }} />
                 <button
                   onClick={() => navigate('/omer')}
@@ -2934,6 +2937,7 @@ export const Siddur = () => {
                   <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
                   <span className="hidden sm:inline">עומר</span>
                 </button>
+                </>}
               </div>
             </div>
           </div>

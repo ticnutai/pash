@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDevice } from "@/contexts/DeviceContext";
+import { useOmerSeason } from "@/features/omer/hooks/useOmerSeason";
 
-const MAIN_PAGES = ["/", "/siddur", "/omer"] as const;
+const STANDARD_MAIN_PAGES = ["/", "/siddur"] as const;
 const MIN_HORIZONTAL_DISTANCE = 72;
 const MAX_VERTICAL_DISTANCE = 56;
 const EDGE_GUARD = 24;
@@ -20,12 +21,16 @@ export function MobilePageSwipeNavigation() {
   const { isMobile } = useDevice();
   const location = useLocation();
   const navigate = useNavigate();
+  const omerInSeason = useOmerSeason();
   const startRef = useRef<StartPoint | null>(null);
   const latestRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!isMobile) return;
-    const currentIndex = MAIN_PAGES.indexOf(location.pathname as typeof MAIN_PAGES[number]);
+    const mainPages: readonly string[] = omerInSeason
+      ? [...STANDARD_MAIN_PAGES, "/omer"]
+      : STANDARD_MAIN_PAGES;
+    const currentIndex = mainPages.indexOf(location.pathname);
     if (currentIndex < 0) return;
 
     const onTouchStart = (event: TouchEvent) => {
@@ -66,8 +71,8 @@ export function MobilePageSwipeNavigation() {
 
       // Swipe left advances; swipe right returns to the previous main page.
       const nextIndex = dx < 0 ? currentIndex + 1 : currentIndex - 1;
-      if (nextIndex < 0 || nextIndex >= MAIN_PAGES.length) return;
-      navigate(MAIN_PAGES[nextIndex]);
+      if (nextIndex < 0 || nextIndex >= mainPages.length) return;
+      navigate(mainPages[nextIndex]);
     };
 
     const onTouchMove = (event: TouchEvent) => {
@@ -101,7 +106,7 @@ export function MobilePageSwipeNavigation() {
       document.removeEventListener("touchcancel", onTouchCancel, true);
       delete document.body.dataset.mobilePageSwipe;
     };
-  }, [isMobile, location.pathname, navigate]);
+  }, [isMobile, location.pathname, navigate, omerInSeason]);
 
   return null;
 }

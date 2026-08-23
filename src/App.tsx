@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Navigate, Routes, Route } from "react-router-dom";
 
 // Use HashRouter in Electron (file:// protocol) and BrowserRouter in web
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -24,6 +24,7 @@ import { OmerEntryPopup } from "@/components/OmerEntryPopup";
 import { useNotifications } from "@/hooks/useNotifications";
 import { MetaSyncInitializer } from "@/components/MetaSyncInitializer";
 import { MobilePageSwipeNavigation } from "@/components/MobilePageSwipeNavigation";
+import { useOmerSeason } from "@/features/omer/hooks/useOmerSeason";
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
 const DEV_SCREENSHOT_ENABLED_KEY = "dev-screenshot-tool-enabled";
@@ -72,6 +73,11 @@ const LoadingFallback = () => (
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
+
+function SeasonalOmerRoute() {
+  const inSeason = useOmerSeason();
+  return inSeason ? <Omer /> : <Navigate to="/" replace />;
+}
 
 function OfflineBanner() {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
@@ -200,7 +206,7 @@ const App = () => {
                               <Route path="/commentaries/:seferId/:perek/:pasuk" element={<Commentaries />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="/siddur" element={<Siddur />} />
-                              <Route path="/omer" element={<Omer />} />
+                              <Route path="/omer" element={<SeasonalOmerRoute />} />
                               <Route path="/layout-editor" element={<LayoutEditor />} />
                               <Route path="/admin/permissions" element={<AdminPermissions />} />
                               <Route path="*" element={<NotFound />} />

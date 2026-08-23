@@ -38,6 +38,7 @@ import { CompactPasukView } from "@/components/CompactPasukView";
 import { LuxuryTextView } from "@/components/LuxuryTextView";
 
 import { useReadingPositionSync } from "@/hooks/useReadingPositionSync";
+import { useOmerSeason } from "@/features/omer/hooks/useOmerSeason";
 
 // Lazy load heavy components - split by usage priority
 // Critical components (loaded when mode is active)
@@ -88,6 +89,7 @@ const Index = () => {
   const { displaySettings, updateDisplaySettings } = useDisplayMode();
   const { isMobile, isTablet } = useDevice();
   const navigate = useNavigate();
+  const omerInSeason = useOmerSeason();
   const [searchParams] = useSearchParams();
   const [corpusMode, setCorpusMode] = useState<CorpusMode>(() => {
     try {
@@ -957,15 +959,15 @@ const Index = () => {
                     <BookMarked className="h-4 w-4" />
                   </button>
                   </span>
-                  <button
+                  {omerInSeason && <button
                     onClick={() => navigate('/omer')}
                     className="flex items-center justify-center h-8 w-8 rounded-md text-xs font-medium transition-all text-accent/50 hover:text-accent"
                     title="ספירת העומר"
                   >
                     <Sparkles className="h-4 w-4" />
-                  </button>
+                  </button>}
                 </span>}
-                {mobileHeaderLayout === "stacked" && (
+                {mobileHeaderLayout === "stacked" && omerInSeason && (
                   <button
                     onClick={() => navigate('/omer')}
                     className="flex h-8 w-8 items-center justify-center rounded-md text-accent/50 transition-all hover:text-accent"
@@ -1073,14 +1075,14 @@ const Index = () => {
                   <span>סידור</span>
                 </button>
                 </span>
-                <button
+                {omerInSeason && <button
                   onClick={() => navigate('/omer')}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all text-accent/50 hover:text-accent"
                   title="ספירת העומר"
                 >
                   <Sparkles className="h-4 w-4" />
                   <span>ספירת העומר</span>
-                </button>
+                </button>}
               </span>
 
               {/* Left: Icons clustered together + Search at far left */}
