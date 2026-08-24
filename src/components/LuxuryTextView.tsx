@@ -451,7 +451,7 @@ const PasukRow = ({
         <span
           data-luxury-pasuk-marker
           className={cn(
-            "absolute top-[0.16em] select-none inline-flex items-center justify-center",
+            "absolute top-[0.34em] select-none inline-flex items-center justify-center",
             isMinimal ? "" : "rounded-full px-1.5 border"
           )}
           style={{

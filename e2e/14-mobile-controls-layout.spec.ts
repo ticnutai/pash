@@ -153,6 +153,10 @@ test("mobile luxury controls keep navigation below the toolbar and use subtle go
   expect(commentaryBodyBox).not.toBeNull();
   expect(markerBox!.x).toBeGreaterThan(bodyBox!.x + bodyBox!.width - 1);
   expect(Math.abs((bodyBox!.x + bodyBox!.width) - (commentaryBodyBox!.x + commentaryBodyBox!.width))).toBeLessThanOrEqual(1);
+  const firstLineHeight = await firstPasuk.locator("[data-luxury-pasuk-body]").evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).lineHeight),
+  );
+  expect(Math.abs((markerBox!.y + markerBox!.height / 2) - (bodyBox!.y + firstLineHeight / 2))).toBeLessThanOrEqual(2.1);
 
   await minimize.click();
   await expect(page.getByRole("button", { name: "הרחב את כל הפסוקים" })).toBeVisible();
@@ -295,4 +299,8 @@ test("Galaxy S25 narrow layout keeps T and display controls in their requested r
   expect(commentaryBodyBox).not.toBeNull();
   expect(markerBox!.x).toBeGreaterThan(bodyBox!.x + bodyBox!.width - 1);
   expect(Math.abs((bodyBox!.x + bodyBox!.width) - (commentaryBodyBox!.x + commentaryBodyBox!.width))).toBeLessThanOrEqual(1);
+  const firstLineHeight = await pasuk.locator("[data-luxury-pasuk-body]").evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).lineHeight),
+  );
+  expect(Math.abs((markerBox!.y + markerBox!.height / 2) - (bodyBox!.y + firstLineHeight / 2))).toBeLessThanOrEqual(2.1);
 });
