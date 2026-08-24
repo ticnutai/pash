@@ -7,10 +7,10 @@ test("luxury text settings are scoped and survive expanded, minimized and every 
   await page.goto("/");
   await page.getByRole("button", { name: "חומש ומפרשים" }).click();
 
-  const navigationRow = page.locator('[data-layout="luxury-navigation-row"]');
-  const localTextTrigger = navigationRow.locator('[data-layout="luxury-text-settings"]').getByTitle("הגדרות תצוגת טקסט");
+  const mobileControls = page.locator('[data-layout="mobile-controls"]');
+  const localTextTrigger = mobileControls.locator('[data-layout="luxury-text-settings"]').getByTitle("הגדרות תצוגת טקסט");
   await expect(localTextTrigger).toBeVisible();
-  await expect(page.locator('[data-layout="mobile-controls"]').getByTitle("הגדרות תצוגת טקסט")).toHaveCount(0);
+  await expect(page.locator('[data-layout="luxury-navigation-row"]').getByTitle("הגדרות תצוגת טקסט")).toHaveCount(0);
 
   await localTextTrigger.click();
   const dialog = page.locator('[data-layout="dialog-text-display"]');
@@ -59,7 +59,7 @@ test("luxury text settings are scoped and survive expanded, minimized and every 
   };
   await assertScopedVerseStyle();
 
-  const displaySettingsTrigger = navigationRow.getByRole("button", { name: "פתח הגדרות תצוגה" });
+  const displaySettingsTrigger = page.locator('[data-layout="luxury-toolbar"]').getByRole("button", { name: "פתח הגדרות תצוגה" });
   await displaySettingsTrigger.click();
   const templateSheet = page.getByTestId("luxury-display-settings-sheet");
   const templates = [

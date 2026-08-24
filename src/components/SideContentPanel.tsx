@@ -113,7 +113,7 @@ export const SideContentPanel = ({
         <div className="flex flex-col gap-2 flex-shrink-0 p-3 pb-0 border-b border-border/60">
           {/* Top row: T (text settings) on the right, X close on the left — always visible */}
           <div className="flex items-center justify-between gap-1.5 min-w-0">
-            <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full h-8 w-8 flex-shrink-0">
+            <Button data-back-dismiss-action="true" variant="ghost" size="icon" onClick={onClose} className="hover:bg-destructive/10 hover:text-destructive rounded-full h-8 w-8 flex-shrink-0">
               <X className="h-4 w-4" />
             </Button>
             <span data-layout="btn-text-settings-side-panel" data-layout-label="✏️ הגדרות טקסט (פאנל צד)" className="flex-shrink-0">
@@ -238,6 +238,10 @@ export const SideContentPanel = ({
       />
       <Card
         dir="rtl"
+        role="dialog"
+        aria-modal="false"
+        aria-label={mode === "pasuk" ? "פירושים" : "התוכן שלי"}
+        data-back-dismiss="true"
         data-layout="side-panel" data-layout-label="\ud83d\udccb \u05e4\u05d0\u05e0\u05dc \u05ea\u05d5\u05db\u05df \u05e6\u05d3\u05d9"
         className="fixed left-0 top-[460px] md:top-[470px] w-80 md:w-96 max-h-[calc(100vh-470px)] p-4 z-40 animate-fade-in flex flex-col overflow-y-auto ml-1"
       >

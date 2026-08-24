@@ -222,6 +222,7 @@ const CommentaryBlock = ({
       </span>
     </div>
     <div
+      data-luxury-commentary-body
       className="w-full text-foreground/80"
       style={{ textAlign: commentaryStyles.textAlign, textAlignLast: commentaryStyles.textAlign === "justify" ? "right" : undefined }}
     >
@@ -421,7 +422,7 @@ const PasukRow = ({
 
       <p
         data-luxury-pasuk-text
-        className={cn("m-0", minimizedMode && "cursor-pointer rounded-md px-2 py-1 transition-colors hover:bg-accent/10")}
+        className={cn("relative m-0", minimizedMode && "cursor-pointer rounded-md px-2 py-1 transition-colors hover:bg-accent/10")}
         dir="rtl"
         role={minimizedMode ? "button" : undefined}
         tabIndex={minimizedMode ? 0 : undefined}
@@ -448,16 +449,16 @@ const PasukRow = ({
       >
         {/* Pasuk number */}
         <span
+          data-luxury-pasuk-marker
           className={cn(
-            "select-none inline-flex items-center justify-center",
+            "absolute top-[0.16em] select-none inline-flex items-center justify-center",
             isMinimal ? "" : "rounded-full px-1.5 border"
           )}
           style={{
+            insetInlineStart: "calc(-1.75em - 0.45rem)",
             color: numColor,
             fontWeight: 700,
             fontSize: `${fontSize * 0.68}px`,
-            marginInlineEnd: "0.45em",
-            marginInlineStart: "0.15em",
             minWidth: isMinimal ? "auto" : "1.75em",
             lineHeight: 1.2,
             borderColor: isMinimal ? "transparent" : `${numColor}55`,
@@ -467,8 +468,15 @@ const PasukRow = ({
           {pasukMarker}&lrm;
         </span>
 
-        {/* Text */}
-        {formatTorahText(pasuk.text)}
+        {/* The marker floats in a dedicated gutter outside the text column,
+            so Torah and commentary text share one uninterrupted right edge. */}
+        <span
+          data-luxury-pasuk-body
+          className="block"
+          style={{ width: "calc(100% - 0.875rem)", marginInlineStart: "0.875rem" }}
+        >
+          {formatTorahText(pasuk.text)}
+        </span>
       </p>
 
       {/* Click-mode toggle buttons — outside <p> to avoid bidi collision */}
@@ -545,6 +553,7 @@ const SettingsPanel = ({
   <div
     dir="rtl"
     data-testid="luxury-display-settings-sheet"
+    data-back-dismiss="true"
     role="dialog"
     aria-modal="false"
     aria-label={title}
@@ -552,7 +561,7 @@ const SettingsPanel = ({
   >
     <div className="flex shrink-0 items-center justify-between border-b border-accent/25 bg-card px-4 py-3">
       <h3 className="font-bold text-base text-foreground">{title}</h3>
-      <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full" aria-label="סגור הגדרות תצוגה">
+      <Button data-back-dismiss-action="true" variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full" aria-label="סגור הגדרות תצוגה">
         <X className="h-4 w-4" />
       </Button>
     </div>
@@ -652,6 +661,7 @@ interface LuxuryTextViewProps {
   settingsTitle?: string;
   commentaryStorageKey?: string;
   availableCommentators?: Omit<CommentatorConfig, "mode" | "order">[];
+  textSettingsPortalId?: string;
 }
 
 export const LuxuryTextView = ({
@@ -661,6 +671,7 @@ export const LuxuryTextView = ({
   settingsTitle,
   commentaryStorageKey = "commentaryConfigs",
   availableCommentators = ALL_COMMENTATORS,
+  textSettingsPortalId,
 }: LuxuryTextViewProps) => {
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
@@ -672,6 +683,7 @@ export const LuxuryTextView = ({
   const [fontSizeOverride, setFontSizeOverride] = useState<number | null>(null);
   const [lineHeightOverride, setLineHeightOverride] = useState<number | null>(null);
   const [showCommentaryPicker, setShowCommentaryPicker] = useState(false);
+  const [textSettingsHost, setTextSettingsHost] = useState<HTMLElement | null>(null);
   const commentarySwipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const [commentaryLabelPosition, setCommentaryLabelPosition] = useState<CommentaryLabelPosition>(() =>
     localStorage.getItem("commentary-label-position") === "above" ? "above" : "side"
@@ -681,6 +693,20 @@ export const LuxuryTextView = ({
     setCommentaryLabelPosition(position);
     localStorage.setItem("commentary-label-position", position);
   }, []);
+
+  useEffect(() => {
+    if (!textSettingsPortalId) {
+      setTextSettingsHost(null);
+      return;
+    }
+    setTextSettingsHost(document.getElementById(textSettingsPortalId));
+  }, [textSettingsPortalId]);
+
+  const textSettingsControl = (
+    <span data-layout="luxury-text-settings" data-layout-label="T הגדרות טקסט לחומש ומפרשים">
+      <TextDisplaySettings initialTab="pasuk" showPasukCount={false} />
+    </span>
+  );
 
   /** Commentator configs — persisted in localStorage */
   const [commentaryConfigs, setCommentaryConfigs] = useState<CommentatorConfig[]>(() => {
@@ -835,6 +861,7 @@ export const LuxuryTextView = ({
       onTouchEndCapture={handleCommentarySwipeEnd}
       onTouchCancelCapture={() => { commentarySwipeStartRef.current = null; }}
     >
+      {textSettingsHost && createPortal(textSettingsControl, textSettingsHost)}
       {/* Gold divider between the main view-mode controls and this view's tools */}
       <div data-layout="luxury-top-divider" className="mb-4 flex items-center justify-center gap-3">
         <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[hsl(var(--accent))] to-transparent" />
@@ -843,8 +870,11 @@ export const LuxuryTextView = ({
       </div>
 
       {/* Toolbar */}
-      <div data-layout="luxury-toolbar" className="mb-4 flex w-full items-center justify-center px-1" dir="rtl">
-        <div className="flex min-w-0 items-center justify-center">
+      <div data-layout="luxury-toolbar" className="mb-4 grid min-h-11 w-full grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 px-1" dir="ltr">
+        <div className="flex h-11 w-11 items-center justify-center">
+          {!textSettingsPortalId && textSettingsControl}
+        </div>
+        <div className="flex min-w-0 items-center justify-center" dir="rtl">
           <div className="inline-flex items-center rounded-2xl border border-accent/30 bg-card/95 p-1.5 shadow-sm">
             <Button
               variant="ghost"
@@ -870,21 +900,7 @@ export const LuxuryTextView = ({
             </Button>
           </div>
         </div>
-      </div>
-
-      <div
-        data-layout="luxury-navigation-row"
-        className="mb-4 grid min-h-11 w-full grid-cols-[68px_minmax(0,1fr)_68px] items-center px-1"
-        dir="ltr"
-      >
-        <div aria-hidden="true" className="h-8 w-[68px]" />
-        <div className="flex min-w-0 items-center justify-center" dir="rtl">
-          {navigation}
-        </div>
-        <div className="flex h-8 w-[68px] items-center justify-end gap-1 justify-self-end" dir="rtl">
-          <span data-layout="luxury-text-settings" data-layout-label="T הגדרות טקסט לחומש ומפרשים">
-            <TextDisplaySettings initialTab="pasuk" showPasukCount={false} />
-          </span>
+        <div className="flex h-11 w-11 items-center justify-center justify-self-end" dir="rtl">
           <Button
             variant="ghost"
             size="icon"
@@ -901,6 +917,18 @@ export const LuxuryTextView = ({
           </Button>
         </div>
       </div>
+
+      {navigation && <div
+        data-layout="luxury-navigation-row"
+        className="mb-4 grid min-h-11 w-full grid-cols-[68px_minmax(0,1fr)_68px] items-center px-1"
+        dir="ltr"
+      >
+        <div aria-hidden="true" className="h-8 w-[68px]" />
+        <div className="flex min-w-0 items-center justify-center" dir="rtl">
+          {navigation}
+        </div>
+        <div aria-hidden="true" className="h-8 w-[68px]" />
+      </div>}
 
       {/* Commentary Picker Dialog */}
       <CommentaryPickerDialog

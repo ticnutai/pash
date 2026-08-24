@@ -1289,7 +1289,9 @@ const Index = () => {
                   <ViewModeToggle seferId={selectedSefer} />
                 </div>
                 <div className="flex h-11 w-11 items-center justify-center justify-self-end" dir="rtl">
-                  {displayMode !== "luxury" && <TextDisplaySettings />}
+                  {displayMode === "luxury"
+                    ? <div id="luxury-mobile-text-settings-slot" className="flex h-11 w-11 items-center justify-center" />
+                    : <TextDisplaySettings />}
                 </div>
               </div>
             )}
@@ -1397,6 +1399,7 @@ const Index = () => {
                         <LuxuryTextView
                           pesukim={localizedDisplayedPesukim}
                           expandAll={globalExpandAll}
+                          textSettingsPortalId={isMobile ? "luxury-mobile-text-settings-slot" : undefined}
                           navigation={(isMobile || isTablet) && currentParshaName && parshaAllPesukim.length > 0 ? (
                             <div data-layout="nav-buttons" data-layout-label="🔀 ניווט" className="flex items-center justify-center gap-3 px-2 py-3" dir="rtl">
                               <Button

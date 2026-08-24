@@ -80,10 +80,10 @@ export function CommentaryPickerDialog({
   const activeCount = local.filter((c) => c.mode !== "off").length;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange} modal={false}>
       <DialogContent
         data-testid="commentary-picker-dialog"
-        overlayClassName="bg-[#020817]/85 backdrop-blur-[2px]"
+        overlayClassName="bg-transparent backdrop-blur-none"
         className="w-[calc(100vw-24px)] max-w-md gap-0 overflow-hidden rounded-[28px] border-2 border-[#d8ad4a] bg-white p-0 text-[#102a56] shadow-[0_26px_90px_rgba(2,8,23,0.58)] sm:w-full [&>button]:right-auto [&>button]:left-4 [&>button]:top-4 [&>button]:rounded-full [&>button]:bg-white/10 [&>button]:p-1.5 [&>button]:text-white [&>button]:opacity-100 [&>button:hover]:bg-[#d8ad4a] [&>button:hover]:text-[#102a56]"
         dir="rtl"
       >

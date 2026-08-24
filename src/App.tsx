@@ -24,6 +24,7 @@ import { OmerEntryPopup } from "@/components/OmerEntryPopup";
 import { useNotifications } from "@/hooks/useNotifications";
 import { MetaSyncInitializer } from "@/components/MetaSyncInitializer";
 import { MobilePageSwipeNavigation } from "@/components/MobilePageSwipeNavigation";
+import { AndroidBackNavigation } from "@/components/AndroidBackNavigation";
 import { useOmerSeason } from "@/features/omer/hooks/useOmerSeason";
 
 const DEV_CHAT_ENABLED_KEY = "dev-chat-widget-enabled";
@@ -195,6 +196,7 @@ const App = () => {
                         }}
                       >
                         <MobilePageSwipeNavigation />
+                        <AndroidBackNavigation />
                         <OmerEntryPopup />
                         <ErrorBoundary fallbackTitle="שגיאה בטעינת הדף">
                           <Trace id="App.Routes">
